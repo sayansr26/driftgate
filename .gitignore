@@ -19,8 +19,15 @@ coverage/
 # What IS public: README, CONTRIBUTING, docs/rfc-0001-canonical-format.md,
 # docs/determinism.md, and the per-tool precedence pages. That is what a
 # contributor actually needs in order to write an adapter.
+#
+# CLAUDE.md is NOT here: it is a generated artifact of this repo's own .driftgate/,
+# rendered from public-safe rules and committed. The hand-written working guide it
+# replaced now lives at memory-bank/09-working-guide.md, covered by the rule below.
 memory-bank/
-CLAUDE.md
 task-breakdown.md
 docs/PRD.md
 docs/reserch-report.md
+
+# Copies of files that predated driftgate, saved by `sync --force`. Local recovery
+# material, not project content.
+.driftgate/backup/

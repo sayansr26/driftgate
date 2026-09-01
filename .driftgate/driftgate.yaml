@@ -1,0 +1,7 @@
+# Driftgate's own canonical config. This repository dogfoods itself: CLAUDE.md and
+# .cursor/rules/*.mdc at the root are generated from the rules below, and are not
+# edited by hand. Change a rule here, run `driftgate sync`, commit both.
+schemaVersion: 1
+tools:
+  - claude-code
+  - cursor

@@ -135,7 +135,9 @@ describe('the shared rendering path', () => {
     for (const file of await sourceFiles()) {
       const rel = path.relative(repoRoot, file);
       if (
-        !/\bwriteFile\(|\bunlink\(|\brmSync\(|\bdeleteFile\(/.test(await readFile(file, 'utf8'))
+        !/\bwriteFile\(|\bcopyFile\(|\bunlink\(|\brmSync\(|\bdeleteFile\(/.test(
+          await readFile(file, 'utf8'),
+        )
       ) {
         continue;
       }

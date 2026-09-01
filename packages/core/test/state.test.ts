@@ -132,12 +132,31 @@ describe('compareToDisk', () => {
     expect(result.missing).toEqual(['CLAUDE.md']);
   });
 
-  it('reports a pre-existing unmanaged file as untracked, never as ours', async () => {
+  it('separates a pre-existing unmanaged file from a genuinely new one', async () => {
+    // The distinction is the whole guard: `untracked` is safe to write by definition,
+    // `unmanaged` is somebody else's file standing where our output goes.
     const fs = new MemoryFileSystem([['CLAUDE.md', 'hand written, predates driftgate\n']]);
     const result = await compareToDisk(EMPTY_STATE, planned, fs);
 
-    expect(result.untracked).toEqual(['CLAUDE.md']);
+    expect(result.unmanaged).toEqual(['CLAUDE.md']);
+    expect(result.untracked).toEqual([]);
     expect(result.changed).toEqual([]);
+  });
+
+  it('reports a planned file that is absent from disk as untracked', async () => {
+    const result = await compareToDisk(EMPTY_STATE, planned, new MemoryFileSystem());
+
+    expect(result.untracked).toEqual(['CLAUDE.md']);
+    expect(result.unmanaged).toEqual([]);
+  });
+
+  it('adopts a pre-existing file whose bytes already match, rather than blocking on it', async () => {
+    // Refusing here would make idempotency depend on whether state.json survives.
+    const fs = new MemoryFileSystem([['CLAUDE.md', 'generated\n']]);
+    const result = await compareToDisk(EMPTY_STATE, planned, fs);
+
+    expect(result.unchanged).toEqual(['CLAUDE.md']);
+    expect(result.unmanaged).toEqual([]);
   });
 
   it('offers only recorded files as deletion candidates', async () => {

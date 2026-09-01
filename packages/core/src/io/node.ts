@@ -93,6 +93,12 @@ export class NodeFileSystem implements WritableFileSystem {
     await fs.writeFile(abs, contents, 'utf8');
   }
 
+  async copyFile(fromRelPath: string, toRelPath: string): Promise<void> {
+    const to = this.resolve(toRelPath);
+    await fs.mkdir(path.dirname(to), { recursive: true });
+    await fs.copyFile(this.resolve(fromRelPath), to);
+  }
+
   async deleteFile(relPath: string): Promise<void> {
     try {
       await fs.unlink(this.resolve(relPath));

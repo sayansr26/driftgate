@@ -1,0 +1,41 @@
+{
+  "artifacts": [
+    {
+      "adapter": "cursor",
+      "hash": "sha256:a6edc646bfd5fccb664540ce01ff5910ab403a3fdbf73f120e70e71007267b07",
+      "kind": "rules",
+      "path": ".cursor/rules/10-project.mdc"
+    },
+    {
+      "adapter": "cursor",
+      "hash": "sha256:974574f7592d9fa26c4996a5bc511d0745f8cbccdfbb14f3799b40812acb7a3c",
+      "kind": "rules",
+      "path": ".cursor/rules/20-architecture.mdc"
+    },
+    {
+      "adapter": "cursor",
+      "hash": "sha256:03d79bc5971d54a33ab460a79c4bec2791032ff5dc41e412b5cd2769fc80097c",
+      "kind": "rules",
+      "path": ".cursor/rules/30-invariants.mdc"
+    },
+    {
+      "adapter": "cursor",
+      "hash": "sha256:c69b85d6a4f644a6b2f81a8158442732f68e7a1167f0d241936de80d1cf2a292",
+      "kind": "rules",
+      "path": ".cursor/rules/40-commands.mdc"
+    },
+    {
+      "adapter": "cursor",
+      "hash": "sha256:a0b40c2795a20a617467d2c399e6235160fc132bf855eb4e4eb1b316aae8f2d9",
+      "kind": "rules",
+      "path": ".cursor/rules/50-conventions.mdc"
+    },
+    {
+      "adapter": "claude-code",
+      "hash": "sha256:6d9b6393c361baaad855370a2689a0ccea7f2c7d7ebec5a4d3670180bef13903",
+      "kind": "rules",
+      "path": "CLAUDE.md"
+    }
+  ],
+  "schemaVersion": 1
+}

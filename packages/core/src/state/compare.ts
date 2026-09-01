@@ -10,8 +10,20 @@ export interface DiskComparison {
   readonly changed: readonly string[];
   /** Recorded as generated, but gone from disk. */
   readonly missing: readonly string[];
-  /** We would write it, and it is not in state: new, or pre-existing and unmanaged. */
+  /** We would write it, it is not in state, and nothing is on disk: a genuinely new file. */
   readonly untracked: readonly string[];
+  /**
+   * We would write it, it is not in state, and different bytes are already on disk.
+   *
+   * Somebody else's file stands where our output goes. Distinguishing this from
+   * `untracked` is what stops a first `sync` in a repo that already has a `CLAUDE.md`
+   * from destroying it: `untracked` is safe to write by definition, this never is
+   * without consent. A pre-existing file whose bytes already equal our render is not
+   * listed here — it lands in `unchanged` and is adopted into state, because writing
+   * identical bytes is a no-op and refusing it would make idempotency depend on
+   * whether `state.json` happens to exist.
+   */
+  readonly unmanaged: readonly string[];
   /**
    * In state but no longer produced by any adapter.
    *
@@ -31,6 +43,7 @@ export async function compareToDisk(
   const changed: string[] = [];
   const missing: string[] = [];
   const untracked: string[] = [];
+  const unmanaged: string[] = [];
 
   const planned = new Set(artifacts.map((a) => a.path));
   const recorded = new Map(state.artifacts.map((a) => [a.path, a]));
@@ -46,7 +59,8 @@ export async function compareToDisk(
 
     const diskHash = hashContents(onDisk);
     if (record === undefined) {
-      untracked.push(artifact.path);
+      // Identical bytes are not a conflict; adopt them rather than block on them.
+      (diskHash === hashContents(artifact.contents) ? unchanged : unmanaged).push(artifact.path);
     } else if (diskHash !== record.hash) {
       changed.push(artifact.path);
     } else {
@@ -61,6 +75,7 @@ export async function compareToDisk(
     changed: changed.sort(compareCodepoint),
     missing: missing.sort(compareCodepoint),
     untracked: untracked.sort(compareCodepoint),
+    unmanaged: unmanaged.sort(compareCodepoint),
     orphaned: [...orphaned].sort(compareCodepoint),
   };
 }

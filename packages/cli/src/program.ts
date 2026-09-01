@@ -28,11 +28,16 @@ export function buildProgram(): Command {
     .command('sync')
     .description('Regenerate every enabled tool config from .driftgate/')
     .option('--dry-run', 'report what would change without writing')
-    .action(async (opts: { dryRun?: boolean }, cmd: Command) => {
+    .option(
+      '--force',
+      'take ownership of files driftgate did not generate, backing each up to .driftgate/backup/ first',
+    )
+    .action(async (opts: { dryRun?: boolean; force?: boolean }, cmd: Command) => {
       const globals = cmd.optsWithGlobals<{ cwd: string; quiet?: boolean; color?: boolean }>();
       const code = await runSync({
         cwd: globals.cwd,
         ...(opts.dryRun === undefined ? {} : { dryRun: opts.dryRun }),
+        ...(opts.force === undefined ? {} : { force: opts.force }),
         ...(globals.quiet === undefined ? {} : { quiet: globals.quiet }),
         ...(globals.color === undefined ? {} : { color: globals.color }),
       });

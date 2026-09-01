@@ -92,6 +92,15 @@ export class MemoryFileSystem implements WritableFileSystem {
     return await Promise.resolve();
   }
 
+  async copyFile(fromRelPath: string, toRelPath: string): Promise<void> {
+    const raw = this.files.get(this.guard(fromRelPath));
+    if (raw === undefined) {
+      throw new DriftgateError({ code: 'E_PATH_ESCAPE', message: `no such file: ${fromRelPath}` });
+    }
+    this.files.set(this.guard(toRelPath), raw);
+    return await Promise.resolve();
+  }
+
   async deleteFile(relPath: string): Promise<void> {
     this.files.delete(this.guard(relPath));
     return await Promise.resolve();

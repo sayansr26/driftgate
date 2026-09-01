@@ -30,5 +30,14 @@ export interface ReadOnlyFileSystem {
 export interface WritableFileSystem extends ReadOnlyFileSystem {
   /** Writes UTF-8 without a BOM, creating parent directories as needed. */
   writeFile(relPath: string, contents: string): Promise<void>;
+  /**
+   * Copies bytes verbatim, creating parent directories as needed.
+   *
+   * Distinct from read-then-write because reads are BOM-stripped and EOL-normalized:
+   * backing a file up through `tryReadFile` + `writeFile` would quietly convert a CRLF
+   * original to LF, and a backup that does not restore the original bytes is not a
+   * backup. Both paths are repo-relative, so a copy cannot escape the repository.
+   */
+  copyFile(fromRelPath: string, toRelPath: string): Promise<void>;
   deleteFile(relPath: string): Promise<void>;
 }
