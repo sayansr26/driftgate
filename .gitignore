@@ -1,0 +1,26 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.eslintcache
+.vitest/
+.DS_Store
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Internal working notes and strategy — not part of the public open-source project.
+# These record competitor analysis, decision gates and kill-signals, launch timing,
+# growth targets, and how the project is built with Claude Code.
+#
+# What IS public: README, CONTRIBUTING, docs/rfc-0001-canonical-format.md,
+# docs/determinism.md, and the per-tool precedence pages. That is what a
+# contributor actually needs in order to write an adapter.
+memory-bank/
+CLAUDE.md
+task-breakdown.md
+docs/PRD.md
+docs/reserch-report.md

@@ -1,0 +1,6 @@
+schemaVersion: 1
+tools:
+  - claude-code
+  - id: cursor
+    options:
+      legacy: true

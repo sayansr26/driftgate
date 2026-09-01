@@ -1,0 +1,9 @@
+packages:
+  - 'packages/*'
+  - 'packages/adapters/*'
+  - 'action'
+
+# Driftgate needs no dependency build scripts. Keeping this empty means pnpm 10's
+# default lifecycle-script blocking stays in force: a transitive dependency cannot
+# run arbitrary code at install time in a tool that reads people's repositories.
+onlyBuiltDependencies: []

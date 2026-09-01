@@ -1,0 +1,17 @@
+{
+  "name": "@driftgate/action",
+  "version": "0.0.0",
+  "description": "GitHub Action wrapper for `driftgate check`.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "driftgate": "workspace:*"
+  }
+}

@@ -1,0 +1,5 @@
+name: 'Driftgate check'
+description: 'Fail the build when generated agent configs have drifted from .driftgate/.'
+runs:
+  using: 'node20'
+  main: 'dist/main.js'

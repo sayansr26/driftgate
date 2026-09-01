@@ -1,0 +1,27 @@
+{
+  "name": "@driftgate/core",
+  "version": "0.0.0",
+  "description": "Canonical model, parser, deterministic renderer, state, and pipeline for Driftgate.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "yaml": "^2.6.0"
+  }
+}

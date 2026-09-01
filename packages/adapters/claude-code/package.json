@@ -1,0 +1,28 @@
+{
+  "name": "@driftgate/adapter-claude-code",
+  "version": "0.0.0",
+  "description": "Driftgate adapter for claude-code.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@driftgate/core": "workspace:*",
+    "@driftgate/adapter-kit": "workspace:*"
+  }
+}
