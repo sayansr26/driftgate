@@ -48,7 +48,25 @@ importers:
         specifier: workspace:*
         version: link:../../adapter-kit
 
+  packages/adapters/codex:
+    dependencies:
+      '@driftgate/adapter-kit':
+        specifier: workspace:*
+        version: link:../../adapter-kit
+
+  packages/adapters/copilot:
+    dependencies:
+      '@driftgate/adapter-kit':
+        specifier: workspace:*
+        version: link:../../adapter-kit
+
   packages/adapters/cursor:
+    dependencies:
+      '@driftgate/adapter-kit':
+        specifier: workspace:*
+        version: link:../../adapter-kit
+
+  packages/adapters/gemini:
     dependencies:
       '@driftgate/adapter-kit':
         specifier: workspace:*
@@ -59,9 +77,18 @@ importers:
       '@driftgate/adapter-claude-code':
         specifier: workspace:*
         version: link:../adapters/claude-code
+      '@driftgate/adapter-codex':
+        specifier: workspace:*
+        version: link:../adapters/codex
+      '@driftgate/adapter-copilot':
+        specifier: workspace:*
+        version: link:../adapters/copilot
       '@driftgate/adapter-cursor':
         specifier: workspace:*
         version: link:../adapters/cursor
+      '@driftgate/adapter-gemini':
+        specifier: workspace:*
+        version: link:../adapters/gemini
       '@driftgate/core':
         specifier: workspace:*
         version: link:../core

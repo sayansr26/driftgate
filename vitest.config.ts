@@ -16,7 +16,10 @@ export default defineConfig({
       '@driftgate/adapter-kit/testing': src('./packages/adapter-kit/src/testing/index.ts'),
       '@driftgate/adapter-kit': src('./packages/adapter-kit/src/index.ts'),
       '@driftgate/adapter-claude-code': src('./packages/adapters/claude-code/src/index.ts'),
+      '@driftgate/adapter-codex': src('./packages/adapters/codex/src/index.ts'),
+      '@driftgate/adapter-copilot': src('./packages/adapters/copilot/src/index.ts'),
       '@driftgate/adapter-cursor': src('./packages/adapters/cursor/src/index.ts'),
+      '@driftgate/adapter-gemini': src('./packages/adapters/gemini/src/index.ts'),
     },
   },
   test: {

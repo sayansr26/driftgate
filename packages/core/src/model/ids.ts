@@ -26,3 +26,19 @@ export function formatSourceRef(ref: SourceRef): string {
   }
   return out;
 }
+
+/**
+ * A rule id flattened to one path segment: `frontend/react` -> `frontend-react`.
+ *
+ * Lives here rather than in an adapter because more than one tool keeps its rules in a
+ * single flat directory — Cursor's `.cursor/rules/` and Copilot's `.github/instructions/`
+ * — and two adapters deriving "the filename for this rule" independently is how they come
+ * to disagree about the same rule. Callers must still detect collisions: two ids can slug
+ * to one name, and silently dropping one rule's content is the failure this enables.
+ */
+export function slugForId(id: RuleId): string {
+  return id
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}

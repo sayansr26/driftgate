@@ -25,7 +25,10 @@
   },
   "dependencies": {
     "@driftgate/adapter-claude-code": "workspace:*",
+    "@driftgate/adapter-codex": "workspace:*",
+    "@driftgate/adapter-copilot": "workspace:*",
     "@driftgate/adapter-cursor": "workspace:*",
+    "@driftgate/adapter-gemini": "workspace:*",
     "@driftgate/core": "workspace:*",
     "commander": "^12.1.0",
     "picocolors": "^1.1.1"

@@ -2,7 +2,7 @@
   "artifacts": [
     {
       "adapter": "cursor",
-      "hash": "sha256:a6edc646bfd5fccb664540ce01ff5910ab403a3fdbf73f120e70e71007267b07",
+      "hash": "sha256:42814b04e5e2491cf1fe865d8b7d3b8ae19311383e415e646b206bb39123f7a9",
       "kind": "rules",
       "path": ".cursor/rules/10-project.mdc"
     },
@@ -26,15 +26,33 @@
     },
     {
       "adapter": "cursor",
-      "hash": "sha256:2894eb2dd2e45610174a90c1754a4be43168f826727a2f7bec315c5268e67fb9",
+      "hash": "sha256:2c2bcd8faf349624c62ada384558d1cc63a50bf2d776440fb6deacea7e4ef3f5",
       "kind": "rules",
       "path": ".cursor/rules/50-conventions.mdc"
     },
     {
+      "adapter": "copilot",
+      "hash": "sha256:18d778fa068b429b64b4fca055e4bd7f1e0a2e1fe303a6701d3676377c7101d8",
+      "kind": "rules",
+      "path": ".github/copilot-instructions.md"
+    },
+    {
+      "adapter": "codex",
+      "hash": "sha256:18d778fa068b429b64b4fca055e4bd7f1e0a2e1fe303a6701d3676377c7101d8",
+      "kind": "rules",
+      "path": "AGENTS.md"
+    },
+    {
       "adapter": "claude-code",
-      "hash": "sha256:62b24307f6df6498e16d0b5589c9b6ee6c1ef975585501b950f919cc8a111255",
+      "hash": "sha256:18d778fa068b429b64b4fca055e4bd7f1e0a2e1fe303a6701d3676377c7101d8",
       "kind": "rules",
       "path": "CLAUDE.md"
+    },
+    {
+      "adapter": "gemini",
+      "hash": "sha256:18d778fa068b429b64b4fca055e4bd7f1e0a2e1fe303a6701d3676377c7101d8",
+      "kind": "rules",
+      "path": "GEMINI.md"
     }
   ],
   "schemaVersion": 1

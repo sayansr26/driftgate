@@ -1,7 +1,11 @@
-# Driftgate's own canonical config. This repository dogfoods itself: CLAUDE.md and
-# .cursor/rules/*.mdc at the root are generated from the rules below, and are not
-# edited by hand. Change a rule here, run `driftgate sync`, commit both.
+# Driftgate's own canonical config. This repository dogfoods itself: AGENTS.md, CLAUDE.md,
+# GEMINI.md, .cursor/rules/*.mdc and .github/copilot-instructions.md are generated from the
+# rules below, and are not edited by hand. Change a rule here, run `driftgate sync`, commit
+# the rule and every regenerated file together.
 schemaVersion: 1
 tools:
   - claude-code
+  - codex
+  - copilot
   - cursor
+  - gemini

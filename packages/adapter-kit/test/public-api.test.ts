@@ -72,6 +72,7 @@ const FROZEN_V1 = [
   'renderRuleSection (value)',
   'ruleHeading (value)',
   'selects (value)',
+  'slugForId (value)',
   'sortRules (value)',
   'toPosix (value)',
   'withHashMarker (value)',

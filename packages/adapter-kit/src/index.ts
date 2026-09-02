@@ -82,6 +82,7 @@ export {
   matchesGlob,
   ruleHeading,
   selects,
+  slugForId,
 } from '@driftgate/core';
 
 // Errors. An adapter reports a problem the same way core does, so the CLI can format it

@@ -20,9 +20,12 @@ coverage/
 # docs/determinism.md, and the per-tool precedence pages. That is what a
 # contributor actually needs in order to write an adapter.
 #
-# CLAUDE.md is NOT here: it is a generated artifact of this repo's own .driftgate/,
-# rendered from public-safe rules and committed. The hand-written working guide it
-# replaced now lives at memory-bank/09-working-guide.md, covered by the rule below.
+# The generated agent files are NOT here: CLAUDE.md, AGENTS.md, GEMINI.md,
+# .cursor/rules/*.mdc and .github/copilot-instructions.md are artifacts of this repo's
+# own .driftgate/, rendered from public-safe rules and committed. An ignored file cannot
+# be gated by `driftgate check`, so ignoring one would silently opt it out of the very
+# guarantee this project sells. The hand-written working guide CLAUDE.md replaced now
+# lives at memory-bank/09-working-guide.md, covered by the rule below.
 memory-bank/
 task-breakdown.md
 docs/PRD.md

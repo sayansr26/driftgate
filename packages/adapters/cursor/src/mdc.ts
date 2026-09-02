@@ -64,11 +64,3 @@ export function assertRenderable(rule: RuleDocument): void {
     }
   }
 }
-
-/** `frontend/react` -> `frontend-react`. Cursor rules live in one flat directory. */
-export function slugFor(id: string): string {
-  return id
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}

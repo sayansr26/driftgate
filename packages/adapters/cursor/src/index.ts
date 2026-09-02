@@ -13,9 +13,10 @@ import {
   type Artifact,
   type Canonical,
   type DetectResult,
+  slugForId,
   type RuleDocument,
 } from '@driftgate/adapter-kit';
-import { assertRenderable, frontmatterFor, renderMdcFrontmatter, slugFor } from './mdc.js';
+import { assertRenderable, frontmatterFor, renderMdcFrontmatter } from './mdc.js';
 import { docs } from './docs.js';
 
 export const RULES_DIR = '.cursor/rules';
@@ -36,7 +37,7 @@ async function read(_ctx: AdapterContext): Promise<Partial<Canonical>> {
 }
 
 function mdcPath(rule: RuleDocument): string {
-  return `${RULES_DIR}/${slugFor(rule.id)}.mdc`;
+  return `${RULES_DIR}/${slugForId(rule.id)}.mdc`;
 }
 
 function renderMdc(rule: RuleDocument, marker: boolean): string {
@@ -117,4 +118,4 @@ export const cursor: Adapter = {
 };
 
 export default cursor;
-export { docs, slugFor, renderMdcFrontmatter, frontmatterFor };
+export { docs, renderMdcFrontmatter, frontmatterFor };

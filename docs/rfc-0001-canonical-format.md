@@ -100,16 +100,19 @@ Declaring the same `id` twice is an error. An unrecognized `id` is `E_UNKNOWN_TO
 An id names an adapter, and only adapters that ship can be enabled. As of this revision
 the shipped ids are:
 
-| Id            | Writes                |
-| ------------- | --------------------- |
-| `claude-code` | `CLAUDE.md`           |
-| `cursor`      | `.cursor/rules/*.mdc` |
+| Id            | Writes                                                                      |
+| ------------- | --------------------------------------------------------------------------- |
+| `claude-code` | `CLAUDE.md`                                                                 |
+| `codex`       | `AGENTS.md`                                                                 |
+| `copilot`     | `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md` |
+| `cursor`      | `.cursor/rules/*.mdc`                                                       |
+| `gemini`      | `GEMINI.md`                                                                 |
 
 The **authoritative** list is the adapter registry, not this table: `E_UNKNOWN_TOOL`
 enumerates every known id in its hint, so `driftgate sync` always tells you the true set.
-An id for an adapter that does not exist yet — `copilot`, `codex`, `gemini` — is
-`E_UNKNOWN_TOOL` today even with `enabled: false`, because the manifest is validated
-before anything is generated. Declare a tool when its adapter lands, not before.
+An id for an adapter that does not exist yet is `E_UNKNOWN_TOOL` even with
+`enabled: false`, because the manifest is validated before anything is generated. Declare
+a tool when its adapter lands, not before.
 
 ## 5. `rules/*.md`
 

@@ -15,7 +15,10 @@
       "@driftgate/adapter-kit": ["packages/adapter-kit/src/index.ts"],
       "@driftgate/adapter-kit/testing": ["packages/adapter-kit/src/testing/index.ts"],
       "@driftgate/adapter-claude-code": ["packages/adapters/claude-code/src/index.ts"],
-      "@driftgate/adapter-cursor": ["packages/adapters/cursor/src/index.ts"]
+      "@driftgate/adapter-codex": ["packages/adapters/codex/src/index.ts"],
+      "@driftgate/adapter-copilot": ["packages/adapters/copilot/src/index.ts"],
+      "@driftgate/adapter-cursor": ["packages/adapters/cursor/src/index.ts"],
+      "@driftgate/adapter-gemini": ["packages/adapters/gemini/src/index.ts"]
     }
   },
   "include": [

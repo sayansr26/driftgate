@@ -4,8 +4,8 @@ order: 10
 ---
 
 Driftgate keeps one canonical set of AI-agent instructions in `.driftgate/` and
-generates each tool's native config from it — `CLAUDE.md`, `.cursor/rules/*.mdc`, and
-more as adapters land.
+generates each tool's native config from it — `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`,
+`.cursor/rules/*.mdc` and `.github/copilot-instructions.md`, with more as adapters land.
 
 **The wedge, when trade-offs arise:** other tools already sync rules, MCP, and skills.
 Driftgate differentiates on **verify** (`check` — render in memory, compare to disk,
