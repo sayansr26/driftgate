@@ -4,7 +4,7 @@ Every adapter owns a real mini-repository here, and its output is asserted **byt
 Adapter regressions are P0 (NFR5): tool formats change without notice, and fixtures are how
 we find out before users do.
 
-## Two layouts, because there are two questions
+## Three layouts, because there are three questions
 
 ```
 fixtures/<tool>/input/          a repo with a .driftgate/
@@ -12,6 +12,8 @@ fixtures/<tool>/expected/       exactly the bytes the adapter must produce from 
 
 fixtures/<tool>-detect/positive/   a repo where detect() must find the tool
 fixtures/<tool>-detect/negative/   a repo where it must not
+
+fixtures/detect-engine/<case>/     a repo the *whole adapter set* is run against (T016)
 ```
 
 They differ because the situations differ: a detect fixture is a whole repository that
@@ -19,7 +21,7 @@ either shows the tool's fingerprints or does not, and it has no expected output 
 `.driftgate/` at all, since `detect()` runs on repositories that have not adopted Driftgate
 yet. That is the first step of `init`.
 
-Never build the subpath by hand. `@driftgate/adapter-kit/testing` resolves both shapes:
+Never build the subpath by hand. `@driftgate/adapter-kit/testing` resolves all three shapes:
 
 ```ts
 import { detectFixture, expectFixtureMatch, expectIdempotent } from '@driftgate/adapter-kit/testing';
@@ -27,7 +29,12 @@ import { detectFixture, expectFixtureMatch, expectIdempotent } from '@driftgate/
 await expectFixtureMatch('cursor', cursor);                  // input/ vs expected/
 await expectIdempotent('cursor', cursor);                    // 10 renders, identical bytes
 await contextFor(detectFixture('cursor', 'positive'), cursor);
+detectEngineFixture('all');                                  // detect-engine/all
 ```
+
+The third layout has its own `detect-engine/README.md`, including the reason no filename
+in it is a case variant of a detected file — on a case-insensitive filesystem that would
+make a fixture negative only on Linux.
 
 ## Adding a fixture
 

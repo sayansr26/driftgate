@@ -170,6 +170,27 @@ describe('the shared rendering path', () => {
     expect(offenders).toEqual([]);
   });
 
+  /**
+   * The detection engine reaches the user's home directory, which is the one place in
+   * this codebase where "reads only" stops being enforced by `ReadOnlyFileSystem` alone
+   * and starts depending on *which root* the filesystem was built with. The engine takes
+   * both filesystems as parameters and constructs neither, so the choice of root is the
+   * caller's and the engine stays testable against `MemoryFileSystem`.
+   *
+   * If it ever imports `io/` or `node:os` directly, that seam is gone and the guarantee
+   * becomes a convention. Lint enforces the `node:fs` half; this covers the rest.
+   */
+  it('keeps the detection engine off the io layer and the host OS', async () => {
+    const offenders: string[] = [];
+    for (const file of await sourceFiles()) {
+      const rel = path.relative(repoRoot, file);
+      if (!rel.startsWith('packages/core/src/detect/')) continue;
+      const text = await readFile(file, 'utf8');
+      if (/from\s+['"]\.\.\/io\/|from\s+['"]node:(os|fs)/.test(text)) offenders.push(rel);
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it("exposes verifyPlan alongside applyPlan, so `check` shares sync's plan", async () => {
     const pipeline = path.join(repoRoot, 'packages/core/src/pipeline');
     const files = (await readdir(pipeline)).sort();

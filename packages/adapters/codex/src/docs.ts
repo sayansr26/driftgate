@@ -24,6 +24,8 @@ export const docs: AdapterDocs = {
   toolName: 'Codex CLI',
   homepage: 'https://developers.openai.com/codex',
   verifiedAgainst: { version: 'CLI docs as published 2026-09-02', date: '2026-09-02' },
+  // Codex concatenates every AGENTS.md from the root down, so a later file wins a conflict while the earlier ones are still loaded.
+  resolution: 'additive',
   files: [
     {
       pattern: 'AGENTS.override.md',

@@ -36,6 +36,9 @@ const FROZEN_V1 = [
   'DetectResult (type)',
   'DirEntry (type)',
   'DocNote (type)',
+  // Added 2026-09-02 (T025). Non-breaking per docs/adapter-api-v1.md: an addition costs
+  // one line here and no ADAPTER_API_VERSION bump. See `AdapterDocs.resolution`.
+  'FileResolution (type)',
   'DriftgateError (value)',
   'DriftgateErrorCode (type)',
   'DriftgateErrorInit (type)',

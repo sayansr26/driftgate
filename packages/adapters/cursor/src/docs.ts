@@ -10,6 +10,8 @@ export const docs: AdapterDocs = {
   toolName: 'Cursor',
   homepage: 'https://docs.cursor.com',
   verifiedAgainst: { version: '1.x', date: '2026-09-01' },
+  // Rules are selected by scope and glob rather than concatenated wholesale.
+  resolution: 'override',
   files: [
     {
       pattern: '.cursor/rules/*.mdc',
@@ -40,6 +42,9 @@ export const docs: AdapterDocs = {
       source: RULES_DOCS,
     },
   ],
+  limits: {
+    note: 'No byte cap is documented in the Cursor rules documentation cited above. Rules with `alwaysApply: true` enter every request, so the practical limit is the context window rather than a published threshold; glob-scoped `.mdc` files are only loaded when a matching file is open.',
+  },
   notes: [
     {
       level: 'warn',

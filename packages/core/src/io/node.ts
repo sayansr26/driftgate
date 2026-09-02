@@ -8,7 +8,7 @@ import { escapesRoot, fromPosix, normalizeRelative, toPosix } from '../fs/paths.
 import { matchesGlob } from '../fs/glob.js';
 import { compareCodepoint } from '../render/order.js';
 import { normalizeText } from '../render/eol.js';
-import type { DirEntry, WritableFileSystem } from '../fs/types.js';
+import type { DirEntry, ReadOnlyFileSystem, WritableFileSystem } from '../fs/types.js';
 
 /** The only place in the codebase that touches the real filesystem. */
 export class NodeFileSystem implements WritableFileSystem {
@@ -175,3 +175,57 @@ function probe(absPath: string): boolean {
 }
 
 export { toPosix };
+
+/**
+ * The user's home directory, or `undefined` when there is not a usable one.
+ *
+ * `undefined` rather than a fallback, for the same reason `findRepoRoot` returns its
+ * starting directory rather than `/`: a degraded answer that describes nothing is worse
+ * than an absent one. `doctor` must be able to say "we did not look" — reporting a
+ * user-level file as absent when no home directory was ever resolved would be a lie, and
+ * an unfalsifiable one.
+ *
+ * Stripped containers really do have no home: `$HOME` unset and no `getpwuid` entry makes
+ * `os.homedir()` return `''`.
+ */
+export function homeRoot(): string | undefined {
+  let home;
+  try {
+    home = os.homedir();
+  } catch {
+    return undefined;
+  }
+  if (home === '' || !path.isAbsolute(home)) return undefined;
+  return probe(home) ? path.resolve(home) : undefined;
+}
+
+/**
+ * A read-only view of the user's home directory, for the global half of `doctor`.
+ *
+ * Typed `ReadOnlyFileSystem` rather than `NodeFileSystem` deliberately — the same move
+ * T011 made when it dropped `WritableFileSystem` from the kit. Erasing the write methods
+ * at the seam means a later caller cannot write into someone's home directory without an
+ * explicit, reviewable cast, rather than by autocomplete.
+ *
+ * Containment comes free: `NodeFileSystem` already refuses any path escaping its root, so
+ * `~/../.ssh/id_rsa` is rejected by code that exists and is already tested.
+ */
+export function createHomeFileSystem(root?: string): ReadOnlyFileSystem | undefined {
+  const home = root ?? homeRoot();
+  if (home === undefined) return undefined;
+  const fs = new NodeFileSystem(home);
+  // Six bound methods, not the instance. Returning the `NodeFileSystem` typed as
+  // `ReadOnlyFileSystem` would erase the writers at compile time only — and a cast back
+  // is precisely what someone reaches for. Here there is nothing to cast *to*: the write
+  // methods are not on the returned object at all. This is the same reasoning that took
+  // `WritableFileSystem` out of the kit at T011, applied where the blast radius is
+  // somebody's home directory rather than their repository.
+  return {
+    readFile: (p) => fs.readFile(p),
+    tryReadFile: (p) => fs.tryReadFile(p),
+    readFileRaw: (p) => fs.readFileRaw(p),
+    exists: (p) => fs.exists(p),
+    listDir: (p) => fs.listDir(p),
+    glob: (p) => fs.glob(p),
+  };
+}

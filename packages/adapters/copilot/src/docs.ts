@@ -32,6 +32,8 @@ export const docs: AdapterDocs = {
     version: 'GitHub Docs and VS Code docs as published 2026-09-02',
     date: '2026-09-02',
   },
+  // GitHub's documentation is explicit that a matching path-specific file is applied *in addition to* the repository-wide one, and VS Code reads AGENTS.md and CLAUDE.md on top of both.
+  resolution: 'additive',
   files: [
     {
       pattern: '.github/instructions/*.instructions.md',
@@ -80,6 +82,9 @@ export const docs: AdapterDocs = {
       source: VSCODE_CUSTOM_INSTRUCTIONS,
     },
   ],
+  limits: {
+    note: 'No byte cap is documented in the GitHub or VS Code instruction documentation cited above. The relevant cost is not a cap but the additive loading described in the notes below: the repository-wide file, any matching path-specific file, and AGENTS.md are all sent together.',
+  },
   notes: [
     {
       level: 'warn',

@@ -34,5 +34,17 @@ export * from './pipeline/plan.js';
 export * from './pipeline/apply.js';
 export * from './pipeline/verify.js';
 
+export * from './tokens/estimate.js';
+
+export * from './detect/types.js';
+export * from './detect/global.js';
+export * from './detect/engine.js';
+
 export { MemoryFileSystem } from './io/memory.js';
-export { NodeFileSystem, resolveRepoRoot, findRepoRoot } from './io/node.js';
+export {
+  NodeFileSystem,
+  resolveRepoRoot,
+  findRepoRoot,
+  homeRoot,
+  createHomeFileSystem,
+} from './io/node.js';

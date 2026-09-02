@@ -18,6 +18,8 @@ export const docs: AdapterDocs = {
   toolName: 'Claude Code',
   homepage: 'https://docs.claude.com/en/docs/claude-code',
   verifiedAgainst: { version: '2.x', date: '2026-09-01' },
+  // A nearer CLAUDE.md supersedes a further one for the same scope.
+  resolution: 'override',
   files: [
     {
       pattern: 'CLAUDE.local.md',
@@ -61,6 +63,12 @@ export const docs: AdapterDocs = {
       },
     },
   ],
+  limits: {
+    // No cap recorded, because none is published — not because nobody looked. Those two
+    // states are indistinguishable when the field is simply absent, which is why
+    // `expectDocsValid` requires this to be present either way.
+    note: 'No byte cap is documented in the Claude Code memory documentation cited above. The practical limit is the model’s context window: every CLAUDE.md on the path is loaded into every request, so cost grows with the file rather than being refused at a threshold.',
+  },
   notes: [
     {
       level: 'info',

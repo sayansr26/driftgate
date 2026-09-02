@@ -116,6 +116,16 @@ The asymmetry is the thing to remember: **adding an export costs nothing, removi
 a major.** When a symbol's inclusion is arguable, leave it out and add it when an adapter
 actually needs it.
 
+## Change log
+
+Additions only. Each is non-breaking under the policy above; `ADAPTER_API_VERSION` is
+still 1.
+
+| Date              | Export                                     | Why                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-02 (T013) | `slugForId(id)`                            | A rule id flattened to one path segment. Promoted from Cursor's private copy when Copilot needed the same mapping, because two adapters defining "slug" independently is how they come to disagree about the same rule.                                                                                                                                                                                             |
+| 2026-09-02 (T025) | `FileResolution`, `AdapterDocs.resolution` | `AdapterDocs.files` was documented "highest precedence first", which described two different behaviours: a nearer file _replaces_ a further one for Claude Code and Cursor, but Copilot, Codex and Gemini send every matching file _at once_. Optional, defaulting to `'override'`, so no external adapter breaks — but every adapter this repo ships must set it, which the harness enforces rather than the type. |
+
 ## How v2 would arrive
 
 `ADAPTER_API_VERSION` becomes `2` and `@driftgate/adapter-kit` majors. The host reads

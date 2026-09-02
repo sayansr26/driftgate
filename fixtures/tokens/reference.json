@@ -1,0 +1,33 @@
+{
+  "tokenizer": "gpt-tokenizer",
+  "version": "4.0.0",
+  "encoding": "cl100k_base",
+  "retrieved": "2026-09-02",
+  "documents": [
+    {
+      "document": "01-claude-md.md",
+      "chars": 6516,
+      "referenceTokens": 1637
+    },
+    {
+      "document": "02-canonical-rule.md",
+      "chars": 2583,
+      "referenceTokens": 652
+    },
+    {
+      "document": "03-cursor-rule.mdc",
+      "chars": 2656,
+      "referenceTokens": 669
+    },
+    {
+      "document": "04-prose-and-tables.md",
+      "chars": 4681,
+      "referenceTokens": 1043
+    },
+    {
+      "document": "05-adversarial.md",
+      "chars": 2012,
+      "referenceTokens": 762
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+---
+description: Example rule
+globs:
+alwaysApply: true
+---
+
+Prefer small functions.

@@ -3,7 +3,13 @@ import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { findRepoRoot, resolveRepoRoot } from '../src/io/node.js';
+import { fileURLToPath } from 'node:url';
+import { createHomeFileSystem, findRepoRoot, homeRoot, resolveRepoRoot } from '../src/io/node.js';
+
+/** The stand-in home directory, so no test here reads the machine's real one. */
+function fixtureHome(): string {
+  return fileURLToPath(new URL('../../../fixtures/detect-engine/home/', import.meta.url));
+}
 
 let tmp: string;
 
@@ -99,5 +105,41 @@ describe('findRepoRoot', () => {
     await makeDir('repo/packages/core');
 
     expect(resolveRepoRoot(dir('repo/packages/core'))).toBe(dir('repo/packages/core'));
+  });
+});
+
+describe('homeRoot', () => {
+  /**
+   * `undefined` rather than a fallback, for the same reason `findRepoRoot` returns its
+   * starting directory rather than `/`. `doctor` must be able to say "we did not look";
+   * reporting a user-level file as absent when no home directory was ever resolved is a
+   * wrong answer dressed as a right one.
+   */
+  it('returns an absolute directory, or nothing', () => {
+    const home = homeRoot();
+    if (home !== undefined) {
+      expect(path.isAbsolute(home)).toBe(true);
+      expect(existsSync(home)).toBe(true);
+    }
+  });
+
+  it('builds a read-only filesystem rooted at an explicit home', async () => {
+    const fs = createHomeFileSystem(fixtureHome());
+    expect(fs).toBeDefined();
+    expect(await fs?.exists('.claude/CLAUDE.md')).toBe(true);
+  });
+
+  it('refuses to read above the home root', async () => {
+    const fs = createHomeFileSystem(fixtureHome());
+    // Containment is inherited, not reimplemented: NodeFileSystem already refuses this,
+    // which is the whole reason the global probe is a filesystem rather than a bare stat.
+    await expect(fs?.exists('../all/CLAUDE.md')).rejects.toThrow(/E_PATH_ESCAPE|escapes/);
+  });
+
+  it('exposes no write method on the returned type', () => {
+    const fs = createHomeFileSystem(fixtureHome());
+    // A structural check, because the compile-time one disappears at runtime and this is
+    // the seam where a stray write would land in someone's home directory.
+    expect((fs as unknown as Record<string, unknown>)['writeFile']).toBeUndefined();
   });
 });

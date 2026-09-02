@@ -24,6 +24,7 @@ export type {
   DetectResult,
   DirEntry,
   DocNote,
+  FileResolution,
   PrecedenceEntry,
   ReadOnlyFileSystem,
   SourceLink,

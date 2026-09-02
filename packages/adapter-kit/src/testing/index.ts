@@ -10,7 +10,9 @@
 
 export {
   contextFor,
+  detectEngineFixture,
   detectFixture,
+  fixturePath,
   fixturesRoot,
   readExpected,
   renderFixture,
@@ -18,6 +20,7 @@ export {
 } from './fixture.js';
 export { compareFixture, formatFixtureReport, type FixtureReport } from './compare.js';
 export { expectFixtureMatch, expectIdempotent } from './assert.js';
+export { expectDocsValid, type DocsValidationOptions } from './docs.js';
 export {
   escapeInvisibles,
   firstDifference,

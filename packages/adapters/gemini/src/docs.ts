@@ -19,6 +19,8 @@ export const docs: AdapterDocs = {
   toolName: 'Gemini CLI',
   homepage: 'https://google-gemini.github.io/gemini-cli/',
   verifiedAgainst: { version: 'CLI docs as published 2026-09-02', date: '2026-09-02' },
+  // Gemini joins global, ancestor and subdirectory context files into every prompt; the ranking below says which wins a conflict, not which is read.
+  resolution: 'additive',
   files: [
     {
       pattern: '**/GEMINI.md',
@@ -59,6 +61,9 @@ export const docs: AdapterDocs = {
       source: GEMINI_CONTEXT_DOCS,
     },
   ],
+  limits: {
+    note: 'No byte cap is documented in the Gemini CLI documentation cited above. Gemini concatenates rather than selects — global, ancestor and subdirectory context files are all joined into every prompt — so the total grows with the number of files on the path, not just their size.',
+  },
   notes: [
     {
       level: 'warn',

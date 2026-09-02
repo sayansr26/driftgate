@@ -76,3 +76,19 @@ export function writeFixture(tool: string): { readonly input: string; readonly e
 export function detectFixture(tool: string, kase: 'positive' | 'negative'): string {
   return `${tool}-detect/${kase}`;
 }
+
+/**
+ * The aggregate detection fixtures (T016): whole repositories exercising the engine over
+ * the entire shipped adapter set rather than one adapter's `detect()`.
+ *
+ * `home` is the odd one out and is named rather than inferred — it stands in for `$HOME`,
+ * not for a repository, so that no test reads the machine's real home directory.
+ */
+export function detectEngineFixture(kase: 'none' | 'one' | 'all' | 'home'): string {
+  return `detect-engine/${kase}`;
+}
+
+/** An absolute path to a fixture directory, for callers that need a filesystem root. */
+export function fixturePath(fixtureDir: string): string {
+  return path.join(fixturesRoot, fixtureDir);
+}
