@@ -14,6 +14,10 @@ alwaysApply: true
 - **This repo dogfoods itself.** Root `CLAUDE.md` and `.cursor/rules/*.mdc` are
   generated artifacts. Edit `.driftgate/rules/` and run `driftgate sync`; never edit the
   generated files, and commit them alongside the rule change.
+- **Generated output is not formatter territory.** `CLAUDE.md` and `.cursor/rules/` are
+  listed in `.prettierignore` deliberately: a formatter and a generator cannot both own a
+  file. Reformat one and the next `driftgate sync` correctly reports it as hand-edited and
+  refuses to write it. Format `.driftgate/rules/` instead.
 - Prefer the smallest change that is still correct, and match the surrounding code's
   comment density and idiom. Comments in this codebase explain _why_ a constraint
   exists, not what a line does.

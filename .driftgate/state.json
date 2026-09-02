@@ -26,13 +26,13 @@
     },
     {
       "adapter": "cursor",
-      "hash": "sha256:a0b40c2795a20a617467d2c399e6235160fc132bf855eb4e4eb1b316aae8f2d9",
+      "hash": "sha256:0a10b4ac366e21ca385d530ec40dc6fc3957ef8dd0a25e2249df978be232d906",
       "kind": "rules",
       "path": ".cursor/rules/50-conventions.mdc"
     },
     {
       "adapter": "claude-code",
-      "hash": "sha256:6d9b6393c361baaad855370a2689a0ccea7f2c7d7ebec5a4d3670180bef13903",
+      "hash": "sha256:7b8a1acf51bf3b26b589430a2d871bd055aa107c1092873fbe26c477276eeca8",
       "kind": "rules",
       "path": "CLAUDE.md"
     }
