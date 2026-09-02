@@ -40,6 +40,9 @@ export * from './detect/types.js';
 export * from './detect/global.js';
 export * from './detect/engine.js';
 
+export * from './doctor/types.js';
+export * from './doctor/report.js';
+
 export { MemoryFileSystem } from './io/memory.js';
 export {
   NodeFileSystem,

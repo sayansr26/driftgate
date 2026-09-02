@@ -51,6 +51,32 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
   });
 
   /**
+   * `doctor` is read-only and exits 0 by design, both of which are properties only a real
+   * process can demonstrate: an in-process test shares this runner's working directory, and
+   * an exit code the CLI merely returns is not the code the shell sees.
+   */
+  it('reports from a subdirectory, exits 0, and writes nothing', async () => {
+    const repo = await mkdtemp(path.join(tmpdir(), 'driftgate-smoke-'));
+    try {
+      await cp(path.join(fixtures, 'doctor/adopted'), repo, { recursive: true });
+      const sub = path.join(repo, 'packages/core');
+      await mkdir(sub, { recursive: true });
+      const before = await stat(path.join(repo, 'CLAUDE.md'));
+
+      const { stdout, stderr } = await run(process.execPath, [binPath, 'doctor'], { cwd: sub });
+
+      expect(stdout).toContain('repo  ');
+      expect(stdout).toContain('GitHub Copilot');
+      // The T078 finding has to survive the real binary, not just the aliased source.
+      expect(stderr).toContain("duplicates of another adapter's output");
+      const after = await stat(path.join(repo, 'CLAUDE.md'));
+      expect(after.mtimeMs).toBe(before.mtimeMs);
+    } finally {
+      await rm(repo, { recursive: true, force: true });
+    }
+  });
+
+  /**
    * T011 split `@driftgate/adapter-kit` into two entry points: `.` is the frozen contract
    * and `./testing` is the fixture harness. The vitest alias resolves both to source, so
    * the normal suite would keep passing with a malformed `exports` map — the exact class

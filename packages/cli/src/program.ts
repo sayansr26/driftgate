@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { readVersion } from './version.js';
 import { runSync } from './commands/sync.js';
+import { runDoctor } from './commands/doctor.js';
 import { resolveGlobalCwd } from './cwd.js';
 import { ExitCode } from './ui/exit.js';
 
@@ -43,6 +44,26 @@ export function buildProgram(): Command {
         ...(searched ? { announceRoot: true } : {}),
         ...(opts.dryRun === undefined ? {} : { dryRun: opts.dryRun }),
         ...(opts.force === undefined ? {} : { force: opts.force }),
+        ...(globals.quiet === undefined ? {} : { quiet: globals.quiet }),
+        ...(globals.color === undefined ? {} : { color: globals.color }),
+      });
+      process.exitCode = code;
+    });
+
+  program
+    .command('doctor')
+    .description('Report which tools are configured, what they load, and what it costs')
+    .option('--no-global', 'skip user-level files; read nothing outside the repository')
+    .option('--json', 'emit the full report as JSON')
+    .action(async (opts: { global?: boolean; json?: boolean }, cmd: Command) => {
+      const globals = cmd.optsWithGlobals<{ cwd?: string; quiet?: boolean; color?: boolean }>();
+      const { root, searched } = resolveGlobalCwd(globals.cwd);
+      const code = await runDoctor({
+        cwd: root,
+        ...(searched ? { announceRoot: true } : {}),
+        // commander stores --no-global as `global: false`.
+        ...(opts.global === false ? { noGlobal: true } : {}),
+        ...(opts.json === undefined ? {} : { json: opts.json }),
         ...(globals.quiet === undefined ? {} : { quiet: globals.quiet }),
         ...(globals.color === undefined ? {} : { color: globals.color }),
       });

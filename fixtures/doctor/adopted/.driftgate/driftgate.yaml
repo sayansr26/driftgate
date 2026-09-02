@@ -1,0 +1,9 @@
+# All five adapters, deliberately. The duplicate-load case T078 records is invisible with
+# two: their outputs had different shapes and did not overlap.
+schemaVersion: 1
+tools:
+  - claude-code
+  - codex
+  - copilot
+  - cursor
+  - gemini

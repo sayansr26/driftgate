@@ -1,8 +1,18 @@
 import pc from 'picocolors';
 import type { DriftgateError } from '@driftgate/core';
 
+/** The subset of picocolors this CLI uses, resolved once per run. */
+export type Colors = ReturnType<typeof pc.createColors>;
+
 export interface Output {
   readonly quiet: boolean;
+  /**
+   * Colour functions that are genuinely inert when colour is off.
+   *
+   * Always go through this rather than importing `picocolors` directly — see
+   * `createOutput` for why the module default cannot be trusted to have been disabled.
+   */
+  readonly c: Colors;
   log(line: string): void;
   error(line: string): void;
 }
@@ -15,10 +25,19 @@ export interface Output {
 export function createOutput(opts: { quiet?: boolean; color?: boolean } = {}): Output {
   const useColor =
     opts.color !== false && Boolean(process.stdout.isTTY) && !process.env['NO_COLOR'];
-  if (!useColor) pc.createColors(false);
+
+  // `createColors` *returns* a new object; it does not reconfigure the module default.
+  // The previous `if (!useColor) pc.createColors(false)` therefore discarded its only
+  // effect, and `pc.red(...)` kept emitting escapes. It was invisible because nothing had
+  // printed in colour yet, and it would have stayed invisible on macOS and Linux: picocolors
+  // auto-disables when stdout is not a TTY, but forces colour ON for `CI` and for win32, so
+  // the first CI run to print colour would have emitted escapes into the log with
+  // `--no-color` passed. Deriving both branches from `createColors` leaves nothing to trust.
+  const c = pc.createColors(useColor);
 
   return {
     quiet: opts.quiet === true,
+    c,
     log(line: string): void {
       if (opts.quiet !== true) process.stdout.write(`${line}\n`);
     },

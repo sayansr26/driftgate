@@ -1,0 +1,7 @@
+---
+description: Existing hand-authored rule
+globs: src/**/*.ts
+alwaysApply: false
+---
+
+Prefer named exports.
