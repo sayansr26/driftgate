@@ -7,6 +7,12 @@ export interface SyncOptions {
   readonly cwd: string;
   readonly dryRun?: boolean;
   readonly force?: boolean;
+  /**
+   * Name the repository root in the output. Set only when the root was found by walking
+   * up (T074): artifact paths are repo-relative, so from a subdirectory `wrote CLAUDE.md`
+   * is ambiguous without an anchor. Running at the root prints exactly what it always did.
+   */
+  readonly announceRoot?: boolean;
   readonly quiet?: boolean;
   readonly color?: boolean;
 }
@@ -18,6 +24,10 @@ export async function runSync(options: SyncOptions): Promise<ExitCodeValue> {
   });
   const repoRoot = resolveRepoRoot(options.cwd);
   const fs = new NodeFileSystem(repoRoot);
+
+  // Mirrors `git rev-parse --show-toplevel`. On the log channel, so -q ("only print
+  // errors") still means only errors.
+  if (options.announceRoot === true) out.log(`repo  ${repoRoot}`);
 
   const plan = await computePlan({ repoRoot, fs, adapters: ADAPTERS });
 
@@ -48,7 +58,14 @@ export async function runSync(options: SyncOptions): Promise<ExitCodeValue> {
         `${pluralize(handEdited.length, 'generated file')} changed by hand; nothing was overwritten.`,
       );
       // Clobbering someone's edit is the one outcome worse than doing nothing.
-      out.error('hint: re-apply your edit in .driftgate/, or run: driftgate sync --import');
+      //
+      // This hint names only what exists today. It used to advertise `sync --import`,
+      // which is T051 and unimplemented, so following our own advice produced usage help
+      // and exit 2 — the code that means the *user* made a mistake (T075).
+      out.error(
+        'hint: re-apply your edit in .driftgate/, then delete the generated file so sync' +
+          ' can rewrite it. There is no in-place merge yet.',
+      );
     }
 
     if (unmanaged.length > 0) {

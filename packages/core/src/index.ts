@@ -35,4 +35,4 @@ export * from './pipeline/apply.js';
 export * from './pipeline/verify.js';
 
 export { MemoryFileSystem } from './io/memory.js';
-export { NodeFileSystem, resolveRepoRoot } from './io/node.js';
+export { NodeFileSystem, resolveRepoRoot, findRepoRoot } from './io/node.js';

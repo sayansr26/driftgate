@@ -1,6 +1,9 @@
 import fs from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { DriftgateError } from '../model/errors.js';
+import { DRIFTGATE_DIR } from '../model/paths.js';
 import { escapesRoot, fromPosix, normalizeRelative, toPosix } from '../fs/paths.js';
 import { matchesGlob } from '../fs/glob.js';
 import { compareCodepoint } from '../render/order.js';
@@ -115,6 +118,60 @@ function isNotFound(e: unknown): boolean {
 /** Absolute, normalized, no trailing separator. POSIX form is used inside content only. */
 export function resolveRepoRoot(cwd: string): string {
   return path.resolve(cwd);
+}
+
+/**
+ * The root to act on when the user did not name one, found by walking up from `startDir`.
+ *
+ * Git, npm, cargo and eslint all resolve their root this way, and a developer spends most
+ * of the day inside a subpackage rather than at the root. Without this, `sync` from
+ * `packages/core` fails with `E_NO_CANONICAL_SOURCE` and hints `driftgate init` — advice
+ * that would create a second, nested `.driftgate/`.
+ *
+ * `.git` is a *terminator*, not merely a candidate: the walk never looks above it. That is
+ * what keeps "sync never writes outside the repo" true. It is matched as a file as well as
+ * a directory, because worktrees and submodules write `.git` as a file containing
+ * `gitdir:`, and an `isDirectory()` check would silently climb straight past them.
+ *
+ * `AGENTS.md` is deliberately not a marker. It decides what the canonical *source* is
+ * (RFC-0001 §8), not where the repository is, and it is a common enough filename that an
+ * unrelated ancestor's copy could otherwise redirect every write. Once `.git` fixes the
+ * root, `parse()` finds `AGENTS.md` there exactly as before.
+ *
+ * Mount boundaries are an explicit non-goal: detecting them needs a `dev` comparison at
+ * every level, behaves differently on Windows, and would refuse bind-mounted container
+ * workspaces where a repository legitimately spans a mount.
+ *
+ * When nothing is found, the starting directory is returned unchanged — never `/`, never
+ * the home directory — so the resulting `E_NO_CANONICAL_SOURCE` still describes where the
+ * user is standing and `driftgate init` still creates `.driftgate/` there.
+ */
+export function findRepoRoot(startDir: string): string {
+  const start = path.resolve(startDir);
+  const home = path.resolve(os.homedir());
+  let dir = start;
+
+  for (;;) {
+    // A nearer `.driftgate/` wins. Nothing is merged across levels: nested canonical
+    // sources are T061, and this is exactly what `--cwd <subpackage>` already means.
+    if (probe(path.join(dir, DRIFTGATE_DIR))) return dir;
+    if (probe(path.join(dir, '.git'))) return dir;
+
+    const parent = path.dirname(dir);
+    // The home directory is examined like any other, but never ascended past: a stray
+    // `~/.driftgate` must not silently become the root of an unrelated project.
+    if (parent === dir || dir === home) return start;
+    dir = parent;
+  }
+}
+
+/** An ancestor we cannot stat is "no marker here", never a crash. */
+function probe(absPath: string): boolean {
+  try {
+    return existsSync(absPath);
+  } catch {
+    return false;
+  }
 }
 
 export { toPosix };

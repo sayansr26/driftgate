@@ -67,8 +67,7 @@ tools:
   - id: cursor
     options:
       legacy: false
-  - id: copilot
-    enabled: false
+    enabled: true
 
 options:
   marker: true
@@ -96,6 +95,22 @@ A `tools` entry is either a **bare string** (the tool id, enabled, no options) o
 
 Declaring the same `id` twice is an error. An unrecognized `id` is `E_UNKNOWN_TOOL`.
 
+### 4.1 Tool ids
+
+An id names an adapter, and only adapters that ship can be enabled. As of this revision
+the shipped ids are:
+
+| Id            | Writes                |
+| ------------- | --------------------- |
+| `claude-code` | `CLAUDE.md`           |
+| `cursor`      | `.cursor/rules/*.mdc` |
+
+The **authoritative** list is the adapter registry, not this table: `E_UNKNOWN_TOOL`
+enumerates every known id in its hint, so `driftgate sync` always tells you the true set.
+An id for an adapter that does not exist yet — `copilot`, `codex`, `gemini` — is
+`E_UNKNOWN_TOOL` today even with `enabled: false`, because the manifest is validated
+before anything is generated. Declare a tool when its adapter lands, not before.
+
 ## 5. `rules/*.md`
 
 Each file is Markdown with optional YAML frontmatter.
@@ -110,6 +125,29 @@ the same repository would generate different bytes on macOS and Linux.
 
 Two files that normalize to the same id are `E_RULE_ID_CONFLICT`. Non-`.md` files under
 `rules/` are ignored with a warning.
+
+### 5.1 From rule id to artifact path — normative
+
+A **concatenating** target (one file for every rule, such as `CLAUDE.md`) renders the id
+only as section text; the id never reaches a filename.
+
+A **per-file** target derives one artifact per rule, and its filename comes from the id —
+not from the rule's `description`, and not with the ordering prefix stripped. The id is
+**flattened**: lowercased, with every run of characters outside `[a-z0-9]` replaced by a
+single `-`, and leading and trailing `-` removed.
+
+```
+rules/10-style.md        -> id `10-style`       -> <dir>/10-style.<ext>
+rules/frontend/react.md  -> id `frontend/react` -> <dir>/frontend-react.<ext>
+```
+
+Flattening is why a per-file target cannot nest: the id separator `/` is not a path
+separator in the output. It follows that `frontend/react` and a rule literally named
+`frontend-react` produce the same filename; that is `E_ARTIFACT_PATH_CONFLICT`, which
+names both rules and fails the run rather than letting one silently win.
+
+The directory and extension belong to the target — Cursor writes `.cursor/rules/*.mdc` —
+but the flattening rule above is the format's, so every per-file adapter agrees on it.
 
 ## 6. Frontmatter schema
 
@@ -246,9 +284,15 @@ path.
   would produce a spurious diff in every repository.
 - **It is never authoritative.** A corrupt, truncated, or merge-conflicted `state.json`
   degrades to "no prior state" with a warning — never a crash.
-- **Merge conflicts:** resolve with `rm .driftgate/state.json && driftgate sync`. This
-  is always safe, because the file is regenerable by construction. Do not install a
-  git merge driver for it.
+- **Merge conflicts:** resolve with `rm .driftgate/state.json && driftgate sync`. The
+  file is regenerable by construction, so nothing is lost — but the recovery is only
+  _uneventful_ while every generated file still matches what Driftgate would render. A
+  generated file whose bytes still match is silently re-adopted. A **hand-edited** one is
+  not: with state gone there is nothing left to say Driftgate ever wrote it, so instead of
+  the `hand-edited` report you get `unmanaged` — "a file driftgate did not generate" —
+  and `sync` refuses the path until you move it aside or pass `--force`, which copies the
+  original to `.driftgate/backup/` first. Reconcile hand-edits into `.driftgate/` before
+  deleting state, not after. Do not install a git merge driver for it.
 
 ## 11. Reserved: `mcp/servers.yaml` (v0.2)
 
@@ -367,7 +411,7 @@ Prefer server components.
 The `**Applies to:**` line is a **documented lossy mapping**: Claude Code has no native
 per-glob scoping, so the scope is stated in prose rather than silently dropped.
 
-**`.cursor/rules/style.mdc`** — one file per rule, because Cursor scopes natively:
+**`.cursor/rules/10-style.mdc`** — one file per rule, because Cursor scopes natively:
 
 ```
 ---
@@ -380,7 +424,7 @@ alwaysApply: true
 Use tabs. Never `any`.
 ```
 
-**`.cursor/rules/frontend.mdc`**
+**`.cursor/rules/30-frontend.mdc`**
 
 ```
 ---

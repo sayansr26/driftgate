@@ -35,7 +35,27 @@ describe('RFC-0001 covers the canonical format', () => {
     expect(rfc).toMatch(/##\s*14\.\s*Worked example/);
     expect(rfc).toContain('driftgate.yaml');
     expect(rfc).toContain('CLAUDE.md');
-    expect(rfc).toContain('.cursor/rules/style.mdc');
+    // The filename comes from the rule id, prefix and all. The RFC said `style.mdc` for
+    // a rule at `rules/10-style.md` for the whole of M0, and this assertion pinned the
+    // wrong value rather than catching it (T076).
+    expect(rfc).toContain('.cursor/rules/10-style.mdc');
+    expect(rfc).toContain('.cursor/rules/30-frontend.mdc');
+  });
+
+  it('specifies how a rule id becomes a per-file artifact name', async () => {
+    // Authoring input was specifiable from this RFC on day 2; predicting output was not.
+    const rfc = await readFile(rfcPath, 'utf8');
+    expect(rfc).toContain('E_ARTIFACT_PATH_CONFLICT');
+    expect(rfc).toContain('frontend-react');
+  });
+
+  it('states that the registry, not this document, is authoritative for tool ids', async () => {
+    // Core cannot name adapters, so the id list itself is checked against the real
+    // registry in packages/cli/test/rfc-output.test.ts. What belongs here is the RFC
+    // admitting where the truth lives.
+    const rfc = await readFile(rfcPath, 'utf8');
+    expect(rfc).toMatch(/###\s*4\.1\s*Tool ids/);
+    expect(rfc).toContain('E_UNKNOWN_TOOL');
   });
 
   /**
