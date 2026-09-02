@@ -1,4 +1,4 @@
-import { DriftgateError, appliesRepoWide, type RuleDocument } from '@driftgate/core';
+import { DriftgateError, appliesRepoWide, type RuleDocument } from '@driftgate/adapter-kit';
 
 /**
  * Cursor's `.mdc` frontmatter is *not* strict YAML as an emitter would produce it, and

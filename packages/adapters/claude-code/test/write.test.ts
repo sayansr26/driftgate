@@ -1,19 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { ALL_TOOLS, type Canonical } from '@driftgate/core';
+import { ALL_TOOLS, type Canonical } from '@driftgate/adapter-kit';
 import { claudeCode, CLAUDE_MD } from '../src/index.js';
-import { contextFor, readExpected, renderFixture } from '@driftgate/adapter-kit';
+import {
+  contextFor,
+  expectFixtureMatch,
+  expectIdempotent,
+  renderFixture,
+} from '@driftgate/adapter-kit/testing';
 
 describe('claude-code write()', () => {
   it('matches the golden fixture byte for byte', async () => {
-    const actual = await renderFixture('claude-code', claudeCode);
-    const expected = await readExpected('claude-code');
-
-    // Both halves matter. Comparing only contents would let a spurious extra artifact
-    // through unnoticed.
-    expect([...actual.keys()].sort()).toEqual([...expected.keys()].sort());
-    for (const [path, contents] of expected) {
-      expect(actual.get(path), path).toBe(contents);
-    }
+    await expectFixtureMatch('claude-code', claudeCode);
   });
 
   it('excludes rules that target other tools', async () => {
@@ -29,10 +26,7 @@ describe('claude-code write()', () => {
   });
 
   it('is idempotent across repeated renders', async () => {
-    const first = await renderFixture('claude-code', claudeCode);
-    for (let i = 0; i < 10; i += 1) {
-      expect([...(await renderFixture('claude-code', claudeCode))]).toEqual([...first]);
-    }
+    await expectIdempotent('claude-code', claudeCode);
   });
 
   it('emits no file when no rule targets this tool', async () => {
@@ -66,17 +60,9 @@ describe('claude-code write()', () => {
     expect(artifact?.contents.startsWith('## Style')).toBe(true);
   });
 
-  it('detects a one-byte regression', async () => {
-    // T012's harness is only worth building if the assertion is genuinely load-bearing.
-    // Proving it here costs three lines.
-    const expected = await readExpected('claude-code');
-    const original = expected.get(CLAUDE_MD)!;
-    const tampered = original.replace('Use tabs.', 'Use tab.');
-
-    const actual = await renderFixture('claude-code', claudeCode);
-    expect(actual.get(CLAUDE_MD)).toBe(original);
-    expect(actual.get(CLAUDE_MD)).not.toBe(tampered);
-  });
+  // The one-byte regression proof lives in `regression.test.ts`. The version that used to
+  // sit here tampered with the *expected* string and asserted the untampered render still
+  // matched, which proves `toBe` works and nothing about the harness.
 
   it('keeps the canonical rule order regardless of how rules arrive', async () => {
     const ctx = await contextFor('claude-code/input', claudeCode);

@@ -1,17 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { contextFor, readExpected, renderFixture } from '@driftgate/adapter-kit';
-import { ALL_TOOLS, type Canonical, type RuleDocument } from '@driftgate/core';
+import {
+  contextFor,
+  expectFixtureMatch,
+  expectIdempotent,
+  renderFixture,
+} from '@driftgate/adapter-kit/testing';
+import { ALL_TOOLS, type Canonical, type RuleDocument } from '@driftgate/adapter-kit';
 import { cursor, LEGACY_FILE, RULES_DIR } from '../src/index.js';
-
-async function expectFixtureMatch(fixture: string): Promise<void> {
-  const actual = await renderFixture(fixture, cursor);
-  const expected = await readExpected(fixture);
-
-  expect([...actual.keys()].sort()).toEqual([...expected.keys()].sort());
-  for (const [path, contents] of expected) {
-    expect(actual.get(path), path).toBe(contents);
-  }
-}
 
 function ruleWith(partial: Partial<RuleDocument['frontmatter']> & { id?: string }): RuleDocument {
   const { id = 'r', ...frontmatter } = partial;
@@ -26,11 +21,11 @@ function ruleWith(partial: Partial<RuleDocument['frontmatter']> & { id?: string 
 
 describe('cursor write()', () => {
   it('matches the golden .mdc fixture byte for byte', async () => {
-    await expectFixtureMatch('cursor');
+    await expectFixtureMatch('cursor', cursor);
   });
 
   it('writes the legacy file only when the option asks for it', async () => {
-    await expectFixtureMatch('cursor-legacy');
+    await expectFixtureMatch('cursor-legacy', cursor);
 
     const withoutLegacy = await renderFixture('cursor', cursor);
     expect(withoutLegacy.has(LEGACY_FILE)).toBe(false);
@@ -50,10 +45,7 @@ describe('cursor write()', () => {
   });
 
   it('is idempotent across repeated renders', async () => {
-    const first = await renderFixture('cursor', cursor);
-    for (let i = 0; i < 10; i += 1) {
-      expect([...(await renderFixture('cursor', cursor))]).toEqual([...first]);
-    }
+    await expectIdempotent('cursor', cursor);
   });
 });
 

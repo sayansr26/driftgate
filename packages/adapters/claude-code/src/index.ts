@@ -12,7 +12,7 @@ import {
   type Artifact,
   type Canonical,
   type DetectResult,
-} from '@driftgate/core';
+} from '@driftgate/adapter-kit';
 import { docs } from './docs.js';
 
 export const CLAUDE_MD = 'CLAUDE.md';

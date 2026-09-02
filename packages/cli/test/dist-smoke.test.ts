@@ -49,4 +49,37 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
       await rm(repo, { recursive: true, force: true });
     }
   });
+
+  /**
+   * T011 split `@driftgate/adapter-kit` into two entry points: `.` is the frozen contract
+   * and `./testing` is the fixture harness. The vitest alias resolves both to source, so
+   * the normal suite would keep passing with a malformed `exports` map — the exact class
+   * of bug this lane exists for, and the one that would only surface on publish day.
+   */
+  it('resolves both adapter-kit entry points from the built output', async () => {
+    // Spawned rather than imported: vitest aliases `@driftgate/*` to source, so an
+    // in-process `import()` here would resolve to `src/` and pass no matter what the
+    // `exports` map says. Only Node's own resolver, running from a package that actually
+    // depends on the kit, exercises the map.
+    const cwd = fileURLToPath(new URL('../../adapters/cursor/', import.meta.url));
+    const probe = [
+      "const contract = await import('@driftgate/adapter-kit');",
+      "const testing = await import('@driftgate/adapter-kit/testing');",
+      'console.log(JSON.stringify({',
+      '  finalizeArtifact: typeof contract.finalizeArtifact,',
+      '  renderFixture: typeof testing.renderFixture,',
+      "  harnessLeakedIntoContract: 'renderFixture' in contract,",
+      '}));',
+    ].join('\n');
+
+    const { stdout } = await run(process.execPath, ['--input-type=module', '-e', probe], { cwd });
+
+    expect(JSON.parse(stdout) as unknown).toEqual({
+      finalizeArtifact: 'function',
+      renderFixture: 'function',
+      // The harness reads the filesystem, so it must not be reachable from the contract
+      // entry: adapters import that one, and adapters do not touch the disk.
+      harnessLeakedIntoContract: false,
+    });
+  });
 });

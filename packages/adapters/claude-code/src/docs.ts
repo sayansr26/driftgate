@@ -1,4 +1,4 @@
-import type { AdapterDocs } from '@driftgate/core';
+import type { AdapterDocs } from '@driftgate/adapter-kit';
 
 const CLAUDE_MEMORY_DOCS = {
   url: 'https://docs.claude.com/en/docs/claude-code/memory',

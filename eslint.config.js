@@ -48,6 +48,17 @@ export default tseslint.config(
       'no-restricted-imports': [
         'error',
         {
+          // The frozen contract is @driftgate/adapter-kit (T011). Reaching past it into
+          // core is how an adapter comes to depend on something that is not promised to
+          // external contributors — and it is how our own two adapters would stop being
+          // proof that the contract is sufficient.
+          patterns: [
+            {
+              group: ['@driftgate/core', '@driftgate/core/*'],
+              message:
+                'Adapters import from @driftgate/adapter-kit, the frozen contract. If a symbol is missing, add it to the kit — additions are non-breaking.',
+            },
+          ],
           paths: [
             { name: 'fs', message: 'Adapters must not touch the filesystem; use ctx.fs.' },
             { name: 'node:fs', message: 'Adapters must not touch the filesystem; use ctx.fs.' },
@@ -59,6 +70,14 @@ export default tseslint.config(
             { name: 'node:http', message: 'Zero network calls, in any code path, ever.' },
             { name: 'node:https', message: 'Zero network calls, in any code path, ever.' },
             { name: 'node:net', message: 'Zero network calls, in any code path, ever.' },
+            {
+              // path.join emits backslashes on Windows, which would land in Artifact.path
+              // and hash into state.json. Banning it is only honest because the kit ships
+              // joinPosix/toPosix/dirnamePosix/basenamePosix as the lawful alternative.
+              name: 'node:path',
+              message: 'Artifact paths are POSIX; use joinPosix/toPosix from the kit.',
+            },
+            { name: 'node:os', message: 'Nothing in an adapter may depend on the host OS.' },
           ],
         },
       ],
@@ -89,9 +108,41 @@ export default tseslint.config(
     },
   },
   {
+    // Adapter *tests* may use Node freely, but not the core bypass: a test that imports
+    // core is where the next adapter author copies their import block from.
+    files: ['packages/adapters/*/test/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@driftgate/core', '@driftgate/core/*'],
+              message:
+                'Adapters and their tests import from @driftgate/adapter-kit (contract) and @driftgate/adapter-kit/testing (harness).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.test.ts', '**/test/**/*.ts'],
     rules: {
       '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
+  {
+    // Repo tooling, not shipped code. It runs on Node directly and imports the *built*
+    // `dist/`, whose types are not available to the linter, so the type-checked rules
+    // would report `any` on every line of a correct file. Turning them off here is
+    // honest; adding casts to satisfy them would not be. Everything that guards the
+    // product — the dependency allowlist, the write allowlist, the network and
+    // determinism scans — is a test over `packages/` and is unaffected.
+    files: ['scripts/**/*.mjs'],
+    extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: {
+      globals: { URL: 'readonly', console: 'readonly', process: 'readonly' },
     },
   },
 );

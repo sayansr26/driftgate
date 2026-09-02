@@ -56,6 +56,23 @@ export async function computePlan(input: PlanInput): Promise<Plan> {
   const claimedBy = new Map<string, ToolId>();
 
   for (const adapter of selected) {
+    // `apiVersion` is only versioning if something reads it. TypeScript pins it to 1 for
+    // any adapter compiled against this kit, so this branch is unreachable from our own
+    // packages — it exists for the cases the type system does not cover: a plain-JS
+    // adapter, and a `node_modules` holding an adapter built against a different kit.
+    // When v2 arrives, this is the branch that decides whether a v1 adapter still runs.
+    if (adapter.apiVersion !== ADAPTER_API_VERSION) {
+      errors.push(
+        new DriftgateError({
+          code: 'E_ADAPTER_API_VERSION',
+          message: `adapter \`${adapter.name}\` targets adapter API v${String(adapter.apiVersion)}, but this build speaks v${String(ADAPTER_API_VERSION)}`,
+          source: { file: canonical.manifest.source.file },
+          hint: `upgrade the adapter, or pin driftgate to a version that speaks v${String(adapter.apiVersion)}`,
+        }),
+      );
+      continue;
+    }
+
     const options = canonical.manifest.tools.find((t) => t.id === adapter.name)?.options ?? {};
     const ctx = { repoRoot, canonical, fs, options, apiVersion: ADAPTER_API_VERSION };
 

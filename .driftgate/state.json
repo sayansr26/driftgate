@@ -20,19 +20,19 @@
     },
     {
       "adapter": "cursor",
-      "hash": "sha256:c69b85d6a4f644a6b2f81a8158442732f68e7a1167f0d241936de80d1cf2a292",
+      "hash": "sha256:13cbaf0b30d1c0f92e8e3f5f788b397650f2c2b3b2f8f3ebb56ace8fe1af1c16",
       "kind": "rules",
       "path": ".cursor/rules/40-commands.mdc"
     },
     {
       "adapter": "cursor",
-      "hash": "sha256:0a10b4ac366e21ca385d530ec40dc6fc3957ef8dd0a25e2249df978be232d906",
+      "hash": "sha256:2894eb2dd2e45610174a90c1754a4be43168f826727a2f7bec315c5268e67fb9",
       "kind": "rules",
       "path": ".cursor/rules/50-conventions.mdc"
     },
     {
       "adapter": "claude-code",
-      "hash": "sha256:7b8a1acf51bf3b26b589430a2d871bd055aa107c1092873fbe26c477276eeca8",
+      "hash": "sha256:62b24307f6df6498e16d0b5589c9b6ee6c1ef975585501b950f919cc8a111255",
       "kind": "rules",
       "path": "CLAUDE.md"
     }

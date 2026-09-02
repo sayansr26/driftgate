@@ -14,7 +14,7 @@ import {
   type Canonical,
   type DetectResult,
   type RuleDocument,
-} from '@driftgate/core';
+} from '@driftgate/adapter-kit';
 import { assertRenderable, frontmatterFor, renderMdcFrontmatter, slugFor } from './mdc.js';
 import { docs } from './docs.js';
 

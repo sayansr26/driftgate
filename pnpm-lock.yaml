@@ -47,18 +47,12 @@ importers:
       '@driftgate/adapter-kit':
         specifier: workspace:*
         version: link:../../adapter-kit
-      '@driftgate/core':
-        specifier: workspace:*
-        version: link:../../core
 
   packages/adapters/cursor:
     dependencies:
       '@driftgate/adapter-kit':
         specifier: workspace:*
         version: link:../../adapter-kit
-      '@driftgate/core':
-        specifier: workspace:*
-        version: link:../../core
 
   packages/cli:
     dependencies:

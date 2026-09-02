@@ -1,0 +1,26 @@
+/**
+ * The adapter test harness — `@driftgate/adapter-kit/testing`.
+ *
+ * A separate entry point from the contract itself, on purpose. This code reads the
+ * filesystem and constructs a concrete `NodeFileSystem`; the contract entry must not, or
+ * every adapter that imports the kit would carry a filesystem implementation into its
+ * runtime graph through the package whose central rule is that adapters do not touch the
+ * disk. Nothing here is part of the frozen v1 surface.
+ */
+
+export {
+  contextFor,
+  detectFixture,
+  fixturesRoot,
+  readExpected,
+  renderFixture,
+  writeFixture,
+} from './fixture.js';
+export { compareFixture, formatFixtureReport, type FixtureReport } from './compare.js';
+export { expectFixtureMatch, expectIdempotent } from './assert.js';
+export {
+  escapeInvisibles,
+  firstDifference,
+  formatDifference,
+  type LineDifference,
+} from './diff.js';

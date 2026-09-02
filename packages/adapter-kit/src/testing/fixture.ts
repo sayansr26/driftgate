@@ -18,7 +18,7 @@ import {
  * a premature abstraction.
  */
 
-export const fixturesRoot = fileURLToPath(new URL('../../../fixtures/', import.meta.url));
+export const fixturesRoot = fileURLToPath(new URL('../../../../fixtures/', import.meta.url));
 
 export async function contextFor(fixtureDir: string, adapter: Adapter): Promise<AdapterContext> {
   const repoRoot = path.join(fixturesRoot, fixtureDir);
@@ -59,4 +59,20 @@ export async function readExpected(fixtureDir: string): Promise<Map<string, stri
   };
   await walk(root, '');
   return out;
+}
+
+/**
+ * The two fixture layouts, resolved so that no caller ever concatenates a subpath.
+ *
+ * They differ because the situations differ: a write fixture needs an `input/` repo plus
+ * the `expected/` bytes it must produce, while a detect fixture is a whole repo that
+ * either shows the tool's fingerprints or does not, and has no expected output at all.
+ * Callers that built the subpath by hand had to know which shape they were addressing.
+ */
+export function writeFixture(tool: string): { readonly input: string; readonly expected: string } {
+  return { input: `${tool}/input`, expected: `${tool}/expected` };
+}
+
+export function detectFixture(tool: string, kase: 'positive' | 'negative'): string {
+  return `${tool}-detect/${kase}`;
 }

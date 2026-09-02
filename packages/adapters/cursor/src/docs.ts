@@ -1,4 +1,4 @@
-import type { AdapterDocs } from '@driftgate/core';
+import type { AdapterDocs } from '@driftgate/adapter-kit';
 
 const RULES_DOCS = {
   url: 'https://docs.cursor.com/context/rules',

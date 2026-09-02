@@ -68,8 +68,10 @@ Verify these still hold whenever `packages/core` changes:
   regressed exit code. Run it after `pnpm build`; it has already caught one real
   regression.
 
-Golden fixtures live in `fixtures/<tool>/{input,expected}` and are asserted byte-exact.
-An `--update-fixtures` escape hatch exists but is never used in CI.
+Golden fixtures live in `fixtures/<tool>/{input,expected}` and are asserted byte-exact;
+detect fixtures use `fixtures/<tool>-detect/{positive,negative}`. Regenerate with
+`pnpm build && pnpm fixtures:update` — it prints the change set and writes nothing without
+`--yes`, and it refuses to run when `CI` is set. See `fixtures/README.md`.
 
 Exit codes: `0` ok · `1` drift or failure · `2` usage. CI reads the code, not the
 message, so a usage error must never be reported as drift.
@@ -79,6 +81,13 @@ message, so a usage error must never be reported as drift.
 - **Adapter work is fixture-first:** hand-write `fixtures/<tool>/expected/` from the
   tool's documented behavior _before_ implementing `detect` → `read` → `write`. Adapter
   regressions are P0; a `format-changed` issue jumps the queue.
+- **Adapters import `@driftgate/adapter-kit`, never `@driftgate/core`.** The kit is the
+  frozen contract (T011) and the two shipped adapters are the proof that it is
+  sufficient — the moment one of them reaches past it, it stops being proof. If a symbol
+  is missing, add it to the kit: additions are non-breaking, removals cost an
+  `ADAPTER_API_VERSION` bump. See `docs/adapter-api-v1.md`. The test harness is a
+  separate entry point, `@driftgate/adapter-kit/testing`, because it reads the filesystem
+  and adapters must not.
 - **Two adapter traps.** Codex's `AGENTS.md` is both a valid canonical _input_ and that
   adapter's _output_ — guard the self-reference. Copilot has three competing instruction
   mechanisms, so document which one we write and how they rank.

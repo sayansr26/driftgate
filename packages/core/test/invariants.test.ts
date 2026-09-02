@@ -13,15 +13,21 @@ const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
 const ALLOWED_RUNTIME_DEPS = new Set(['yaml', 'commander', 'picocolors']);
 
+async function adapterDirs(): Promise<string[]> {
+  const entries = await readdir(path.join(repoRoot, 'packages/adapters'), { withFileTypes: true });
+  return entries
+    .filter((e) => e.isDirectory())
+    .map((e) => `packages/adapters/${e.name}`)
+    .sort();
+}
+
 async function packageManifests(): Promise<{ name: string; dir: string; json: PackageJson }[]> {
-  const dirs = [
-    'packages/core',
-    'packages/cli',
-    'packages/adapter-kit',
-    'packages/adapters/claude-code',
-    'packages/adapters/cursor',
-    'action',
-  ];
+  // Adapters are *discovered*, not listed. A hardcoded list would silently stop covering
+  // the next adapter someone scaffolds (T028), and an invariant that quietly narrows its
+  // own scope while staying green is worse than not having it.
+  const dirs = ['packages/core', 'packages/cli', 'packages/adapter-kit', 'action'].concat(
+    await adapterDirs(),
+  );
   return Promise.all(
     dirs.map(async (dir) => {
       const json = JSON.parse(
@@ -170,3 +176,68 @@ describe('the shared rendering path', () => {
     expect(files).toEqual(['apply.ts', 'plan.ts', 'verify.ts']);
   });
 });
+
+describe('the adapter contract boundary', () => {
+  /**
+   * T011 froze `@driftgate/adapter-kit` as the contract external contributors write
+   * against, and the proof that the contract is sufficient is that our own two adapters
+   * need nothing else. `eslint.config.js` bans the core import too; this exists because
+   * an inline `eslint-disable` defeats a lint rule and nothing defeats a file scan.
+   */
+  it('keeps adapters off @driftgate/core entirely', async () => {
+    const offenders: string[] = [];
+    for (const file of await adapterFiles()) {
+      const rel = path.relative(repoRoot, file);
+      if (/from\s+['"]@driftgate\/core/.test(await readFile(file, 'utf8'))) offenders.push(rel);
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it('declares only the kit as an adapter dependency', async () => {
+    for (const dir of await adapterDirs()) {
+      const json = JSON.parse(
+        await readFile(path.join(repoRoot, dir, 'package.json'), 'utf8'),
+      ) as PackageJson;
+      expect(Object.keys(json.dependencies ?? {}).sort(), dir).toEqual(['@driftgate/adapter-kit']);
+    }
+  });
+
+  it('leaves no type escape behind in the migrated adapters', async () => {
+    // T011's stated validation is that the adapters compile against the extracted types
+    // "with no local type escapes" — asserted rather than eyeballed.
+    const offenders: string[] = [];
+    for (const file of await adapterFiles()) {
+      const text = await readFile(file, 'utf8');
+      if (/\bas any\b|as unknown as|@ts-expect-error|@ts-ignore/.test(text)) {
+        offenders.push(path.relative(repoRoot, file));
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
+async function adapterFiles(): Promise<string[]> {
+  const dirs = await adapterDirs();
+  const out: string[] = [];
+  const walk = async (dir: string): Promise<void> => {
+    let entries;
+    try {
+      entries = await readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const child = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === 'node_modules' || entry.name === 'dist') continue;
+        await walk(child);
+        continue;
+      }
+      if (entry.name.endsWith('.ts')) out.push(child);
+    }
+  };
+  // Adapter tests are included on purpose: a test is where the next author copies their
+  // import block from, so the boundary has to hold there too.
+  await Promise.all(dirs.map((d) => walk(path.join(repoRoot, d))));
+  return out.sort();
+}

@@ -2,8 +2,29 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "allowJs": true
+    "allowJs": true,
+    // Workspace packages resolve to source, not to `dist/`. Without this, eslint's
+    // type-aware rules depend on whether someone has run `pnpm build` — and since
+    // `pnpm verify` runs `lint` *before* `build`, a clean clone produced hundreds of
+    // "could not be resolved" errors. This is the lint project only; the per-package
+    // build tsconfigs deliberately keep resolving through each package's `exports` map,
+    // which is what a published consumer sees.
+    "baseUrl": ".",
+    "paths": {
+      "@driftgate/core": ["packages/core/src/index.ts"],
+      "@driftgate/adapter-kit": ["packages/adapter-kit/src/index.ts"],
+      "@driftgate/adapter-kit/testing": ["packages/adapter-kit/src/testing/index.ts"],
+      "@driftgate/adapter-claude-code": ["packages/adapters/claude-code/src/index.ts"],
+      "@driftgate/adapter-cursor": ["packages/adapters/cursor/src/index.ts"]
+    }
   },
-  "include": ["packages/**/src/**/*", "packages/**/test/**/*", "action/**/*.ts", "*.ts", "*.js"],
+  "include": [
+    "packages/**/src/**/*",
+    "packages/**/test/**/*",
+    "action/**/*.ts",
+    "scripts/**/*.mjs",
+    "*.ts",
+    "*.js"
+  ],
   "exclude": ["**/dist/**", "**/node_modules/**"]
 }

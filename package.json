@@ -15,7 +15,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
-    "verify": "pnpm lint && pnpm build && pnpm typecheck && pnpm test"
+    "verify": "pnpm lint && pnpm build && pnpm typecheck && pnpm test",
+    "fixtures:update": "node scripts/update-fixtures.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

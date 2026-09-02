@@ -13,7 +13,8 @@ export type DriftgateErrorCode =
   | 'E_PATH_ESCAPE'
   | 'E_STATE_INVALID'
   | 'E_HAND_EDITED'
-  | 'E_ADAPTER_FAILED';
+  | 'E_ADAPTER_FAILED'
+  | 'E_ADAPTER_API_VERSION';
 
 export interface DriftgateErrorInit {
   readonly code: DriftgateErrorCode;

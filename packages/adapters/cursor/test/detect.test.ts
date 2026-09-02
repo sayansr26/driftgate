@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { contextFor } from '@driftgate/adapter-kit';
+import { contextFor, detectFixture } from '@driftgate/adapter-kit/testing';
 import { cursor } from '../src/index.js';
 
 describe('cursor detect()', () => {
   it('finds Cursor and reports the evidence', async () => {
-    const ctx = await contextFor('cursor-detect/positive', cursor);
+    const ctx = await contextFor(detectFixture('cursor', 'positive'), cursor);
     const result = await cursor.detect(ctx);
 
     expect(result.detected).toBe(true);
@@ -12,7 +12,7 @@ describe('cursor detect()', () => {
   });
 
   it('reports absence on a repo that does not use it', async () => {
-    const ctx = await contextFor('cursor-detect/negative', cursor);
+    const ctx = await contextFor(detectFixture('cursor', 'negative'), cursor);
     const result = await cursor.detect(ctx);
 
     expect(result.detected).toBe(false);

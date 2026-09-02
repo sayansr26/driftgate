@@ -10,6 +10,10 @@ export default defineConfig({
     // covered by the DRIFTGATE_TEST_DIST-gated smoke test, which CI runs after build.
     alias: {
       '@driftgate/core': src('./packages/core/src/index.ts'),
+      // The subpath must come first. Vite matches string aliases by prefix in declaration
+      // order, so a bare '@driftgate/adapter-kit' listed above this one would rewrite
+      // '@driftgate/adapter-kit/testing' into '.../src/index.ts/testing'.
+      '@driftgate/adapter-kit/testing': src('./packages/adapter-kit/src/testing/index.ts'),
       '@driftgate/adapter-kit': src('./packages/adapter-kit/src/index.ts'),
       '@driftgate/adapter-claude-code': src('./packages/adapters/claude-code/src/index.ts'),
       '@driftgate/adapter-cursor': src('./packages/adapters/cursor/src/index.ts'),
