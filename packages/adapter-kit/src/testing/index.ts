@@ -14,12 +14,21 @@ export {
   detectFixture,
   fixturePath,
   fixturesRoot,
+  importContextFor,
+  importFixture,
+  importFixtureRules,
   readExpected,
+  readInput,
   renderFixture,
   writeFixture,
 } from './fixture.js';
 export { compareFixture, formatFixtureReport, type FixtureReport } from './compare.js';
-export { expectFixtureMatch, expectIdempotent } from './assert.js';
+export {
+  expectContentCovered,
+  expectFixtureMatch,
+  expectIdempotent,
+  expectImportMatch,
+} from './assert.js';
 export { expectDocsValid, type DocsValidationOptions } from './docs.js';
 export {
   escapeInvisibles,

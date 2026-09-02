@@ -1,0 +1,6 @@
+---
+description: Frontend
+globs: src/components/**/*.tsx,src/app/**/*.tsx
+alwaysApply: false
+---
+Prefer server components.

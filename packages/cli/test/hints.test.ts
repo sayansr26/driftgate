@@ -12,10 +12,15 @@ const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
  * usage help and exit 2 — the code reserved for "you made a mistake" (T075). A README
  * promise decays; this does not.
  *
- * Flags only, deliberately. Two hints name `driftgate init`, an unregistered *subcommand*
- * (T019), which is the same shape of broken promise and is logged as T077 rather than
- * quietly widened into scope here.
+ * Subcommands are covered too, as of T019. They could not be until then: two hints and
+ * RFC §8 named `driftgate init` while it was unregistered, so following the only
+ * instruction a user with no `.driftgate/` ever received exited **2** (T077). Widening
+ * this guard is how that stays fixed.
  */
+
+function registeredSubcommands(): Set<string> {
+  return new Set(buildProgram().commands.map((cmd) => cmd.name()));
+}
 
 function registeredLongFlags(): Set<string> {
   const program = buildProgram();
@@ -97,6 +102,23 @@ describe('hints only name things that exist', () => {
     // passing vacuously.
     const hints = await hintTexts();
     expect(hints.length).toBeGreaterThanOrEqual(10);
+  });
+
+  it('never advertises a subcommand the CLI does not register', async () => {
+    // T077: `run: driftgate init` was the first instruction a new user got, and it was
+    // the first thing that failed.
+    const registered = registeredSubcommands();
+    const offenders: string[] = [];
+
+    for (const { file, text } of await hintTexts()) {
+      // Only actual invocations: `run: driftgate x` or a backticked `driftgate x`.
+      // A bare `driftgate <word>` also matches prose like "pin driftgate to a version".
+      for (const [, name] of text.matchAll(/(?:run: |`)driftgate ([a-z][a-z0-9-]*)/g)) {
+        if (name !== undefined && !registered.has(name)) offenders.push(`${file}: ${name}`);
+      }
+    }
+
+    expect(offenders).toEqual([]);
   });
 
   it('never advertises a flag the CLI does not accept', async () => {

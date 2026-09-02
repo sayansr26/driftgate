@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Regenerate `fixtures/<tool>/expected/` from the current adapters.
+ * Regenerate `fixtures/<tool>/expected/` and `fixtures/<tool>-import/expected/` from the
+ * current adapters — the first from `write()`, the second from `read()`.
  *
  * Lives at the repo root, not in `packages/`, and that is deliberate:
  * `packages/core/test/invariants.test.ts` allows filesystem writes only in
@@ -45,9 +46,24 @@ const { ADAPTERS } = await import(path.join(repoRoot, 'packages/cli/dist/registr
     process.exit(2);
   },
 );
-const { renderFixture } = await import(
+const { importFixtureRules, renderFixture } = await import(
   path.join(repoRoot, 'packages/adapter-kit/dist/testing/index.js')
 );
+
+const IMPORT_SUFFIX = '-import';
+
+/**
+ * Import fixtures are goldens of `read()`, not of `write()`.
+ *
+ * Without this branch every `<tool>-import` fixture rendered through `write()`, matched
+ * nothing, and was reported as fourteen files to *delete* — this script's stale-golden
+ * cleanup aimed at a set of goldens it does not own. `--yes` would have removed them.
+ */
+function generate(fixture, adapter) {
+  return fixture.endsWith(IMPORT_SUFFIX)
+    ? importFixtureRules(fixture.slice(0, -IMPORT_SUFFIX.length), adapter)
+    : renderFixture(fixture, adapter);
+}
 
 /** Every `fixtures/<dir>` that has both `input/` and `expected/`. */
 async function writeFixtures() {
@@ -92,7 +108,7 @@ for (const fixture of await writeFixtures()) {
     process.exit(1);
   }
 
-  const rendered = await renderFixture(fixture, adapter);
+  const rendered = await generate(fixture, adapter);
   const expectedDir = path.join(fixturesRoot, fixture, 'expected');
   const current = await existingExpected(expectedDir);
 

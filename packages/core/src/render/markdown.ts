@@ -19,8 +19,18 @@ export interface SectionOptions {
 export const DEFAULT_SECTION_OPTIONS: SectionOptions = { headingLevel: 2, showGlobs: true };
 
 export function renderRuleSection(rule: RuleDocument, options: SectionOptions): string {
-  const heading = '#'.repeat(options.headingLevel);
-  const parts = [`${heading} ${ruleHeading(rule)}`];
+  const parts: string[] = [];
+
+  // A rule with no description gets no heading, rather than one made out of its id.
+  //
+  // Found by running `init` (T019) on a repository with a hand-written `CLAUDE.md`: that
+  // file imports as one untitled rule, and falling back to the id put a `## claude`
+  // heading at the top of the user's own document that nobody wrote. Content preserved
+  // and a line invented is still a file the user did not write — and `sync` would then
+  // report their next edit as drift against text Driftgate made up.
+  if (rule.frontmatter.description !== undefined) {
+    parts.push(`${'#'.repeat(options.headingLevel)} ${ruleHeading(rule)}`);
+  }
 
   if (options.showGlobs && rule.frontmatter.globs.length > 0) {
     const globs = rule.frontmatter.globs.map((g) => `\`${g}\``).join(', ');

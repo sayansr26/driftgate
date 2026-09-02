@@ -82,6 +82,30 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
    * the normal suite would keep passing with a malformed `exports` map — the exact class
    * of bug this lane exists for, and the one that would only surface on publish day.
    */
+  /**
+   * T077's fix, checked through the real resolver.
+   *
+   * `driftgate init` was hinted by two error messages and by RFC §8 for the whole of M0
+   * while it was unregistered, so following the only instruction a new user ever received
+   * exited **2** — the code that means the user made the mistake. A unit test importing
+   * `runInit` cannot catch a command that was never registered on the program.
+   */
+  it('registers `init`, so following our own hint does not exit 2', async () => {
+    const repo = await mkdtemp(path.join(tmpdir(), 'driftgate-init-smoke-'));
+    try {
+      await cp(path.join(fixtures, 'claude-code-import/input'), repo, { recursive: true });
+      const { stdout } = await run(process.execPath, [binPath, 'init'], { cwd: repo });
+      expect(stdout).toContain('nothing was written');
+
+      // And it really wrote nothing: the walk finds no `.driftgate/`.
+      await expect(stat(path.join(repo, '.driftgate'))).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
+    } finally {
+      await rm(repo, { recursive: true, force: true });
+    }
+  });
+
   it('resolves both adapter-kit entry points from the built output', async () => {
     // Spawned rather than imported: vitest aliases `@driftgate/*` to source, so an
     // in-process `import()` here would resolve to `src/` and pass no matter what the

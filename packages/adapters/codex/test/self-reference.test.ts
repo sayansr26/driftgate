@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Canonical } from '@driftgate/adapter-kit';
 import { codex, AGENTS_MD } from '../src/index.js';
-import { contextFor } from '@driftgate/adapter-kit/testing';
+import { contextFor, importContextFor, importFixture } from '@driftgate/adapter-kit/testing';
 
 /**
  * T014's stated validation, and the only trap this adapter carries.
@@ -35,5 +35,32 @@ describe('codex and the AGENTS.md self-reference', () => {
     // nothing at all, which is the failure mode a guard like this actually has.
     const artifacts = await writeWithCanonicalSources(['.driftgate/driftgate.yaml']);
     expect(artifacts.map((a) => a.path)).toEqual([AGENTS_MD]);
+  });
+
+  /**
+   * `read()` carries the mirror-image guard, and it needs its own coverage.
+   *
+   * Every import context is built with an *empty* canonical, because that is the state
+   * `init` runs in — so nothing in the import fixtures reaches this branch, and it sat
+   * inert until a mutation removing it broke no test at all. The case it exists for is a
+   * repository whose manifest declares `AGENTS.md` canonical: the parser has already read
+   * that file, and importing it again would duplicate every rule in it.
+   */
+  async function readWithCanonicalSources(sources: readonly string[]) {
+    const ctx = importContextFor(importFixture('codex').input);
+    const canonical: Canonical = {
+      ...ctx.canonical,
+      manifest: { ...ctx.canonical.manifest, canonicalSources: sources },
+    };
+    return codex.read({ ...ctx, canonical });
+  }
+
+  it('imports nothing when AGENTS.md is already the canonical source', async () => {
+    expect(await readWithCanonicalSources([AGENTS_MD])).toEqual({});
+  });
+
+  it('still imports AGENTS.md when some other file is the canonical source', async () => {
+    const imported = await readWithCanonicalSources(['.driftgate/driftgate.yaml']);
+    expect(imported.rules?.map((r) => r.id)).toEqual(['agents']);
   });
 });

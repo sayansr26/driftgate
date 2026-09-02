@@ -2,7 +2,12 @@ import {
   ADAPTER_API_VERSION,
   DriftgateError,
   appliesRepoWide,
+  basenamePosix,
+  claimRuleId,
   detected,
+  importConcatenated,
+  importRuleId,
+  importedRule,
   finalizeArtifact,
   isCanonicalSource,
   renderConcatenated,
@@ -17,7 +22,12 @@ import {
   type DetectResult,
   type RuleDocument,
 } from '@driftgate/adapter-kit';
-import { assertRenderable, frontmatterFor, renderInstructionsFrontmatter } from './instructions.js';
+import {
+  assertRenderable,
+  frontmatterFor,
+  parseInstructions,
+  renderInstructionsFrontmatter,
+} from './instructions.js';
 import { docs } from './docs.js';
 
 export const REPO_INSTRUCTIONS = '.github/copilot-instructions.md';
@@ -35,8 +45,53 @@ async function detect(ctx: AdapterContext): Promise<DetectResult> {
   return detected(evidence);
 }
 
-async function read(_ctx: AdapterContext): Promise<Partial<Canonical>> {
-  return Promise.resolve({}); // Import is T017.
+/**
+ * The two mechanisms are read the way they are written: repo-wide rules concatenated in
+ * one file, glob-scoped rules one per file. `parseGlobs` is false for the repository-wide
+ * file because nothing there can be glob-scoped — it is rendered with `showGlobs: false`,
+ * so a bold "Applies to" line in it is the user's own prose, not our marker.
+ */
+async function read(ctx: AdapterContext): Promise<Partial<Canonical>> {
+  const rules: RuleDocument[] = [];
+  const taken = new Set<string>();
+
+  if (!isCanonicalSource(ctx.canonical.manifest, REPO_INSTRUCTIONS)) {
+    const contents = await ctx.fs.tryReadFile(REPO_INSTRUCTIONS);
+    if (contents !== undefined) {
+      for (const rule of importConcatenated({
+        file: REPO_INSTRUCTIONS,
+        contents,
+        headingLevel: 2,
+        parseGlobs: false,
+        idFallback: 'copilot',
+      })) {
+        rules.push({ ...rule, id: claimRuleId(rule.id, taken) });
+      }
+    }
+  }
+
+  for (const path of await ctx.fs.glob(`${INSTRUCTIONS_DIR}/**/*.instructions.md`)) {
+    if (isCanonicalSource(ctx.canonical.manifest, path)) continue;
+    const contents = await ctx.fs.tryReadFile(path);
+    if (contents === undefined) continue;
+
+    const parsed = parseInstructions(contents);
+    if (parsed.body === '' && parsed.description === undefined) continue;
+
+    const base = basenamePosix(path).replace(/\.instructions\.md$/i, '');
+    rules.push(
+      importedRule({
+        id: claimRuleId(importRuleId(base, 'copilot'), taken),
+        ...(parsed.description === undefined ? {} : { description: parsed.description }),
+        globs: parsed.applyTo,
+        body: parsed.body,
+        unknown: parsed.unknown,
+        source: { file: path, line: 1 },
+      }),
+    );
+  }
+
+  return rules.length === 0 ? {} : { rules };
 }
 
 function instructionsPath(rule: RuleDocument): string {

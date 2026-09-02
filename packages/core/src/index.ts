@@ -27,6 +27,10 @@ export * from './render/finalize.js';
 
 export * from './parse/index.js';
 
+export * from './import/index.js';
+
+export * from './init/index.js';
+
 export * from './state/state.js';
 export * from './state/compare.js';
 

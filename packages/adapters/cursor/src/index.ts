@@ -1,7 +1,12 @@
 import {
   ADAPTER_API_VERSION,
   DriftgateError,
+  basenamePosix,
+  claimRuleId,
   detected,
+  importConcatenated,
+  importRuleId,
+  importedRule,
   finalizeArtifact,
   isCanonicalSource,
   renderConcatenated,
@@ -16,7 +21,7 @@ import {
   slugForId,
   type RuleDocument,
 } from '@driftgate/adapter-kit';
-import { assertRenderable, frontmatterFor, renderMdcFrontmatter } from './mdc.js';
+import { assertRenderable, frontmatterFor, parseMdc, renderMdcFrontmatter } from './mdc.js';
 import { docs } from './docs.js';
 
 export const RULES_DIR = '.cursor/rules';
@@ -32,8 +37,54 @@ async function detect(ctx: AdapterContext): Promise<DetectResult> {
   return detected(evidence);
 }
 
-async function read(_ctx: AdapterContext): Promise<Partial<Canonical>> {
-  return Promise.resolve({}); // Import is T017.
+/**
+ * Both mechanisms are imported, not just the modern one.
+ *
+ * `.cursorrules` is usually the same rules again in one file, and collapsing that
+ * duplication is T018's job — but it is only *usually*, and a repo that stopped
+ * maintaining its `.mdc` files has its real content in the legacy file. Dropping a source
+ * because it is probably redundant is how an import quietly loses somebody's rules.
+ */
+async function read(ctx: AdapterContext): Promise<Partial<Canonical>> {
+  const rules: RuleDocument[] = [];
+  const taken = new Set<string>();
+
+  for (const path of await ctx.fs.glob(`${RULES_DIR}/**/*.mdc`)) {
+    if (isCanonicalSource(ctx.canonical.manifest, path)) continue;
+    const contents = await ctx.fs.tryReadFile(path);
+    if (contents === undefined) continue;
+
+    const parsed = parseMdc(contents);
+    if (parsed.body === '' && parsed.description === undefined) continue;
+
+    const base = basenamePosix(path).replace(/\.mdc$/i, '');
+    rules.push(
+      importedRule({
+        id: claimRuleId(importRuleId(base, 'cursor'), taken),
+        ...(parsed.description === undefined ? {} : { description: parsed.description }),
+        globs: parsed.globs,
+        body: parsed.body,
+        unknown: parsed.unknown,
+        source: { file: path, line: 1 },
+      }),
+    );
+  }
+
+  if (!isCanonicalSource(ctx.canonical.manifest, LEGACY_FILE)) {
+    const legacy = await ctx.fs.tryReadFile(LEGACY_FILE);
+    if (legacy !== undefined) {
+      for (const rule of importConcatenated({
+        file: LEGACY_FILE,
+        contents: legacy,
+        headingLevel: 2,
+        idFallback: 'cursorrules',
+      })) {
+        rules.push({ ...rule, id: claimRuleId(rule.id, taken) });
+      }
+    }
+  }
+
+  return rules.length === 0 ? {} : { rules };
 }
 
 function mdcPath(rule: RuleDocument): string {

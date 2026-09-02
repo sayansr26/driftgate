@@ -1,4 +1,9 @@
-import { DriftgateError, type RuleDocument } from '@driftgate/adapter-kit';
+import {
+  DriftgateError,
+  stripMarker,
+  type JsonValue,
+  type RuleDocument,
+} from '@driftgate/adapter-kit';
 
 /**
  * The frontmatter of a `.instructions.md` file.
@@ -66,4 +71,80 @@ export function assertRenderable(rule: RuleDocument): void {
 
 function foldDescription(description: string): string {
   return description.replace(/\s*[\r\n]+\s*/g, ' ').trim();
+}
+
+export interface ParsedInstructions {
+  readonly description?: string;
+  readonly applyTo: readonly string[];
+  /** Keys the frontmatter carried that canonical has no field for, preserved verbatim. */
+  readonly unknown: Readonly<Record<string, JsonValue>>;
+  readonly body: string;
+}
+
+const KEY_LINE = /^([^:\s][^:]*):[ \t]?(.*)$/;
+
+/**
+ * `.instructions.md` -> its parts. The mirror image of the `.mdc` trap: this frontmatter
+ * *is* real YAML, and the mistake is trusting that fact one step too far. `applyTo` is a
+ * single scalar holding comma-separated patterns, so a YAML reader hands back one string
+ * that matches nothing rather than the list it looks like.
+ *
+ * Parsed line-wise rather than with the `yaml` package because an adapter's dependency
+ * footprint is part of its contract, and the two keys that carry meaning here need
+ * exactly one YAML rule between them: a single-quoted scalar escapes a quote by doubling
+ * it, and nothing else.
+ */
+export function parseInstructions(contents: string): ParsedInstructions {
+  const lines = contents.split('\n');
+  if ((lines[0] ?? '').trim() !== '---') {
+    return { applyTo: [], unknown: {}, body: joinBody(lines) };
+  }
+
+  const close = lines.findIndex((line, i) => i > 0 && ['---', '...'].includes(line.trim()));
+  if (close === -1) return { applyTo: [], unknown: {}, body: joinBody(lines) };
+
+  let description: string | undefined;
+  let applyTo: readonly string[] = [];
+  const unknown: Record<string, JsonValue> = {};
+
+  for (const line of lines.slice(1, close)) {
+    const match = KEY_LINE.exec(line);
+    if (match === null) continue;
+    const key = (match[1] ?? '').trim();
+    const value = unquote((match[2] ?? '').trim());
+
+    if (key === 'description') {
+      if (value !== '') description = value;
+    } else if (key === 'applyTo') {
+      applyTo = value
+        .split(',')
+        .map((part) => part.trim())
+        .filter((part) => part !== '');
+    } else if (key !== '') {
+      unknown[key] = value;
+    }
+  }
+
+  return {
+    ...(description === undefined ? {} : { description }),
+    applyTo,
+    unknown,
+    body: joinBody(lines.slice(close + 1)),
+  };
+}
+
+/** The inverse of `quote`, plus tolerance for a hand-written double-quoted or bare value. */
+function unquote(value: string): string {
+  if (value.length >= 2 && value.startsWith("'") && value.endsWith("'")) {
+    return value.slice(1, -1).replace(/''/g, "'");
+  }
+  if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+    return value.slice(1, -1).replace(/\\"/g, '"');
+  }
+  return value;
+}
+
+function joinBody(lines: readonly string[]): string {
+  const body = stripMarker(lines.join('\n')).replace(/^\n+/, '').replace(/\n+$/, '');
+  return body === '' ? '' : `${body}\n`;
 }

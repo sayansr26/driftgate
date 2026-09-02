@@ -17,6 +17,17 @@ export interface PlanInput {
   readonly repoRoot: string;
   readonly fs: ReadOnlyFileSystem;
   readonly adapters: readonly Adapter[];
+  /**
+   * Plan from this model instead of parsing `.driftgate/` off disk.
+   *
+   * For `init` (T019), which has a canonical model in memory — imported from the
+   * repository's existing tool configs — and nothing on disk yet to parse. It is a
+   * parameter rather than a second planner on purpose: `computePlan` being the only
+   * renderer is what makes `check` and `sync` structurally unable to disagree, and an
+   * `init` that rendered its preview some other way would be able to promise a user
+   * something the first `sync` then did not do.
+   */
+  readonly canonical?: Canonical;
 }
 
 export interface Plan {
@@ -44,11 +55,15 @@ export async function computePlan(input: PlanInput): Promise<Plan> {
   const errors: DriftgateError[] = [];
   const warnings: DriftgateError[] = [];
 
-  const parsed = await parse({ fs, knownTools: adapters.map((a) => a.name) });
-  errors.push(...parsed.errors);
-  warnings.push(...parsed.warnings);
-
-  const { canonical } = parsed;
+  let canonical: Canonical;
+  if (input.canonical === undefined) {
+    const parsed = await parse({ fs, knownTools: adapters.map((a) => a.name) });
+    errors.push(...parsed.errors);
+    warnings.push(...parsed.warnings);
+    canonical = parsed.canonical;
+  } else {
+    canonical = input.canonical;
+  }
   const enabled = canonical.manifest.tools.filter((t) => t.enabled).map((t) => t.id);
   const selected = adapters.filter((a) => enabled.includes(a.name));
 

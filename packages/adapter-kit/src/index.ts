@@ -1,8 +1,9 @@
 /**
  * The public adapter contract. **Frozen at T011** (2026-09-02): external contributors
  * write against these exports, so a change here breaks them. See `README.md` in this
- * package for the compatibility policy, and `packages/adapter-kit/test/surface.test.ts`
- * plus `api/adapter-kit.api.d.ts` for the two guards that enforce it.
+ * package for the compatibility policy, and `packages/adapter-kit/test/public-api.test.ts`
+ * (the export list) plus `test/contract-shape.test.ts` (the shape of each export) for the
+ * two guards that enforce it.
  *
  * The definitions live in `@driftgate/core`; this package re-exports them, which keeps
  * the declared dependency direction (adapter-kit -> core) intact. The test of whether
@@ -84,6 +85,20 @@ export {
   ruleHeading,
   selects,
   slugForId,
+} from '@driftgate/core';
+
+// Import: native config -> canonical, the inverse of the renderers above. Shared here
+// rather than per adapter because three of the five shipped adapters read the identical
+// concatenated Markdown shape, and two importers that disagree about where a section ends
+// is how one tool's rules quietly go missing on a first run. The per-format dialects stay
+// in the adapters that own them.
+export type { ImportConcatenatedOptions, ImportedRuleInit } from '@driftgate/core';
+export {
+  claimRuleId,
+  importConcatenated,
+  importRuleId,
+  importedRule,
+  stripMarker,
 } from '@driftgate/core';
 
 // Errors. An adapter reports a problem the same way core does, so the CLI can format it

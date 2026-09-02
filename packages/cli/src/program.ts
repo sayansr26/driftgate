@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { readVersion } from './version.js';
+import { runInit } from './commands/init.js';
 import { runSync } from './commands/sync.js';
 import { runDoctor } from './commands/doctor.js';
 import { resolveGlobalCwd } from './cwd.js';
@@ -26,6 +27,28 @@ export function buildProgram(): Command {
         process.exit(ExitCode.Ok);
       }
       process.exit(err.exitCode === 0 ? ExitCode.Ok : ExitCode.Usage);
+    });
+
+  // Registered before `sync` because it is the first command a new repository needs, and
+  // because two error messages and RFC §8 have been telling users to run it since M0
+  // while it did not exist — following our own advice exited 2 (T077).
+  program
+    .command('init')
+    .description(
+      'Import existing tool configs into .driftgate/ (prints a plan; writes nothing without --yes)',
+    )
+    .option('--yes', 'apply the plan instead of only printing it')
+    .action(async (opts: { yes?: boolean }, cmd: Command) => {
+      const globals = cmd.optsWithGlobals<{ cwd?: string; quiet?: boolean; color?: boolean }>();
+      const { root, searched } = resolveGlobalCwd(globals.cwd);
+      const code = await runInit({
+        cwd: root,
+        ...(searched ? { announceRoot: true } : {}),
+        ...(opts.yes === undefined ? {} : { yes: opts.yes }),
+        ...(globals.quiet === undefined ? {} : { quiet: globals.quiet }),
+        ...(globals.color === undefined ? {} : { color: globals.color }),
+      });
+      process.exitCode = code;
     });
 
   program

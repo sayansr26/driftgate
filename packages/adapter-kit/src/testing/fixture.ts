@@ -3,8 +3,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   ADAPTER_API_VERSION,
+  DRIFTGATE_DIR,
+  MANIFEST_PATH,
   NodeFileSystem,
+  emptyCanonical,
   parse,
+  serializeCanonical,
   type Adapter,
   type AdapterContext,
 } from '@driftgate/core';
@@ -91,4 +95,79 @@ export function detectEngineFixture(kase: 'none' | 'one' | 'all' | 'home'): stri
 /** An absolute path to a fixture directory, for callers that need a filesystem root. */
 export function fixturePath(fixtureDir: string): string {
   return path.join(fixturesRoot, fixtureDir);
+}
+
+/**
+ * The import fixture layout: `fixtures/<tool>-import/{input,expected}`.
+ *
+ * A third shape, because import asks a third question. `input/` is a repository with
+ * the tool's *native* files and no `.driftgate/` — the state a real repo is in before
+ * anyone has heard of Driftgate — and `expected/` holds the canonical rules the import
+ * must produce, serialized exactly as `init` would write them under `.driftgate/`.
+ */
+export function importFixture(tool: string): { readonly input: string; readonly expected: string } {
+  return { input: `${tool}-import/input`, expected: `${tool}-import/expected` };
+}
+
+/**
+ * An `AdapterContext` for import: the repository's files, and a canonical model that is
+ * empty rather than parsed.
+ *
+ * This is not a shortcut, it is what `init` does. `parse()` on a repo whose only
+ * instruction file is `AGENTS.md` enters bare-AGENTS.md mode and lists that file in
+ * `canonicalSources` — so a parsed context makes the Codex adapter's self-reference guard
+ * fire and `read()` return nothing at all. Correct for `sync`, wrong for `init`: a user
+ * running `init` is asking for a `.driftgate/`, and handing them back "your AGENTS.md is
+ * already canonical, there is nothing to do" is a refusal dressed as a result. The guard
+ * still protects the case it was written for, a manifest that declares the file canonical.
+ */
+export function importContextFor(fixtureDir: string): AdapterContext {
+  const repoRoot = path.join(fixturesRoot, fixtureDir);
+  return {
+    repoRoot,
+    canonical: emptyCanonical({ file: fixtureDir }),
+    fs: new NodeFileSystem(repoRoot),
+    options: {},
+    apiVersion: ADAPTER_API_VERSION,
+  };
+}
+
+/**
+ * Run an adapter's `read()` over `fixtures/<tool>-import/input` and serialize the result.
+ *
+ * The comparison is made against serialized canonical rather than against an in-memory
+ * model because the bytes are what a user ends up reading in `.driftgate/rules/`, and a
+ * golden a reviewer cannot read is a golden nobody checks. The manifest is dropped:
+ * `read()` returns rules, and assembling a manifest is `init`'s job (T019).
+ */
+export async function importFixtureRules(
+  tool: string,
+  adapter: Adapter,
+): Promise<Map<string, string>> {
+  const dir = importFixture(tool).input;
+  const partial = await adapter.read(importContextFor(dir));
+  const canonical = { ...emptyCanonical({ file: dir }), rules: partial.rules ?? [] };
+
+  const out = new Map<string, string>();
+  for (const [file, contents] of serializeCanonical(canonical)) {
+    if (file === MANIFEST_PATH) continue;
+    out.set(file.slice(`${DRIFTGATE_DIR}/`.length), contents);
+  }
+  return out;
+}
+
+/** Every file under a fixture directory, as repo-relative POSIX path -> contents. */
+export async function readInput(fixtureDir: string): Promise<Map<string, string>> {
+  const root = path.join(fixturesRoot, fixtureDir);
+  const out = new Map<string, string>();
+  const walk = async (dir: string, prefix: string): Promise<void> => {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      const child = path.join(dir, entry.name);
+      const rel = prefix === '' ? entry.name : `${prefix}/${entry.name}`;
+      if (entry.isDirectory()) await walk(child, rel);
+      else out.set(rel, await readFile(child, 'utf8'));
+    }
+  };
+  await walk(root, '');
+  return out;
 }

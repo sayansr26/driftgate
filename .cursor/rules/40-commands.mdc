@@ -14,9 +14,18 @@ alwaysApply: true
   regression.
 
 Golden fixtures live in `fixtures/<tool>/{input,expected}` and are asserted byte-exact;
-detect fixtures use `fixtures/<tool>-detect/{positive,negative}`. Regenerate with
+detect fixtures use `fixtures/<tool>-detect/{positive,negative}`, and import fixtures use
+`fixtures/<tool>-import/{input,expected}` — a repo with the tool's native files and no
+`.driftgate/`, plus the canonical rules `read()` must recover from it. Regenerate with
 `pnpm build && pnpm fixtures:update` — it prints the change set and writes nothing without
 `--yes`, and it refuses to run when `CI` is set. See `fixtures/README.md`.
+
+`driftgate init` is the on-ramp for a repository that has never used Driftgate: it
+detects which tools are configured, imports their configs into canonical rules, collapses
+the copies that arrive from several tools at once, and prints every file it would create,
+modify or leave alone. It **writes nothing without `--yes`**. Applying takes ownership of
+the files it imported from, copying each original to `.driftgate/backup/` first. On a
+repository that already has a `.driftgate/` it says so and does nothing.
 
 `driftgate doctor` reports which tools are configured, which files each will actually
 load, in what order, whether they are in sync, and roughly what they cost in tokens. It is

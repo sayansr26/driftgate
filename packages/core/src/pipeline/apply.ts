@@ -154,3 +154,48 @@ export async function applyPlan(
     stateWritten: stateNeedsWrite,
   };
 }
+
+/** One `.driftgate/` file `init` proposes to write, and what writing it would do. */
+export interface CanonicalFile {
+  readonly path: string;
+  readonly contents: string;
+  readonly kind: 'create' | 'modify' | 'leave-alone';
+}
+
+export interface CanonicalWriteReport {
+  readonly written: readonly string[];
+  readonly unchanged: readonly string[];
+}
+
+/**
+ * Write the `.driftgate/` files `init` computed.
+ *
+ * Here rather than in `init/` because `packages/core/test/invariants.test.ts` allows
+ * filesystem writes in exactly three places, and `pipeline/apply.ts` is the only one of
+ * them that is a command's apply step. Giving `init` its own writer would have meant
+ * widening a P0 allowlist so that a second function could write files — which is the
+ * shape of the change that later makes "applyPlan is the only writer" untrue.
+ *
+ * Unlike `applyPlan` this has no ownership rules to apply: `.driftgate/` is Driftgate's
+ * own directory, and a file already there with different contents means the repository
+ * has been adopted, which `computeInitPlan` refuses before reaching this point.
+ */
+export async function applyCanonicalFiles(
+  files: readonly CanonicalFile[],
+  fs: WritableFileSystem,
+  options: { readonly dryRun: boolean },
+): Promise<CanonicalWriteReport> {
+  const written: string[] = [];
+  const unchanged: string[] = [];
+
+  for (const file of [...files].sort((a, b) => compareCodepoint(a.path, b.path))) {
+    if (file.kind === 'leave-alone') {
+      unchanged.push(file.path);
+      continue;
+    }
+    if (!options.dryRun) await fs.writeFile(file.path, file.contents);
+    written.push(file.path);
+  }
+
+  return { written, unchanged };
+}

@@ -13,6 +13,10 @@ export type DriftgateErrorCode =
   | 'E_PATH_ESCAPE'
   | 'E_STATE_INVALID'
   | 'E_HAND_EDITED'
+  // A formatter and a generator both claim a generated file. Raised as a warning by
+  // `init` (T072): reformatting generated output makes the next `sync` report it as
+  // hand-edited and refuse to write it, which reads as Driftgate being broken.
+  | 'E_FORMATTER_CONFLICT'
   | 'E_ADAPTER_FAILED'
   | 'E_ADAPTER_API_VERSION';
 

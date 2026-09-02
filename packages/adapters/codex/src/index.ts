@@ -1,6 +1,7 @@
 import {
   ADAPTER_API_VERSION,
   detected,
+  importConcatenated,
   finalizeArtifact,
   isCanonicalSource,
   renderConcatenated,
@@ -27,10 +28,23 @@ async function detect(ctx: AdapterContext): Promise<DetectResult> {
   return detected(evidence);
 }
 
-async function read(_ctx: AdapterContext): Promise<Partial<Canonical>> {
-  // Importing an existing AGENTS.md back into canonical is T017. Returning nothing is
-  // correct today; returning a guess would be worse than returning nothing.
-  return Promise.resolve({});
+async function read(ctx: AdapterContext): Promise<Partial<Canonical>> {
+  // The same guard `write` makes, for the mirror-image reason: when this file is already
+  // the canonical source, the parser has read it and importing it again would duplicate
+  // every rule in it. It matters for AGENTS.md above all (T014).
+  if (isCanonicalSource(ctx.canonical.manifest, AGENTS_MD)) return {};
+
+  const contents = await ctx.fs.tryReadFile(AGENTS_MD);
+  if (contents === undefined) return {};
+
+  return {
+    rules: importConcatenated({
+      file: AGENTS_MD,
+      contents,
+      headingLevel: 2,
+      idFallback: 'agents',
+    }),
+  };
 }
 
 async function write(ctx: AdapterContext): Promise<readonly Artifact[]> {

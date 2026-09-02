@@ -1,4 +1,10 @@
-import { DriftgateError, appliesRepoWide, type RuleDocument } from '@driftgate/adapter-kit';
+import {
+  DriftgateError,
+  appliesRepoWide,
+  stripMarker,
+  type JsonValue,
+  type RuleDocument,
+} from '@driftgate/adapter-kit';
 
 /**
  * Cursor's `.mdc` frontmatter is *not* strict YAML as an emitter would produce it, and
@@ -63,4 +69,79 @@ export function assertRenderable(rule: RuleDocument): void {
       });
     }
   }
+}
+
+export interface ParsedMdc {
+  readonly description?: string;
+  readonly globs: readonly string[];
+  /** Keys the dialect carried that canonical has no field for, preserved verbatim. */
+  readonly unknown: Readonly<Record<string, JsonValue>>;
+  readonly body: string;
+}
+
+const KEY_LINE = /^([^:\s][^:]*):[ \t]?(.*)$/;
+
+/**
+ * `.mdc` -> its parts. The inverse of `renderMdcFrontmatter`, and hand-rolled for the
+ * same reason it is: **this is not YAML.**
+ *
+ * A YAML parser gets three things wrong here, all silently. `globs: src/**\/*.tsx` has an
+ * unquoted `*` where a YAML alias may begin; the bare key `globs:` parses as `null`
+ * rather than "no globs"; and a value containing `:` or `#` — ordinary in a description —
+ * is either an error or a truncation. The dialect's actual rule is simpler than YAML:
+ * a value runs to the end of the line and nothing escapes.
+ */
+export function parseMdc(contents: string): ParsedMdc {
+  const lines = contents.split('\n');
+  if ((lines[0] ?? '').trim() !== '---') {
+    return { globs: [], unknown: {}, body: joinBody(lines) };
+  }
+
+  const close = lines.findIndex((line, i) => i > 0 && ['---', '...'].includes(line.trim()));
+  // An unterminated block is the user's file, not ours. Treating the whole thing as body
+  // keeps every byte; guessing where the frontmatter ended would drop the rest.
+  if (close === -1) return { globs: [], unknown: {}, body: joinBody(lines) };
+
+  let description: string | undefined;
+  let globs: readonly string[] = [];
+  const unknown: Record<string, JsonValue> = {};
+
+  for (const line of lines.slice(1, close)) {
+    const match = KEY_LINE.exec(line);
+    if (match === null) continue;
+    const key = (match[1] ?? '').trim();
+    const value = (match[2] ?? '').trim();
+
+    if (key === 'description') {
+      if (value !== '') description = value;
+    } else if (key === 'globs') {
+      globs = splitGlobs(value);
+    } else if (key === 'alwaysApply') {
+      // Derived on the way out (`globs.length === 0`), so it is dropped on the way back
+      // in. Preserving it in `unknown` would re-emit it into canonical, where the next
+      // render would compute it again — and the two could then disagree.
+      continue;
+    } else if (key !== '') {
+      unknown[key] = value;
+    }
+  }
+
+  return {
+    ...(description === undefined ? {} : { description }),
+    globs,
+    unknown,
+    body: joinBody(lines.slice(close + 1)),
+  };
+}
+
+function splitGlobs(value: string): readonly string[] {
+  return value
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part !== '');
+}
+
+function joinBody(lines: readonly string[]): string {
+  const body = stripMarker(lines.join('\n')).replace(/^\n+/, '').replace(/\n+$/, '');
+  return body === '' ? '' : `${body}\n`;
 }
