@@ -25,6 +25,17 @@ modify or leave alone. It **writes nothing without `--yes`**. Applying takes own
 the files it imported from, copying each original to `.driftgate/backup/` first. On a
 repository that already has a `.driftgate/` it says so and does nothing.
 
+`driftgate sync` also **removes the artifacts no enabled adapter produces any more** —
+delete a rule and its `.cursor/rules/*.mdc` goes with it, instead of being left on disk at
+exit 0 for Cursor to keep loading. Every removal is copied to `.driftgate/backup/` first,
+and an orphan edited since Driftgate wrote it is refused rather than deleted. Set
+`options.backup: false` in the manifest to delete without the copy.
+
+`driftgate restore [path...]` puts back the originals under `.driftgate/backup/` — the undo
+for both `sync --force` and orphan deletion. Like `init` it **writes nothing without
+`--yes`**, and it copies raw bytes, so a CRLF or BOM original comes back exactly as it was.
+With no arguments it restores everything in the backup.
+
 `driftgate doctor` reports which tools are configured, which files each will actually
 load, in what order, whether they are in sync, and roughly what they cost in tokens. It is
 read-only and **exits 0 even when it has warnings** — `check` owns exit 1 for drift, and a

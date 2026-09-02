@@ -258,3 +258,153 @@ describe('check and sync cannot diverge', () => {
     expect((await verifyPlan(plan, new NodeFileSystem(repo))).clean).toBe(true);
   });
 });
+
+/**
+ * T020's deletion half and all of T073.
+ *
+ * Before this existed, deleting a rule exited 0, printed `wrote CLAUDE.md`, and said
+ * nothing about the `.cursor/rules/*.mdc` still on disk — Cursor kept loading a rule the
+ * user had deleted, and the tool reported success. Concatenating adapters are immune,
+ * which is why the whole class was invisible in this repository's most-watched artifact.
+ */
+describe('orphaned artifacts (T020 deletion, T073)', () => {
+  const rule = (id: string) => path.join(repo, '.driftgate/rules', `${id}.md`);
+  const statePaths = async (): Promise<string[]> => {
+    const state = JSON.parse(await read(STATE_PATH)) as { artifacts: { path: string }[] };
+    return state.artifacts.map((a) => a.path);
+  };
+  const exists = async (rel: string): Promise<boolean> =>
+    await stat(path.join(repo, rel)).then(
+      () => true,
+      () => false,
+    );
+
+  beforeEach(async () => {
+    await runSync({ cwd: repo, quiet: true });
+  });
+
+  it('deletes the artifact a removed rule used to generate, backing it up first', async () => {
+    const before = await read('.cursor/rules/20-testing.mdc');
+    await rm(rule('20-testing'));
+
+    const report = await applyPlan(await planFor(), new NodeFileSystem(repo));
+
+    expect(report.deleted).toEqual(['.cursor/rules/20-testing.mdc']);
+    expect(await exists('.cursor/rules/20-testing.mdc')).toBe(false);
+    // A backup that does not hold the original bytes is not a backup.
+    expect(await read('.driftgate/backup/.cursor/rules/20-testing.mdc')).toBe(before);
+    // And the record goes with the file: state must describe what is actually there.
+    expect(await statePaths()).not.toContain('.cursor/rules/20-testing.mdc');
+  });
+
+  it('leaves exactly one artifact per rule after a rename', async () => {
+    // Renaming is the obvious way to reorder when filenames carry the order prefix, and
+    // it used to leave *both* .mdc files, so Cursor loaded the rule twice.
+    await cp(rule('10-style'), rule('15-style'));
+    await rm(rule('10-style'));
+
+    await applyPlan(await planFor(), new NodeFileSystem(repo));
+
+    expect(await exists('.cursor/rules/15-style.mdc')).toBe(true);
+    expect(await exists('.cursor/rules/10-style.mdc')).toBe(false);
+  });
+
+  it('refuses to delete an orphan that was edited after we generated it', async () => {
+    await writeFile(path.join(repo, '.cursor/rules/20-testing.mdc'), 'mine now\n', 'utf8');
+    await rm(rule('20-testing'));
+
+    const report = await applyPlan(await planFor(), new NodeFileSystem(repo));
+
+    expect(report.deleted).toEqual([]);
+    expect(report.skipped).toContainEqual({
+      path: '.cursor/rules/20-testing.mdc',
+      reason: 'orphan-hand-edited',
+    });
+    expect(await read('.cursor/rules/20-testing.mdc')).toBe('mine now\n');
+  });
+
+  /**
+   * T073's second and worse defect, verbatim from its validation.
+   *
+   * The abandoning run used to *drop* the orphan's state entry, so Driftgate forgot it
+   * had written the file. Restoring the rule then made `sync` refuse the path with
+   * `1 file driftgate did not generate` — a statement that is simply false about a file
+   * Driftgate generated.
+   */
+  it('keeps a refused orphan in state.json, so restoring its rule is not a false unmanaged claim', async () => {
+    const original = await readFile(rule('20-testing'), 'utf8');
+    await writeFile(path.join(repo, '.cursor/rules/20-testing.mdc'), 'edited\n', 'utf8');
+    await rm(rule('20-testing'));
+
+    await applyPlan(await planFor(), new NodeFileSystem(repo));
+    expect(await statePaths()).toContain('.cursor/rules/20-testing.mdc');
+
+    // Put the rule back. The file is now hand-edited, which is a true statement; the one
+    // thing it must not be called is a file driftgate did not generate.
+    await writeFile(rule('20-testing'), original, 'utf8');
+    const report = await applyPlan(await planFor(), new NodeFileSystem(repo));
+
+    const reasons = report.skipped
+      .filter((s) => s.path === '.cursor/rules/20-testing.mdc')
+      .map((s) => s.reason);
+    expect(reasons).toEqual(['hand-edited']);
+    expect(reasons).not.toContain('unmanaged');
+  });
+
+  it('deletes nothing under --dry-run', async () => {
+    await rm(rule('20-testing'));
+    const fs = new NodeFileSystem(repo);
+    const spy = vi.spyOn(fs, 'deleteFile');
+
+    const report = await applyPlan(await planFor(), fs, { dryRun: true });
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(report.deleted).toEqual(['.cursor/rules/20-testing.mdc']);
+    expect(await exists('.cursor/rules/20-testing.mdc')).toBe(true);
+  });
+
+  it('drops the record for an orphan that is already gone, without trying to delete it', async () => {
+    await rm(path.join(repo, '.cursor/rules/20-testing.mdc'));
+    await rm(rule('20-testing'));
+    const fs = new NodeFileSystem(repo);
+    const spy = vi.spyOn(fs, 'deleteFile');
+
+    const report = await applyPlan(await planFor(), fs);
+
+    expect(spy).not.toHaveBeenCalled();
+    expect(report.deleted).toEqual([]);
+    expect(await statePaths()).not.toContain('.cursor/rules/20-testing.mdc');
+  });
+
+  it('honours options.backup: false by deleting without a copy', async () => {
+    await writeFile(
+      path.join(repo, '.driftgate/driftgate.yaml'),
+      'schemaVersion: 1\noptions:\n  backup: false\ntools:\n  - claude-code\n  - cursor\n',
+      'utf8',
+    );
+    await rm(rule('20-testing'));
+
+    const report = await applyPlan(await planFor(), new NodeFileSystem(repo));
+
+    expect(report.deleted).toEqual(['.cursor/rules/20-testing.mdc']);
+    expect(report.backedUp).toEqual([]);
+    expect(await exists('.driftgate/backup/.cursor/rules/20-testing.mdc')).toBe(false);
+  });
+
+  it('reports the deletion rather than exiting 0 in silence', async () => {
+    await rm(rule('20-testing'));
+    const lines: string[] = [];
+    const spy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      lines.push(String(chunk));
+      return true;
+    });
+
+    const code = await runSync({ cwd: repo, color: false });
+    spy.mockRestore();
+
+    expect(code).toBe(ExitCode.Ok);
+    const output = lines.join('');
+    expect(output).toContain('deleted  .cursor/rules/20-testing.mdc');
+    expect(output).toContain('backed up  .driftgate/backup/.cursor/rules/20-testing.mdc');
+  });
+});

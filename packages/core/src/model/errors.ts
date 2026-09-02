@@ -13,6 +13,10 @@ export type DriftgateErrorCode =
   | 'E_PATH_ESCAPE'
   | 'E_STATE_INVALID'
   | 'E_HAND_EDITED'
+  // A deletion was proposed for a path `state.json` does not record as ours. Unreachable
+  // from `compareToDisk`, whose orphan set is built from state — it guards the one place
+  // where being wrong means destroying somebody else's file (T020).
+  | 'E_DELETE_UNRECORDED'
   // A formatter and a generator both claim a generated file. Raised as a warning by
   // `init` (T072): reformatting generated output makes the next `sync` report it as
   // hand-edited and refuse to write it, which reads as Driftgate being broken.

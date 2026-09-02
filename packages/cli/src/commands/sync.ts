@@ -46,6 +46,7 @@ export async function runSync(options: SyncOptions): Promise<ExitCodeValue> {
 
   const handEdited = report.skipped.filter((s) => s.reason === 'hand-edited');
   const unmanaged = report.skipped.filter((s) => s.reason === 'unmanaged');
+  const staleOrphans = report.skipped.filter((s) => s.reason === 'orphan-hand-edited');
 
   if (report.skipped.length > 0) {
     for (const { path, reason } of report.skipped) {
@@ -68,6 +69,19 @@ export async function runSync(options: SyncOptions): Promise<ExitCodeValue> {
       );
     }
 
+    if (staleOrphans.length > 0) {
+      // A third case, and reusing either message above would be wrong. This file is
+      // ours — state.json records it — but no rule produces it any more, so "re-apply
+      // your edit in .driftgate/" names a file that no longer has a rule to go back to.
+      out.error(
+        `${pluralize(staleOrphans.length, 'file')} no rule produces any more, changed by hand; nothing was deleted.`,
+      );
+      out.error(
+        'hint: delete the file yourself to accept the removal, or restore the rule that' +
+          ' generated it in .driftgate/rules/',
+      );
+    }
+
     if (unmanaged.length > 0) {
       // Different problem, different fix: this file is not a stale copy of our output,
       // it is the user's own writing. Telling them to "re-apply it in .driftgate/" as
@@ -83,11 +97,14 @@ export async function runSync(options: SyncOptions): Promise<ExitCodeValue> {
     return ExitCode.Failure;
   }
 
-  const verb = options.dryRun === true ? 'would write' : 'wrote';
+  const dry = options.dryRun === true;
   for (const path of report.backedUp) out.log(`backed up  .driftgate/backup/${path}`);
-  for (const path of report.written) out.log(`${verb}  ${path}`);
+  // Deletions before writes: that is the order they happened in, and a user scanning
+  // the output for what left the repository should not have to read past what entered it.
+  for (const path of report.deleted) out.log(`${dry ? 'would delete' : 'deleted'}  ${path}`);
+  for (const path of report.written) out.log(`${dry ? 'would write' : 'wrote'}  ${path}`);
 
-  if (report.written.length === 0) {
+  if (report.written.length === 0 && report.deleted.length === 0) {
     out.log(`up to date (${pluralize(plan.artifacts.length, 'artifact')})`);
   }
 

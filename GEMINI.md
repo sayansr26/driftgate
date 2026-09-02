@@ -50,11 +50,19 @@ Verify these still hold whenever `packages/core` changes:
   record of ownership; a path absent from it is somebody else's. `--force` may take
   ownership, but only after copying the original to `.driftgate/backup/`.
 - **Never delete a file Driftgate did not generate**, checked against `state.json`.
+  `DiskComparison.orphaned` is the only source of deletion candidates in the codebase and
+  `assertDeletable` is the last gate in front of `deleteFile`, so a path Driftgate never
+  recorded cannot reach a delete call. An orphan whose bytes have changed since we wrote
+  them is refused and keeps its `state.json` entry — dropping the record is how Driftgate
+  forgets it owns a file and later calls its own artifact somebody else's.
 - **Deterministic rendering** — byte-identical output across runs, platforms, and Node
   versions. Nondeterminism is a P0 bug. See `docs/determinism.md`.
 - **Never write a literal secret.** MCP secrets are references (`env:GITHUB_TOKEN`)
   under every flag.
 - Destructive operations **dry-run by default** or back up to `.driftgate/backup/`.
+  `sync` deletes orphans on the second clause: every deletion copies the file to
+  `.driftgate/backup/` first, and `driftgate restore` puts it back. `restore` itself is on
+  the first clause — it prints a plan and writes nothing without `--yes`.
 - No tool-specific logic in `packages/core`; no symlinks as an implementation strategy;
   `sync` never writes outside the repo.
 
@@ -81,6 +89,17 @@ the copies that arrive from several tools at once, and prints every file it woul
 modify or leave alone. It **writes nothing without `--yes`**. Applying takes ownership of
 the files it imported from, copying each original to `.driftgate/backup/` first. On a
 repository that already has a `.driftgate/` it says so and does nothing.
+
+`driftgate sync` also **removes the artifacts no enabled adapter produces any more** —
+delete a rule and its `.cursor/rules/*.mdc` goes with it, instead of being left on disk at
+exit 0 for Cursor to keep loading. Every removal is copied to `.driftgate/backup/` first,
+and an orphan edited since Driftgate wrote it is refused rather than deleted. Set
+`options.backup: false` in the manifest to delete without the copy.
+
+`driftgate restore [path...]` puts back the originals under `.driftgate/backup/` — the undo
+for both `sync --force` and orphan deletion. Like `init` it **writes nothing without
+`--yes`**, and it copies raw bytes, so a CRLF or BOM original comes back exactly as it was.
+With no arguments it restores everything in the backup.
 
 `driftgate doctor` reports which tools are configured, which files each will actually
 load, in what order, whether they are in sync, and roughly what they cost in tokens. It is

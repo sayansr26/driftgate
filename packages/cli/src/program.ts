@@ -3,6 +3,7 @@ import { readVersion } from './version.js';
 import { runInit } from './commands/init.js';
 import { runSync } from './commands/sync.js';
 import { runDoctor } from './commands/doctor.js';
+import { runRestore } from './commands/restore.js';
 import { resolveGlobalCwd } from './cwd.js';
 import { ExitCode } from './ui/exit.js';
 
@@ -67,6 +68,29 @@ export function buildProgram(): Command {
         ...(searched ? { announceRoot: true } : {}),
         ...(opts.dryRun === undefined ? {} : { dryRun: opts.dryRun }),
         ...(opts.force === undefined ? {} : { force: opts.force }),
+        ...(globals.quiet === undefined ? {} : { quiet: globals.quiet }),
+        ...(globals.color === undefined ? {} : { color: globals.color }),
+      });
+      process.exitCode = code;
+    });
+
+  // After `sync` because it is `sync --force`'s and orphan deletion's undo, and a reader
+  // scanning --help should meet the operation before its reversal.
+  program
+    .command('restore')
+    .description(
+      'Put back originals kept in .driftgate/backup/ (prints a plan; writes nothing without --yes)',
+    )
+    .argument('[path...]', 'restore only these repo-relative paths; omit for everything')
+    .option('--yes', 'apply the plan instead of only printing it')
+    .action(async (paths: string[], opts: { yes?: boolean }, cmd: Command) => {
+      const globals = cmd.optsWithGlobals<{ cwd?: string; quiet?: boolean; color?: boolean }>();
+      const { root, searched } = resolveGlobalCwd(globals.cwd);
+      const code = await runRestore({
+        cwd: root,
+        only: paths,
+        ...(searched ? { announceRoot: true } : {}),
+        ...(opts.yes === undefined ? {} : { yes: opts.yes }),
         ...(globals.quiet === undefined ? {} : { quiet: globals.quiet }),
         ...(globals.color === undefined ? {} : { color: globals.color }),
       });

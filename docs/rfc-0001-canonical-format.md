@@ -81,7 +81,7 @@ canonicalSources: []
 | `schemaVersion`    | integer  | no       | `1`     | Format version this file targets.                                                     | `E_MANIFEST_INVALID` |
 | `tools`            | list     | no       | `[]`    | Tools to generate for. See below.                                                     | `E_MANIFEST_INVALID` |
 | `options.marker`   | boolean  | no       | `true`  | Inject the generated-by marker where the format allows comments.                      | `E_MANIFEST_INVALID` |
-| `options.backup`   | boolean  | no       | `true`  | Copy originals to `.driftgate/backup/` before overwriting.                            | `E_MANIFEST_INVALID` |
+| `options.backup`   | boolean  | no       | `true`  | Copy originals to `.driftgate/backup/` before overwriting or deleting.                | `E_MANIFEST_INVALID` |
 | `canonicalSources` | string[] | no       | `[]`    | Repo-relative paths that are canonical _input_. No adapter may write to them. See §8. | `E_MANIFEST_INVALID` |
 
 A `tools` entry is either a **bare string** (the tool id, enabled, no options) or a
@@ -296,6 +296,12 @@ path.
   and `sync` refuses the path until you move it aside or pass `--force`, which copies the
   original to `.driftgate/backup/` first. Reconcile hand-edits into `.driftgate/` before
   deleting state, not after. Do not install a git merge driver for it.
+- **Deleting it also forfeits every deletion Driftgate could still make.** `state.json` is
+  the only record of what Driftgate generated, and the deletion candidates are exactly the
+  paths it records that no enabled adapter produces any more. With the file gone, an
+  artifact whose rule you delete afterwards is not an orphan Driftgate can reclaim — it is
+  a file nobody has any record of, and it stays on disk being loaded by the tool it was
+  written for. `driftgate doctor` still finds it by shape; `sync` cannot.
 
 ## 11. Reserved: `mcp/servers.yaml` (v0.2)
 
