@@ -1,6 +1,7 @@
 import { applyPlan, computePlan, NodeFileSystem, resolveRepoRoot } from '@driftgate/core';
 import { ADAPTERS } from '../registry.js';
 import { createOutput, formatErrors, pluralize } from '../ui/report.js';
+import { HINT_HAND_EDITED, HINT_ORPHAN_HAND_EDITED, HINT_UNMANAGED } from '../ui/hints.js';
 import { ExitCode, type ExitCodeValue } from '../ui/exit.js';
 
 export interface SyncOptions {
@@ -44,6 +45,8 @@ export async function runSync(options: SyncOptions): Promise<ExitCodeValue> {
     force: options.force === true,
   });
 
+  for (const warning of report.warnings) out.error(warning.format());
+
   const handEdited = report.skipped.filter((s) => s.reason === 'hand-edited');
   const unmanaged = report.skipped.filter((s) => s.reason === 'unmanaged');
   const staleOrphans = report.skipped.filter((s) => s.reason === 'orphan-hand-edited');
@@ -54,45 +57,27 @@ export async function runSync(options: SyncOptions): Promise<ExitCodeValue> {
     }
     out.error('');
 
+    // The hints live in `ui/hints.ts` because `check` reports the same outcomes and must
+    // give the same next step; the reasoning behind each wording is recorded there.
     if (handEdited.length > 0) {
       out.error(
         `${pluralize(handEdited.length, 'generated file')} changed by hand; nothing was overwritten.`,
       );
-      // Clobbering someone's edit is the one outcome worse than doing nothing.
-      //
-      // This hint names only what exists today. It used to advertise `sync --import`,
-      // which is T051 and unimplemented, so following our own advice produced usage help
-      // and exit 2 — the code that means the *user* made a mistake (T075).
-      out.error(
-        'hint: re-apply your edit in .driftgate/, then delete the generated file so sync' +
-          ' can rewrite it. There is no in-place merge yet.',
-      );
+      out.error(HINT_HAND_EDITED);
     }
 
     if (staleOrphans.length > 0) {
-      // A third case, and reusing either message above would be wrong. This file is
-      // ours — state.json records it — but no rule produces it any more, so "re-apply
-      // your edit in .driftgate/" names a file that no longer has a rule to go back to.
       out.error(
         `${pluralize(staleOrphans.length, 'file')} no rule produces any more, changed by hand; nothing was deleted.`,
       );
-      out.error(
-        'hint: delete the file yourself to accept the removal, or restore the rule that' +
-          ' generated it in .driftgate/rules/',
-      );
+      out.error(HINT_ORPHAN_HAND_EDITED);
     }
 
     if (unmanaged.length > 0) {
-      // Different problem, different fix: this file is not a stale copy of our output,
-      // it is the user's own writing. Telling them to "re-apply it in .driftgate/" as
-      // though driftgate had authored it is how a tool talks its way into deleting work.
       out.error(
         `${pluralize(unmanaged.length, 'file')} driftgate did not generate; nothing was overwritten.`,
       );
-      out.error(
-        'hint: move the file aside to keep it, or run: driftgate sync --force' +
-          ' (originals are copied to .driftgate/backup/ first)',
-      );
+      out.error(HINT_UNMANAGED);
     }
     return ExitCode.Failure;
   }

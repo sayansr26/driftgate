@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { readVersion } from './version.js';
 import { runInit } from './commands/init.js';
 import { runSync } from './commands/sync.js';
+import { runCheck } from './commands/check.js';
 import { runDoctor } from './commands/doctor.js';
 import { runRestore } from './commands/restore.js';
 import { resolveGlobalCwd } from './cwd.js';
@@ -68,6 +69,25 @@ export function buildProgram(): Command {
         ...(searched ? { announceRoot: true } : {}),
         ...(opts.dryRun === undefined ? {} : { dryRun: opts.dryRun }),
         ...(opts.force === undefined ? {} : { force: opts.force }),
+        ...(globals.quiet === undefined ? {} : { quiet: globals.quiet }),
+        ...(globals.color === undefined ? {} : { color: globals.color }),
+      });
+      process.exitCode = code;
+    });
+
+  // Directly after `sync` because it is `sync`'s read-only twin: same plan, same
+  // vocabulary, and --help should show the pair together. No `--staged` yet — reading the
+  // git index means spawning `git`, and that lands with the pre-commit hook (T052) that
+  // needs it; an unregistered flag exits 2 here rather than silently doing nothing.
+  program
+    .command('check')
+    .description('Verify generated tool configs match .driftgate/ (read-only; exits 1 on drift)')
+    .action(async (_opts: Record<string, never>, cmd: Command) => {
+      const globals = cmd.optsWithGlobals<{ cwd?: string; quiet?: boolean; color?: boolean }>();
+      const { root, searched } = resolveGlobalCwd(globals.cwd);
+      const code = await runCheck({
+        cwd: root,
+        ...(searched ? { announceRoot: true } : {}),
         ...(globals.quiet === undefined ? {} : { quiet: globals.quiet }),
         ...(globals.color === undefined ? {} : { color: globals.color }),
       });

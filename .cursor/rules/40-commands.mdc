@@ -33,6 +33,17 @@ exit 0 for Cursor to keep loading. Every removal is copied to `.driftgate/backup
 and an orphan edited since Driftgate wrote it is refused rather than deleted. Set
 `options.backup: false` in the manifest to delete without the copy.
 
+`driftgate check` is `sync`'s read-only twin: it renders the same plan in memory, compares
+it to disk, and exits 1 with a unified diff when they differ. **Clean means `sync` would
+write nothing and delete nothing** — a stale artifact, a hand-edited one, a missing one, a
+file Driftgate never generated standing where its output goes, and an orphan still on disk
+all count, each with the recovery hint `sync` would give. The diff runs from disk to
+render, so `+` lines are what `sync` will write; changed lines show trailing spaces and
+tabs as `·` and `␉`, and a missing final newline is marked, because those are the
+differences a hash sees and a diff otherwise hides. It holds a filesystem with no write
+methods on it and never calls `applyPlan`. `--staged` is not implemented yet: reading the
+git index means spawning `git`, and that arrives with the pre-commit hook package (T052).
+
 `driftgate restore [path...]` puts back the originals under `.driftgate/backup/` — the undo
 for both `sync --force` and orphan deletion. Like `init` it **writes nothing without
 `--yes`**, and it copies raw bytes, so a CRLF or BOM original comes back exactly as it was.

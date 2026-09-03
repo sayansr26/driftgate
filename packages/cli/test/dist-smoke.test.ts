@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { cp, mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -101,6 +101,69 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
       await expect(stat(path.join(repo, '.driftgate'))).rejects.toMatchObject({
         code: 'ENOENT',
       });
+    } finally {
+      await rm(repo, { recursive: true, force: true });
+    }
+  });
+
+  /**
+   * T023: the exit code is CI's whole contract, and the code the CLI *returns* is not the
+   * code the shell *sees* — the dist lane is the only place the difference exists.
+   */
+  it('check exits 1 on drift, 0 in sync, 1 on a hand-edit, and never 2', async () => {
+    const repo = await mkdtemp(path.join(tmpdir(), 'driftgate-check-smoke-'));
+    try {
+      await cp(path.join(fixtures, 'cursor/input'), repo, { recursive: true });
+
+      await expect(run(process.execPath, [binPath, 'check'], { cwd: repo })).rejects.toMatchObject({
+        code: 1,
+      });
+
+      await run(process.execPath, [binPath, 'sync'], { cwd: repo });
+      const { stdout } = await run(process.execPath, [binPath, 'check'], { cwd: repo });
+      expect(stdout).toContain('in sync (5 artifacts)');
+
+      await writeFile(path.join(repo, 'CLAUDE.md'), 'edited by hand\n');
+      const drifted = await run(process.execPath, [binPath, 'check'], { cwd: repo }).catch(
+        (e: { code: number; stdout: string; stderr: string }) => e,
+      );
+      expect(drifted.code).toBe(1);
+      expect(drifted.stdout).toContain('hand-edited  CLAUDE.md');
+      expect(drifted.stdout).toContain('-edited by hand');
+      expect(drifted.stderr).toContain('hint:');
+      // Piped through execFile, so no TTY: the diff must carry no escape sequences.
+      expect(drifted.stdout).not.toContain(String.fromCharCode(27));
+    } finally {
+      await rm(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('check --staged exits 2 as an unregistered flag, rather than silently checking the tree', async () => {
+    // Deferred to T052 with the pre-commit hook. A flag that is accepted and ignored is
+    // worse than one that is refused: the hook author would believe the index was checked.
+    await expect(run(process.execPath, [binPath, 'check', '--staged'])).rejects.toMatchObject({
+      code: 2,
+    });
+  });
+
+  /**
+   * The Action's `main` used to be an exported function nothing called, so
+   * `node dist/main.js` exited 0 without looking. Only a spawned process proves the fix:
+   * an in-process import of the module would run the top-level call and pass either way.
+   */
+  it('the Action exits 1 on drift and 0 in sync', async () => {
+    const actionMain = fileURLToPath(new URL('../../../action/dist/main.js', import.meta.url));
+    const repo = await mkdtemp(path.join(tmpdir(), 'driftgate-action-smoke-'));
+    const env = { ...process.env };
+    delete env['GITHUB_WORKSPACE'];
+    try {
+      await cp(path.join(fixtures, 'cursor/input'), repo, { recursive: true });
+      await expect(run(process.execPath, [actionMain], { cwd: repo, env })).rejects.toMatchObject({
+        code: 1,
+      });
+      await run(process.execPath, [binPath, 'sync'], { cwd: repo });
+      const { stdout } = await run(process.execPath, [actionMain], { cwd: repo, env });
+      expect(stdout).toContain('in sync');
     } finally {
       await rm(repo, { recursive: true, force: true });
     }

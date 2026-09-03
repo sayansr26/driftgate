@@ -286,7 +286,14 @@ path.
   regenerating `state.json` never reproduces the original, and every Driftgate upgrade
   would produce a spurious diff in every repository.
 - **It is never authoritative.** A corrupt, truncated, or merge-conflicted `state.json`
-  degrades to "no prior state" with a warning — never a crash.
+  degrades to "no prior state" with a warning (`E_STATE_INVALID`) — never a crash.
+- **`driftgate check` reads it for ownership, not for the verdict.** `check` is clean
+  exactly when `sync` would write nothing and delete nothing. Whether a planned file is
+  out of sync is decided by comparing disk to the render; `state.json` only decides what
+  to call the difference (`stale`, `hand-edited`, or `unmanaged`) and which recorded
+  files no adapter produces any more. An orphan still on disk is drift, because `sync`
+  would delete it; an orphan already gone is not, because dropping its record changes
+  nothing but this file.
 - **Merge conflicts:** resolve with `rm .driftgate/state.json && driftgate sync`. The
   file is regenerable by construction, so nothing is lost — but the recovery is only
   _uneventful_ while every generated file still matches what Driftgate would render. A

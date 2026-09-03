@@ -102,6 +102,12 @@ export default tseslint.config(
               name: 'node:fs/promises',
               message: 'Filesystem access belongs in core/src/io only.',
             },
+            {
+              // Nothing in shipped source spawns a process (invariants.test.ts scans for it
+              // repo-wide); this is the per-file message for the package most likely to try.
+              name: 'node:child_process',
+              message: 'Core spawns nothing. A git-backed filesystem for --staged is T052.',
+            },
           ],
         },
       ],

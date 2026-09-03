@@ -86,6 +86,27 @@ describe('zero network calls', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('spawns no process anywhere in shipped source', async () => {
+    // `check --staged` will need the git index one day (T052), and reading it means a
+    // subprocess. Until a directory is deliberately allowlisted here, the answer is
+    // that shipped code never spawns anything — which also keeps "zero network calls"
+    // honest, since `curl` is one `execFile` away.
+    const FORBIDDEN_SPAWN = [
+      /from\s+['"](node:)?child_process['"]/,
+      /require\(\s*['"](node:)?child_process['"]\s*\)/,
+    ];
+    const offenders: string[] = [];
+    for (const file of await sourceFiles()) {
+      const text = await readFile(file, 'utf8');
+      for (const pattern of FORBIDDEN_SPAWN) {
+        if (pattern.test(text)) {
+          offenders.push(`${path.relative(repoRoot, file)} matches ${String(pattern)}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it('has no nondeterministic primitive in shipped source', async () => {
     // See docs/determinism.md. os.EOL, locale-sensitive comparison, and clock or
     // randomness reads all make output depend on where it was produced.
@@ -154,6 +175,37 @@ describe('the shared rendering path', () => {
       if (!allowed) offenders.push(rel);
     }
     expect(offenders).toEqual([]);
+  });
+
+  /**
+   * `check` is read-only by construction: it holds a filesystem with no write methods
+   * and never calls the one function that writes. The runtime test for that is inert on
+   * a clean repository — `applyPlan` writes nothing there either — so this pins the
+   * absence of the call site itself.
+   */
+  it('keeps applyPlan and any writable filesystem out of check', async () => {
+    const check = path.join(repoRoot, 'packages/cli/src/commands/check.ts');
+    const text = await readFile(check, 'utf8');
+    expect(text).not.toMatch(/applyPlan/);
+    // `createReadOnlyFileSystem` returns an object with no writers on it; a
+    // `NodeFileSystem` typed as read-only is one cast away from a write.
+    expect(text).not.toMatch(/new NodeFileSystem\(/);
+    expect(text).toMatch(/createReadOnlyFileSystem\(/);
+  });
+
+  /**
+   * picocolors' module default force-enables colour under `CI` and on win32, so the only
+   * colours anything may use are the ones `createOutput` derives from the real TTY state.
+   * A second import site is a second chance to write escapes into a CI log.
+   */
+  it('imports picocolors in exactly one place', async () => {
+    const importers: string[] = [];
+    for (const file of await sourceFiles()) {
+      if (/from\s+['"]picocolors['"]/.test(await readFile(file, 'utf8'))) {
+        importers.push(path.relative(repoRoot, file));
+      }
+    }
+    expect(importers).toEqual(['packages/cli/src/ui/report.ts']);
   });
 
   it('keeps rendering out of the CLI', async () => {

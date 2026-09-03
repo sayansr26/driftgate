@@ -106,6 +106,49 @@ describe('driftgate sync', () => {
     expect(await read('CLAUDE.md')).toBe('I edited this myself.\n');
   });
 
+  it('adopts a hand-edit that already equals the new render instead of refusing it', async () => {
+    // Edit the rule, then hand-write the artifact to exactly what the rule now renders.
+    // Identical bytes are not a conflict whoever wrote them: `check` calls this file
+    // clean, and a `sync` that refuses it would be the two commands disagreeing (T021).
+    await runSync({ cwd: repo, quiet: true });
+    await writeFile(
+      path.join(repo, '.driftgate/rules/10-style.md'),
+      '---\ndescription: Style\norder: 10\n---\n\nRewritten by hand.\n',
+      'utf8',
+    );
+    const plan = await planFor();
+    const render = plan.artifacts.find((a) => a.path === 'CLAUDE.md')?.contents;
+    if (render === undefined) throw new Error('fixture no longer renders CLAUDE.md');
+    await writeFile(path.join(repo, 'CLAUDE.md'), render, 'utf8');
+
+    const report = await applyPlan(plan, new NodeFileSystem(repo));
+
+    expect(report.skipped).toEqual([]);
+    expect(report.unchanged).toContain('CLAUDE.md');
+    const state = JSON.parse(await read(STATE_PATH)) as {
+      artifacts: { path: string; hash: string }[];
+    };
+    const recorded = state.artifacts.find((a) => a.path === 'CLAUDE.md')?.hash;
+    expect(recorded).toBe(plan.state.artifacts.find((a) => a.path === 'CLAUDE.md')?.hash);
+  });
+
+  it('still refuses a hand-edit that differs from the new render', async () => {
+    // The control for the adoption above: an assertion that nothing is skipped passes
+    // against an `applyPlan` that never skips anything.
+    await runSync({ cwd: repo, quiet: true });
+    await writeFile(
+      path.join(repo, '.driftgate/rules/10-style.md'),
+      '---\ndescription: Style\norder: 10\n---\n\nRewritten by hand.\n',
+      'utf8',
+    );
+    await writeFile(path.join(repo, 'CLAUDE.md'), 'Nearly, but not quite.\n', 'utf8');
+
+    const report = await applyPlan(await planFor(), new NodeFileSystem(repo));
+
+    expect(report.skipped).toContainEqual({ path: 'CLAUDE.md', reason: 'hand-edited' });
+    expect(await read('CLAUDE.md')).toBe('Nearly, but not quite.\n');
+  });
+
   it('refuses to overwrite a file it never generated', async () => {
     // The first-run case in every real repository: a CLAUDE.md that predates driftgate
     // and is nowhere in state.json. Overwriting it is unrecoverable when, as here, the
@@ -215,6 +258,38 @@ describe('state.json is regenerable', () => {
     expect(await read(STATE_PATH)).toBe(original);
   });
 
+  it('says so when the state file is unreadable, because that changes every other answer', async () => {
+    // With no record, a hand-edited file becomes "somebody else's" and an orphan stops
+    // being deletable. Degrading silently is the T008 promise; degrading *unannounced*
+    // would hide a merge conflict the user can fix in seconds.
+    await runSync({ cwd: repo, quiet: true });
+    await writeFile(path.join(repo, STATE_PATH), '<<<<<<< HEAD\n{ "broken"\n', 'utf8');
+
+    const report = await applyPlan(await planFor(), new NodeFileSystem(repo));
+    expect(report.warnings.map((w) => w.code)).toEqual(['E_STATE_INVALID']);
+
+    const lines: string[] = [];
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
+      lines.push(String(chunk));
+      return true;
+    });
+    await writeFile(path.join(repo, STATE_PATH), '<<<<<<< HEAD\n{ "broken"\n', 'utf8');
+    const code = await runSync({ cwd: repo, quiet: true, color: false });
+    spy.mockRestore();
+
+    expect(code).toBe(ExitCode.Ok);
+    expect(lines.join('')).toContain('E_STATE_INVALID');
+  });
+
+  it('stays silent about state when the file is merely absent', async () => {
+    // The control: a missing state.json is the ordinary, regenerable case.
+    await runSync({ cwd: repo, quiet: true });
+    await rm(path.join(repo, STATE_PATH));
+
+    const report = await applyPlan(await planFor(), new NodeFileSystem(repo));
+    expect(report.warnings).toEqual([]);
+  });
+
   it('matches what the plan said it would be', async () => {
     const plan = await planFor();
     await runSync({ cwd: repo, quiet: true });
@@ -227,7 +302,10 @@ describe('check and sync cannot diverge', () => {
     await runSync({ cwd: repo, quiet: true });
     const report = await verifyPlan(await planFor(), new NodeFileSystem(repo));
 
-    expect(report).toEqual({ clean: true, drifted: [], missing: [] });
+    expect(report.clean).toBe(true);
+    expect(report.entries).toEqual([]);
+    expect(report.drifted).toEqual([]);
+    expect(report.missing).toEqual([]);
   });
 
   it('reports drift when a generated file is edited', async () => {
@@ -406,5 +484,75 @@ describe('orphaned artifacts (T020 deletion, T073)', () => {
     const output = lines.join('');
     expect(output).toContain('deleted  .cursor/rules/20-testing.mdc');
     expect(output).toContain('backed up  .driftgate/backup/.cursor/rules/20-testing.mdc');
+  });
+});
+
+/**
+ * T021's stated validation, across every shipped adapter at once. No fixture enables all
+ * five (each adapter's golden pairs it with cursor only), and this repository's own
+ * manifest is the only place they meet — so the repo is built here by rewriting the
+ * cursor fixture's manifest.
+ */
+describe('all five adapters together (T021)', () => {
+  const ALL_TOOLS = ['claude-code', 'codex', 'copilot', 'cursor', 'gemini'] as const;
+
+  beforeEach(async () => {
+    await writeFile(
+      path.join(repo, '.driftgate/driftgate.yaml'),
+      `schemaVersion: 1\ntools:\n${ALL_TOOLS.map((t) => `  - ${t}`).join('\n')}\n`,
+      'utf8',
+    );
+  });
+
+  it('generates at least one artifact per adapter from one canonical source', async () => {
+    expect(await runSync({ cwd: repo, quiet: true })).toBe(ExitCode.Ok);
+    const state = JSON.parse(await read(STATE_PATH)) as { artifacts: { adapter: string }[] };
+    expect(new Set(state.artifacts.map((a) => a.adapter))).toEqual(new Set(ALL_TOOLS));
+  });
+
+  it('is byte-identical across three syncs and writes nothing after the first', async () => {
+    const plan = await planFor();
+    await runSync({ cwd: repo, quiet: true });
+    const first = new Map<string, string>();
+    for (const artifact of plan.artifacts) first.set(artifact.path, await read(artifact.path));
+    expect(first.size).toBeGreaterThanOrEqual(ALL_TOOLS.length);
+
+    for (let run = 0; run < 2; run += 1) {
+      const fs = new NodeFileSystem(repo);
+      const spy = vi.spyOn(fs, 'writeFile');
+      const report = await applyPlan(await planFor(), fs);
+      expect(spy).not.toHaveBeenCalled();
+      expect(report.written).toEqual([]);
+      expect(report.skipped).toEqual([]);
+    }
+    for (const [artifactPath, bytes] of first) expect(await read(artifactPath)).toBe(bytes);
+  });
+
+  it('halts on a hand-edit to any adapter’s artifact without touching the others', async () => {
+    await runSync({ cwd: repo, quiet: true });
+    const plan = await planFor();
+    // One artifact per adapter, so a check that only ever covered CLAUDE.md cannot pass.
+    const perAdapter = new Map<string, string>();
+    for (const entry of plan.state.artifacts) {
+      if (!perAdapter.has(entry.adapter)) perAdapter.set(entry.adapter, entry.path);
+    }
+    expect([...perAdapter.keys()].sort()).toEqual([...ALL_TOOLS]);
+
+    for (const [, edited] of perAdapter) {
+      const pristine = new Map<string, string>();
+      for (const a of plan.artifacts) pristine.set(a.path, await read(a.path));
+      const mine = `edited ${edited} by hand\n`;
+      await writeFile(path.join(repo, edited), mine, 'utf8');
+
+      const report = await applyPlan(await planFor(), new NodeFileSystem(repo));
+
+      expect(report.skipped).toEqual([{ path: edited, reason: 'hand-edited' }]);
+      expect(await read(edited)).toBe(mine);
+      for (const [other, bytes] of pristine) {
+        if (other !== edited) expect(await read(other)).toBe(bytes);
+      }
+      // Put it back for the next adapter's turn.
+      await writeFile(path.join(repo, edited), pristine.get(edited) ?? '', 'utf8');
+    }
   });
 });

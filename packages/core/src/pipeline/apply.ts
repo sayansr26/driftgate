@@ -2,10 +2,9 @@ import { DriftgateError } from '../model/errors.js';
 import { BACKUP_DIR, STATE_PATH } from '../model/paths.js';
 import {
   hashContents,
-  parseState,
+  loadState,
   serializeState,
   findArtifact,
-  EMPTY_STATE,
   type StateArtifact,
   type StateFile,
 } from '../state/state.js';
@@ -50,6 +49,8 @@ export interface ApplyReport {
   /** Repo-relative paths of generated files removed because no adapter produces them any more. */
   readonly deleted: readonly string[];
   readonly stateWritten: boolean;
+  /** Conditions that changed how the run was interpreted without stopping it. */
+  readonly warnings: readonly DriftgateError[];
 }
 
 /** `CLAUDE.md` -> `.driftgate/backup/CLAUDE.md`. Stays inside the repo by construction. */
@@ -147,7 +148,7 @@ export async function applyPlan(
   fs: WritableFileSystem,
   options: ApplyOptions = { dryRun: false },
 ): Promise<ApplyReport> {
-  const previous = parseState(await fs.tryReadFile(STATE_PATH)) ?? EMPTY_STATE;
+  const { state: previous, warning: stateWarning } = await loadState(fs);
   const comparison = await compareToDisk(previous, plan.artifacts, fs);
   const handEdited = new Set(comparison.changed);
   const unmanaged = new Set(comparison.unmanaged);
@@ -160,6 +161,21 @@ export async function applyPlan(
   const skipped: { path: string; reason: SkipReason }[] = [];
 
   for (const artifact of plan.artifacts) {
+    const onDisk = await fs.tryReadFile(artifact.path);
+    if (onDisk !== undefined && hashContents(onDisk) === hashContents(artifact.contents)) {
+      // Skip the write entirely rather than rewriting identical bytes: this preserves
+      // mtimes, keeps file watchers and build caches quiet, and makes "a second run
+      // rewrites nothing" literally true.
+      //
+      // Checked before the ownership questions below on purpose. A file whose bytes
+      // already equal the render is not a conflict whoever wrote them — the same rule
+      // `compareToDisk` applies to unmanaged files — so a hand-edit that happens to match
+      // what the rule now says is adopted (and its record refreshed) rather than refused.
+      // `check` calls that file clean, and `sync` must agree (T021).
+      unchanged.push(artifact.path);
+      continue;
+    }
+
     if (handEdited.has(artifact.path)) {
       // Users hand-edit generated files; that habit will not be broken by punishing
       // it. Stopping and pointing at a recovery that works keeps their edit.
@@ -171,15 +187,6 @@ export async function applyPlan(
       // A file Driftgate never generated is not ours to overwrite. `state.json` is the
       // only record of what we own, and this path is absent from it.
       skipped.push({ path: artifact.path, reason: 'unmanaged' });
-      continue;
-    }
-
-    const onDisk = await fs.tryReadFile(artifact.path);
-    if (onDisk !== undefined && hashContents(onDisk) === hashContents(artifact.contents)) {
-      // Skip the write entirely rather than rewriting identical bytes: this preserves
-      // mtimes, keeps file watchers and build caches quiet, and makes "a second run
-      // rewrites nothing" literally true.
-      unchanged.push(artifact.path);
       continue;
     }
 
@@ -214,6 +221,7 @@ export async function applyPlan(
     backedUp: backedUp.sort(compareCodepoint),
     deleted: [...orphans.deleted].sort(compareCodepoint),
     stateWritten: stateNeedsWrite,
+    warnings: stateWarning === undefined ? [] : [stateWarning],
   };
 }
 

@@ -213,13 +213,23 @@ export function homeRoot(): string | undefined {
 export function createHomeFileSystem(root?: string): ReadOnlyFileSystem | undefined {
   const home = root ?? homeRoot();
   if (home === undefined) return undefined;
-  const fs = new NodeFileSystem(home);
-  // Six bound methods, not the instance. Returning the `NodeFileSystem` typed as
-  // `ReadOnlyFileSystem` would erase the writers at compile time only — and a cast back
-  // is precisely what someone reaches for. Here there is nothing to cast *to*: the write
-  // methods are not on the returned object at all. This is the same reasoning that took
-  // `WritableFileSystem` out of the kit at T011, applied where the blast radius is
-  // somebody's home directory rather than their repository.
+  return createReadOnlyFileSystem(home);
+}
+
+/**
+ * A filesystem that can only read, for the commands that promise not to write.
+ *
+ * Six bound methods, not the instance. Returning a `NodeFileSystem` typed as
+ * `ReadOnlyFileSystem` would erase the writers at compile time only — and a cast back is
+ * precisely what someone reaches for. Here there is nothing to cast *to*: the write
+ * methods are not on the returned object at all. This is the same reasoning that took
+ * `WritableFileSystem` out of the kit at T011. `doctor`'s home-directory view uses it
+ * where the blast radius is somebody's home directory; `check` (T023) uses it on the
+ * repository so that "read-only by construction" is a fact about the object it holds
+ * rather than a promise about the code that holds it.
+ */
+export function createReadOnlyFileSystem(root: string): ReadOnlyFileSystem {
+  const fs = new NodeFileSystem(root);
   return {
     readFile: (p) => fs.readFile(p),
     tryReadFile: (p) => fs.tryReadFile(p),

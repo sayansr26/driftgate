@@ -38,6 +38,8 @@ export * from './pipeline/plan.js';
 export * from './pipeline/apply.js';
 export * from './pipeline/verify.js';
 
+export * from './diff/unified.js';
+
 export * from './tokens/estimate.js';
 
 export * from './detect/types.js';
@@ -54,4 +56,5 @@ export {
   findRepoRoot,
   homeRoot,
   createHomeFileSystem,
+  createReadOnlyFileSystem,
 } from './io/node.js';

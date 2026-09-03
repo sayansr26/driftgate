@@ -2,8 +2,11 @@ import { createHash } from 'node:crypto';
 import { normalizeEol, stripBom } from '../render/eol.js';
 import { compareCodepoint } from '../render/order.js';
 import { stableJsonStringify } from '../render/json.js';
+import { DriftgateError } from '../model/errors.js';
+import { STATE_PATH } from '../model/paths.js';
 import type { Artifact, ArtifactKind } from '../adapter/artifact.js';
 import type { ToolId } from '../model/ids.js';
+import type { ReadOnlyFileSystem } from '../fs/types.js';
 
 export const STATE_SCHEMA_VERSION = 1;
 
@@ -104,6 +107,33 @@ export function parseState(text: string | undefined): StateFile | undefined {
   }
 
   return { schemaVersion: record['schemaVersion'], artifacts };
+}
+
+/**
+ * `state.json` as the pipeline sees it, plus the warning `parseState` leaves to its caller.
+ *
+ * Missing is silent: a fresh checkout or a deliberately deleted state is the ordinary
+ * case and regenerable. Present-but-unreadable is not silent, because it changes what
+ * every other answer means — with no record, a hand-edited file becomes "somebody
+ * else's" and an orphan stops being deletable — and the realistic cause, a merge
+ * conflict, is one the user can fix in seconds if told.
+ */
+export async function loadState(
+  fs: ReadOnlyFileSystem,
+): Promise<{ readonly state: StateFile; readonly warning: DriftgateError | undefined }> {
+  const text = await fs.tryReadFile(STATE_PATH);
+  const state = parseState(text);
+  if (state !== undefined) return { state, warning: undefined };
+  if (text === undefined) return { state: EMPTY_STATE, warning: undefined };
+  return {
+    state: EMPTY_STATE,
+    warning: new DriftgateError({
+      code: 'E_STATE_INVALID',
+      message: 'state.json is unreadable; treating every generated file as unrecorded',
+      source: { file: STATE_PATH },
+      hint: 'restore it from version control, or run: driftgate sync to regenerate it',
+    }),
+  };
 }
 
 export function findArtifact(state: StateFile, path: string): StateArtifact | undefined {
