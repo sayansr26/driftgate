@@ -48,8 +48,18 @@ const PACKAGES = [
   '@rulegate/adapter-gemini',
 ];
 
-/** `@rulegate/adapter-claude-code` -> `rulegate-adapter-claude-code-0.0.0.tgz`. */
-const tarballName = (name) => `${name.replace('@', '').replace('/', '-')}-0.0.0.tgz`;
+/**
+ * `@rulegate/adapter-claude-code` -> `rulegate-adapter-claude-code-<version>.tgz`.
+ *
+ * The version is read from the CLI's manifest rather than written here. `pnpm pack` names
+ * every tarball after the version in its package.json, so a hardcoded one turns the next
+ * release bump into an unexplained "tarball missing" failure — in the one lane that
+ * `pnpm test` and `pnpm verify` do not run.
+ */
+const version = JSON.parse(
+  readFileSync(path.join(repoRoot, 'packages/cli/package.json'), 'utf8'),
+).version;
+const tarballName = (name) => `${name.replace('@', '').replace('/', '-')}-${version}.tgz`;
 
 const failures = [];
 function check(ok, what, detail = '') {
