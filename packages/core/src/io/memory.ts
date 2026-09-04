@@ -1,9 +1,23 @@
 import { RulegateError } from '../model/errors.js';
 import { escapesRoot, normalizeRelative } from '../fs/paths.js';
+import { foldPath } from '../fs/case.js';
 import { matchesGlob } from '../fs/glob.js';
 import { compareCodepoint } from '../render/order.js';
 import { normalizeText } from '../render/eol.js';
 import type { DirEntry, WritableFileSystem } from '../fs/types.js';
+
+export interface MemoryFileSystemOptions {
+  /**
+   * Resolve two names differing only in case to one file, the way APFS and NTFS do.
+   *
+   * Off by default, and that default is the control condition: every existing test runs
+   * against a case-sensitive filesystem, and the case-sensitive branch of T085's fix has
+   * to stay exercised. Turning it on is what makes the *other* branch reachable in
+   * memory — without it the only way to run it is on a macOS or Windows laptop, which is
+   * how the defect survived 801 green tests.
+   */
+  readonly caseInsensitive?: boolean;
+}
 
 /**
  * An in-memory filesystem. Used by the round-trip and parser tests, and by any code
@@ -11,8 +25,10 @@ import type { DirEntry, WritableFileSystem } from '../fs/types.js';
  */
 export class MemoryFileSystem implements WritableFileSystem {
   private readonly files = new Map<string, string>();
+  private readonly caseInsensitive: boolean;
 
-  constructor(initial?: Iterable<readonly [string, string]>) {
+  constructor(initial?: Iterable<readonly [string, string]>, options?: MemoryFileSystemOptions) {
+    this.caseInsensitive = options?.caseInsensitive === true;
     for (const [p, c] of initial ?? []) this.files.set(normalizeRelative(p), c);
   }
 
@@ -24,6 +40,21 @@ export class MemoryFileSystem implements WritableFileSystem {
       });
     }
     return normalizeRelative(relPath);
+  }
+
+  /**
+   * The stored key a lookup lands on. Identity unless this filesystem folds case, in
+   * which case an existing file with the same folded name answers — and keeps its own
+   * spelling, because a write does not rename a file on APFS either.
+   */
+  private resolve(relPath: string): string {
+    const p = this.guard(relPath);
+    if (!this.caseInsensitive || this.files.has(p)) return p;
+    const folded = foldPath(p);
+    for (const key of this.files.keys()) {
+      if (foldPath(key) === folded) return key;
+    }
+    return p;
   }
 
   snapshot(): ReadonlyMap<string, string> {
@@ -42,12 +73,12 @@ export class MemoryFileSystem implements WritableFileSystem {
   }
 
   async tryReadFile(relPath: string): Promise<string | undefined> {
-    const raw = this.files.get(this.guard(relPath));
+    const raw = this.files.get(this.resolve(relPath));
     return await Promise.resolve(raw === undefined ? undefined : normalizeText(raw));
   }
 
   async readFileRaw(relPath: string): Promise<Uint8Array> {
-    const raw = this.files.get(this.guard(relPath));
+    const raw = this.files.get(this.resolve(relPath));
     if (raw === undefined) {
       throw new RulegateError({ code: 'E_PATH_ESCAPE', message: `no such file: ${relPath}` });
     }
@@ -55,11 +86,13 @@ export class MemoryFileSystem implements WritableFileSystem {
   }
 
   async exists(relPath: string): Promise<boolean> {
-    const p = this.guard(relPath);
+    const p = this.resolve(relPath);
     if (this.files.has(p)) return await Promise.resolve(true);
     const prefix = p === '' ? '' : `${p}/`;
+    const wanted = this.caseInsensitive ? foldPath(prefix) : prefix;
     for (const key of this.files.keys()) {
-      if (key.startsWith(prefix)) return await Promise.resolve(true);
+      const candidate = this.caseInsensitive ? foldPath(key) : key;
+      if (candidate.startsWith(wanted)) return await Promise.resolve(true);
     }
     return await Promise.resolve(false);
   }
@@ -88,21 +121,21 @@ export class MemoryFileSystem implements WritableFileSystem {
   }
 
   async writeFile(relPath: string, contents: string): Promise<void> {
-    this.files.set(this.guard(relPath), contents);
+    this.files.set(this.resolve(relPath), contents);
     return await Promise.resolve();
   }
 
   async copyFile(fromRelPath: string, toRelPath: string): Promise<void> {
-    const raw = this.files.get(this.guard(fromRelPath));
+    const raw = this.files.get(this.resolve(fromRelPath));
     if (raw === undefined) {
       throw new RulegateError({ code: 'E_PATH_ESCAPE', message: `no such file: ${fromRelPath}` });
     }
-    this.files.set(this.guard(toRelPath), raw);
+    this.files.set(this.resolve(toRelPath), raw);
     return await Promise.resolve();
   }
 
   async deleteFile(relPath: string): Promise<void> {
-    this.files.delete(this.guard(relPath));
+    this.files.delete(this.resolve(relPath));
     return await Promise.resolve();
   }
 }

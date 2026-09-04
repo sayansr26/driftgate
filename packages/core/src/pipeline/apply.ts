@@ -9,6 +9,7 @@ import {
   type StateFile,
 } from '../state/state.js';
 import { compareToDisk } from '../state/compare.js';
+import { pathKeyFor, type PathKey } from '../fs/case.js';
 import { compareCodepoint } from '../render/order.js';
 import type { Plan } from './plan.js';
 import type { ReadOnlyFileSystem, WritableFileSystem } from '../fs/types.js';
@@ -109,6 +110,7 @@ function reconcileState(
   previous: StateFile,
   skipped: readonly { readonly path: string; readonly reason: SkipReason }[],
   retainOrphans: readonly string[],
+  key: PathKey,
 ): StateFile {
   const reasons = new Map(skipped.map((s) => [s.path, s.reason]));
   const artifacts: StateArtifact[] = [];
@@ -120,12 +122,12 @@ function reconcileState(
       continue;
     }
     if (reason === 'unmanaged') continue;
-    const prior = findArtifact(previous, entry.path);
+    const prior = findArtifact(previous, entry.path, key);
     if (prior !== undefined) artifacts.push(prior);
   }
 
   for (const path of retainOrphans) {
-    const prior = findArtifact(previous, path);
+    const prior = findArtifact(previous, path, key);
     if (prior !== undefined) artifacts.push(prior);
   }
 
@@ -150,6 +152,11 @@ export async function applyPlan(
 ): Promise<ApplyReport> {
   const { state: previous, warning: stateWarning } = await loadState(fs);
   const comparison = await compareToDisk(previous, plan.artifacts, fs);
+  // The comparison already asked the filesystem whether it folds case; reuse its answer
+  // rather than probing again, so every layer of one run identifies paths identically
+  // (T085). Two layers disagreeing is how a file gets refused as somebody else's by the
+  // write loop and deleted as ours by the orphan loop, in the same run.
+  const key = pathKeyFor(comparison.caseInsensitive);
   const handEdited = new Set(comparison.changed);
   const unmanaged = new Set(comparison.unmanaged);
   const force = options.force === true;
@@ -215,11 +222,14 @@ export async function applyPlan(
   const orphans = await reclaimOrphans(comparison.orphaned, previous, fs, {
     dryRun: options.dryRun,
     backup: backupEnabled,
+    key,
   });
   backedUp.push(...orphans.backedUp);
   for (const path of orphans.refused) skipped.push({ path, reason: 'orphan-hand-edited' });
 
-  const nextState = serializeState(reconcileState(plan.state, previous, skipped, orphans.refused));
+  const nextState = serializeState(
+    reconcileState(plan.state, previous, skipped, orphans.refused, key),
+  );
   const currentState = await fs.tryReadFile(STATE_PATH);
   const stateNeedsWrite = currentState !== nextState;
 
@@ -248,8 +258,12 @@ export async function applyPlan(
  * unreachable refusal is still worth having; an *untestable* one is not, which is why
  * this is a function rather than an inline branch.
  */
-export function assertDeletable(path: string, previous: StateFile): StateArtifact {
-  const record = findArtifact(previous, path);
+export function assertDeletable(
+  path: string,
+  previous: StateFile,
+  key: PathKey = (p) => p,
+): StateArtifact {
+  const record = findArtifact(previous, path, key);
   if (record !== undefined) return record;
   throw new RulegateError({
     code: 'E_DELETE_UNRECORDED',
@@ -276,7 +290,7 @@ async function reclaimOrphans(
   candidates: readonly string[],
   previous: StateFile,
   fs: WritableFileSystem,
-  options: { readonly dryRun: boolean; readonly backup: boolean },
+  options: { readonly dryRun: boolean; readonly backup: boolean; readonly key: PathKey },
 ): Promise<OrphanOutcome> {
   const deleted: string[] = [];
   const vanished: string[] = [];
@@ -284,7 +298,7 @@ async function reclaimOrphans(
   const backedUp: string[] = [];
 
   for (const path of candidates) {
-    const record = assertDeletable(path, previous);
+    const record = assertDeletable(path, previous, options.key);
     const onDisk = await fs.tryReadFile(path);
     if (onDisk === undefined) {
       vanished.push(path);

@@ -1,6 +1,7 @@
 import { hashContents, type StateFile } from './state.js';
 import { compareCodepoint } from '../render/order.js';
 import type { Artifact } from '../adapter/artifact.js';
+import { pathKeyFor, probeCaseInsensitive } from '../fs/case.js';
 import type { ReadOnlyFileSystem } from '../fs/types.js';
 
 export interface DiskComparison {
@@ -32,6 +33,15 @@ export interface DiskComparison {
    * aspirational: a path Rulegate never recorded can never reach a delete call.
    */
   readonly orphaned: readonly string[];
+  /**
+   * Whether this filesystem resolves two names differing only in case to one file.
+   *
+   * Carried on the result so `verifyPlan` and `applyPlan` identify paths the same way
+   * this comparison did, rather than each probing again and risking a different answer
+   * mid-run. Two layers disagreeing about which paths are the same file is how one of
+   * them refuses to write a file the other deletes.
+   */
+  readonly caseInsensitive: boolean;
 }
 
 export async function compareToDisk(
@@ -45,12 +55,19 @@ export async function compareToDisk(
   const untracked: string[] = [];
   const unmanaged: string[] = [];
 
-  const planned = new Set(artifacts.map((a) => a.path));
-  const recorded = new Map(state.artifacts.map((a) => [a.path, a]));
+  // Asked once per comparison, of the filesystem in hand. On APFS and NTFS a recorded
+  // `CLAUDE.md` and a planned `claude.md` are one physical file, and keying these two
+  // exactly is what made that file `unmanaged` (so `sync` refused to write it) *and*
+  // `orphaned` (so the same run deleted it). See fs/case.ts (T085).
+  const caseInsensitive = await probeCaseInsensitive(fs);
+  const key = pathKeyFor(caseInsensitive);
+
+  const planned = new Set(artifacts.map((a) => key(a.path)));
+  const recorded = new Map(state.artifacts.map((a) => [key(a.path), a]));
 
   for (const artifact of artifacts) {
     const onDisk = await fs.tryReadFile(artifact.path);
-    const record = recorded.get(artifact.path);
+    const record = recorded.get(key(artifact.path));
 
     if (onDisk === undefined) {
       (record === undefined ? untracked : missing).push(artifact.path);
@@ -68,7 +85,7 @@ export async function compareToDisk(
     }
   }
 
-  const orphaned = state.artifacts.map((a) => a.path).filter((p) => !planned.has(p));
+  const orphaned = state.artifacts.map((a) => a.path).filter((p) => !planned.has(key(p)));
 
   return {
     unchanged: unchanged.sort(compareCodepoint),
@@ -77,6 +94,7 @@ export async function compareToDisk(
     untracked: untracked.sort(compareCodepoint),
     unmanaged: unmanaged.sort(compareCodepoint),
     orphaned: [...orphaned].sort(compareCodepoint),
+    caseInsensitive,
   };
 }
 

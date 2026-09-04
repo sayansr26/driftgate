@@ -12142,6 +12142,41 @@ function describe2(cause) {
   return cause instanceof Error ? cause.message : String(cause);
 }
 
+// ../packages/core/dist/fs/case.js
+function foldPath(relPath) {
+  return relPath.toLowerCase();
+}
+function pathKeyFor(caseInsensitive) {
+  return caseInsensitive ? foldPath : (relPath) => relPath;
+}
+function flipCase(name) {
+  let flipped = "";
+  for (const char of name) {
+    const lower = char.toLowerCase();
+    const upper = char.toUpperCase();
+    flipped += char === lower ? upper : lower;
+  }
+  return flipped;
+}
+async function probeCaseInsensitive(fs2) {
+  let entries;
+  try {
+    entries = await fs2.listDir("");
+  } catch {
+    return false;
+  }
+  const listed = new Set(entries.map((e) => e.name));
+  for (const entry of entries) {
+    if (entry.kind !== "file")
+      continue;
+    const flipped = flipCase(entry.name);
+    if (listed.has(flipped))
+      continue;
+    return await fs2.exists(flipped);
+  }
+  return false;
+}
+
 // ../packages/core/dist/state/compare.js
 async function compareToDisk(state, artifacts, fs2) {
   const unchanged = [];
@@ -12149,11 +12184,13 @@ async function compareToDisk(state, artifacts, fs2) {
   const missing = [];
   const untracked = [];
   const unmanaged = [];
-  const planned = new Set(artifacts.map((a) => a.path));
-  const recorded = new Map(state.artifacts.map((a) => [a.path, a]));
+  const caseInsensitive = await probeCaseInsensitive(fs2);
+  const key = pathKeyFor(caseInsensitive);
+  const planned = new Set(artifacts.map((a) => key(a.path)));
+  const recorded = new Map(state.artifacts.map((a) => [key(a.path), a]));
   for (const artifact of artifacts) {
     const onDisk = await fs2.tryReadFile(artifact.path);
-    const record = recorded.get(artifact.path);
+    const record = recorded.get(key(artifact.path));
     if (onDisk === void 0) {
       (record === void 0 ? untracked : missing).push(artifact.path);
       continue;
@@ -12167,14 +12204,15 @@ async function compareToDisk(state, artifacts, fs2) {
       unchanged.push(artifact.path);
     }
   }
-  const orphaned = state.artifacts.map((a) => a.path).filter((p) => !planned.has(p));
+  const orphaned = state.artifacts.map((a) => a.path).filter((p) => !planned.has(key(p)));
   return {
     unchanged: unchanged.sort(compareCodepoint),
     changed: changed.sort(compareCodepoint),
     missing: missing.sort(compareCodepoint),
     untracked: untracked.sort(compareCodepoint),
     unmanaged: unmanaged.sort(compareCodepoint),
-    orphaned: [...orphaned].sort(compareCodepoint)
+    orphaned: [...orphaned].sort(compareCodepoint),
+    caseInsensitive
   };
 }
 

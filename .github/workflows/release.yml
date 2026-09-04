@@ -1,0 +1,102 @@
+# Release (T037).
+#
+# The only path that publishes to npm, and the only place `--provenance` can work:
+# provenance is a signed attestation linking a tarball to the workflow run and commit that
+# built it, which requires an OIDC token, which requires `id-token: write`. That is why
+# `.npmrc` deliberately does *not* set `provenance=true` — there it aborts every local
+# publish with `provider: null`, and `--provenance=false` is not a `pnpm publish` flag, so
+# there is no way to wave it off at the call site (T034).
+#
+# Everything CI checks is re-run here before a single byte is uploaded. A release that can
+# publish something `ci.yml` would fail is not a gate, and npm versions are immutable: the
+# cost of finding out afterwards is a burned version number.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  # Dry runs. `publish` defaults to false, so triggering this by hand builds, tests and
+  # packs without uploading — the rehearsal that a tag push does not offer.
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to npm (otherwise pack only)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  release:
+    name: verify and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          # `npm publish --provenance` needs the registry configured here for the OIDC
+          # exchange; without it the token has nowhere to go.
+          registry-url: 'https://registry.npmjs.org'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The same order as ci.yml: lint before build, because eslint must resolve the
+      # workspace from source on a clean clone.
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm typecheck
+
+      - run: pnpm test
+        env:
+          RULEGATE_REQUIRE_SYMLINKS: '1'
+
+      # The lane that catches a broken `exports` map or a regressed exit code — which is
+      # precisely the class of defect that only shows up once something is installed.
+      - run: pnpm test
+        env:
+          RULEGATE_TEST_DIST: '1'
+
+      - run: pnpm format
+
+      # Packs every workspace package and runs init -> sync -> check from the tarballs.
+      # The closest thing to the published shape that exists before publishing: `files`,
+      # `exports`, and the `workspace:*` -> version rewrite.
+      - run: node scripts/smoke.mjs
+
+      - name: rulegate check (dogfood)
+        run: node packages/cli/dist/bin.js check
+
+      - name: generated docs and action bundle are current
+        run: |
+          node scripts/generate-docs.mjs --check
+          node action/build.mjs --check
+
+      # The tag is the version's only declaration, so a tag that disagrees with the
+      # manifests would publish a version nobody asked for under a name that says
+      # otherwise. Checked before publishing rather than discovered after.
+      - name: tag matches the version in the manifests
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./packages/cli/package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "tag $GITHUB_REF_NAME does not match packages/cli version $pkg" >&2
+            exit 1
+          fi
+
+      # `--no-git-checks` because a tag build is a detached HEAD, which pnpm's default
+      # branch check rejects. It is load-bearing *only here*: reaching for it locally is
+      # how a tarball gets cut from a tree matching no fetchable commit, which is the same
+      # property provenance exists to assert (T034).
+      - name: publish
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.publish
+        run: pnpm publish -r --access public --provenance --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

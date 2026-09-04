@@ -7,6 +7,7 @@ import { STATE_PATH } from '../model/paths.js';
 import type { Artifact, ArtifactKind } from '../adapter/artifact.js';
 import type { ToolId } from '../model/ids.js';
 import type { ReadOnlyFileSystem } from '../fs/types.js';
+import type { PathKey } from '../fs/case.js';
 
 export const STATE_SCHEMA_VERSION = 1;
 
@@ -136,8 +137,22 @@ export async function loadState(
   };
 }
 
-export function findArtifact(state: StateFile, path: string): StateArtifact | undefined {
-  return state.artifacts.find((a) => a.path === path);
+/**
+ * The record for a path, if Rulegate wrote it.
+ *
+ * `key` is how a path is identified, not how it is stored: on a case-insensitive
+ * filesystem a recorded `CLAUDE.md` and a queried `claude.md` are one file, and matching
+ * them exactly is what made Rulegate call its own artifact somebody else's (T085). The
+ * default is exact, so a caller that has not asked the filesystem gets the old answer
+ * rather than a guess.
+ */
+export function findArtifact(
+  state: StateFile,
+  path: string,
+  key: PathKey = (p) => p,
+): StateArtifact | undefined {
+  const wanted = key(path);
+  return state.artifacts.find((a) => key(a.path) === wanted);
 }
 
 export const EMPTY_STATE: StateFile = { schemaVersion: STATE_SCHEMA_VERSION, artifacts: [] };
