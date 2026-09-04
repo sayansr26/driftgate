@@ -173,20 +173,26 @@ export async function computePlan(input: PlanInput): Promise<Plan> {
         continue;
       }
 
-      const other = claimedBy.get(path);
+      // Case-folded, because NTFS and APFS are case-insensitive: two artifacts differing
+      // only in case are two entries for **one physical file** there, so a plan that is
+      // legal on Linux makes `check` fail forever on Windows and macOS. Refusing costs an
+      // external adapter a rename; not refusing costs a user a repository that can never be
+      // in sync (T069).
+      const key = path.toLowerCase();
+      const other = claimedBy.get(key);
       if (other !== undefined) {
         errors.push(
           new DriftgateError({
             code: 'E_ARTIFACT_PATH_CONFLICT',
             message: `adapters \`${other}\` and \`${adapter.name}\` both generate ${path}`,
             source: { file: path },
-            hint: 'disable one of the two tools, or report this as an adapter bug',
+            hint: 'disable one of the two tools, or report this as an adapter bug. Paths that differ only in case are the same file on Windows and macOS.',
           }),
         );
         continue;
       }
 
-      claimedBy.set(path, adapter.name);
+      claimedBy.set(key, adapter.name);
       artifacts.push({ ...artifact, path });
     }
   }

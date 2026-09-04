@@ -78,6 +78,15 @@ export async function buildDoctorReport(input: DoctorInput): Promise<DoctorRepor
   const verdicts = new Map(verify.entries.map((e) => [e.path, e.status]));
 
   const managedBy = buildManagedByIndex(adapters);
+
+  // Which canonical rules produced each generated file. This is what lets the duplicate
+  // scan see that `.clinerules/10-style.md` and `AGENTS.md` carry the same rule, which no
+  // byte comparison can (T084).
+  const provenance = new Map<string, readonly string[]>();
+  for (const artifact of plan.artifacts) {
+    const ids = artifact.provenance?.ruleIds;
+    if (ids !== undefined && ids.length > 0) provenance.set(artifact.path, ids);
+  }
   const byName = new Map(adapters.map((a) => [a.name, a]));
   const symlinks = new SymlinkProbe(fs);
 
@@ -118,7 +127,7 @@ export async function buildDoctorReport(input: DoctorInput): Promise<DoctorRepor
     };
     tools.push(diagnosis);
 
-    warnings.push(...duplicateLoadWarnings(diagnosis, resolved.loaded));
+    warnings.push(...duplicateLoadWarnings(diagnosis, resolved.loaded, provenance));
     warnings.push(...overLimitWarnings(diagnosis, docs, resolved.loaded));
     warnings.push(...toolNoteWarnings(diagnosis, docs));
   }

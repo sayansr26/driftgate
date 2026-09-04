@@ -2,12 +2,26 @@ import { compareCodepoint } from '../render/order.js';
 import { ALL_TOOLS, type ToolSelector } from '../model/selector.js';
 import type { ToolId } from '../model/ids.js';
 import type { RuleDocument } from '../model/rule.js';
+import type { McpServer } from '../model/mcp.js';
 import { claimRuleId } from './rule.js';
 
 /** What one adapter's `read()` returned, tagged with the adapter it came from. */
 export interface ImportSource {
   readonly tool: ToolId;
   readonly rules: readonly RuleDocument[];
+  readonly mcpServers: readonly McpServer[];
+  /**
+   * Whether this tool has a project-level MCP file at all, read off its own `docs`.
+   *
+   * `dedupeMcpServers` divides by the tools that could have answered, and a tool with no
+   * MCP format was never asked. Counting Gemini as a tool that declined would narrow every
+   * imported server away from `all` for a reason that is about Driftgate's roster rather
+   * than about the user's configuration — the same trap `dedupeImported` avoids by taking
+   * `allTools` from the sources it was handed.
+   */
+  readonly carriesMcp: boolean;
+  /** Messages the MCP importer produced — converted credentials, refused servers. */
+  readonly mcpWarnings: readonly string[];
 }
 
 export interface ConflictVariant {

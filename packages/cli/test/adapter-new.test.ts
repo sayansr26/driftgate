@@ -157,7 +157,16 @@ describe('driftgate adapter new --yes', () => {
   it('registers the adapter in all four places, in sorted position', async () => {
     const registry = await read('packages/cli/src/registry.ts');
     expect(registry).toContain("import { kiro } from '@driftgate/adapter-kiro';");
-    expect(registry).toContain('[claudeCode, codex, copilot, cursor, gemini, kiro]');
+
+    // Asserted as *sorted position*, not as a pinned roster. The literal list was
+    // roster-bound: every new shipped adapter broke this test for a reason that had
+    // nothing to do with the scaffold, which is the failure T028 recorded when three
+    // other tests turned out to be silently bound the same way.
+    const listed = /ADAPTERS: readonly Adapter\[\] = \[([^\]]*)\]/.exec(registry)?.[1];
+    expect(listed).toBeDefined();
+    const names = listed!.split(',').map((n) => n.trim());
+    expect(names).toContain('kiro');
+    expect([...names].sort()).toEqual(names);
 
     expect(await read('packages/cli/package.json')).toContain(
       '"@driftgate/adapter-kiro": "workspace:*"',

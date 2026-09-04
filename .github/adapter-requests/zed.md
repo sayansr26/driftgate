@@ -35,7 +35,7 @@ actually read it in `retrieved`.)_
 - **Adapter id:** `zed`
 - **Artifact to generate:** `.rules` at the repository root
 - **Rendering:** one concatenated Markdown file, like the Claude Code and Gemini adapters
-- **Resolution:** `override` — the first file in the list wins; the rest are not read at all
+- **Resolution:** `first-match` — the first file in the list wins and **the rest are never opened**. Not `override`: under that value `doctor` still counts a shadowed file as loaded, which is correct for Claude Code (a losing file is still sent) and false here.
 
 ## The part that needs care
 
@@ -46,7 +46,7 @@ them — a fact no other tool in Driftgate's roster has, and precisely what `dri
 exists to print.
 
 So `docs.files` must list all nine patterns in order, with `managed: true` only for
-`.rules`, and `resolution: 'override'`. Done right, `doctor` will then say that Zed reads
+`.rules`, and `resolution: 'first-match'`. Done right, `doctor` will then say that Zed reads
 `.cursorrules` and ignores the generated `CLAUDE.md`, with no Zed-specific code anywhere
 else in the codebase.
 

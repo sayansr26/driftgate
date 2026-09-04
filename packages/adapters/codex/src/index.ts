@@ -13,8 +13,9 @@ import {
   type Artifact,
   type Canonical,
   type DetectResult,
+  type ImportResult,
 } from '@driftgate/adapter-kit';
-import { MCP_FILE, renderConfigToml } from './mcp.js';
+import { MCP_FILE, importConfigToml, renderConfigToml } from './mcp.js';
 import { docs } from './docs.js';
 
 export const AGENTS_MD = 'AGENTS.md';
@@ -33,6 +34,11 @@ async function read(ctx: AdapterContext): Promise<Partial<Canonical>> {
   // The same guard `write` makes, for the mirror-image reason: when this file is already
   // the canonical source, the parser has read it and importing it again would duplicate
   // every rule in it. It matters for AGENTS.md above all (T014).
+  const rules = await readRules(ctx);
+  return { ...rules, ...(await readMcp(ctx)) };
+}
+
+async function readRules(ctx: AdapterContext): Promise<Partial<Canonical>> {
   if (isCanonicalSource(ctx.canonical.manifest, AGENTS_MD)) return {};
 
   const contents = await ctx.fs.tryReadFile(AGENTS_MD);
@@ -45,6 +51,26 @@ async function read(ctx: AdapterContext): Promise<Partial<Canonical>> {
       headingLevel: 2,
       idFallback: 'agents',
     }),
+  };
+}
+
+/**
+ * The MCP half, guarded on `.codex/config.toml` and **not** on `AGENTS.md`.
+ *
+ * This is the sharpest edge in the adapter. `read()` used to return early whenever
+ * `AGENTS.md` was the canonical source — correct for rules, and it would have silently
+ * suppressed MCP import on every repository that adopts Driftgate through a bare
+ * `AGENTS.md`, which is the most common first contact this tool has. Exactly the mirror of
+ * the write-side bug T046 found, arriving from the other direction.
+ */
+async function readMcp(ctx: AdapterContext): Promise<ImportResult> {
+  if (isCanonicalSource(ctx.canonical.manifest, MCP_FILE)) return {};
+  const contents = await ctx.fs.tryReadFile(MCP_FILE);
+  if (contents === undefined) return {};
+  const { servers, warnings } = importConfigToml(contents);
+  return {
+    ...(servers.length === 0 ? {} : { mcpServers: servers }),
+    ...(warnings.length === 0 ? {} : { warnings }),
   };
 }
 

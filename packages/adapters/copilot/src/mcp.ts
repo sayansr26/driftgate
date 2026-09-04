@@ -1,9 +1,13 @@
 import {
+  envRef,
+  importMcpJson,
   selectMcpServers,
   stableJsonStringify,
   withJsonMarker,
   type JsonValue,
+  type ImportedMcpResult,
   type McpServer,
+  type ReferenceParse,
   type SecretValue,
 } from '@driftgate/adapter-kit';
 
@@ -84,4 +88,23 @@ export function renderMcpJson(servers: readonly McpServer[], marker: boolean): s
   for (const server of selected) servers_[server.id] = serverJson(server);
 
   return stableJsonStringify(withJsonMarker({ [SERVERS_KEY]: servers_ }, marker));
+}
+
+/**
+ * `${env:NAME}`, the same spelling as Cursor. `${input:id}` is the vendor's own
+ * recommendation for a credential and has no canonical form — an input *prompts the user*,
+ * which is not what a bare `env:NAME` means — so the kit refuses a server that uses one
+ * rather than importing a reference that behaves differently.
+ *
+ * Source: https://code.visualstudio.com/docs/agents/reference/mcp-configuration
+ * (read 2026-09-04).
+ */
+function parseReference(raw: string): ReferenceParse | undefined {
+  const m = /^\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}$/.exec(raw);
+  return m === null ? undefined : { kind: 'ref', ref: envRef(m[1]!) };
+}
+
+/** The inverse of `renderMcpJson`. Never throws: a file it cannot read is warned about. */
+export function importMcpConfig(contents: string, file = MCP_FILE): ImportedMcpResult {
+  return importMcpJson(contents, { serversKey: SERVERS_KEY, parseReference, file });
 }

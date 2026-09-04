@@ -95,6 +95,12 @@ export const docs: AdapterDocs = {
     {
       level: 'warn',
       message:
+        'A server Codex cannot express is omitted from .codex/config.toml and named in it as a `# omitted:` comment, rather than failing the run (T083). Codex resolves environment references only through env_vars (which needs the variable and the key to share a name) and bearer_token_env_var (Authorization only), so a renamed reference or a credential in another header has nowhere to go. Check the top of the generated file if a server you configured is missing.',
+      source: CODEX_MCP_DOCS,
+    },
+    {
+      level: 'warn',
+      message:
         'Driftgate owns the whole of `.codex/config.toml`, not just its `[mcp_servers.*]` tables — it is where every Codex setting lives, and there is no way to write part of a file. A pre-existing one is somebody else’s and is refused until `--force` backs it up; a setting added by hand afterwards is reported as a hand-edit that `sync --import` can recover.',
       source: CODEX_CONFIG_REFERENCE,
     },

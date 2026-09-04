@@ -72,34 +72,97 @@ export class NodeFileSystem implements WritableFileSystem {
     return entries;
   }
 
+  /**
+   * Walk the tree, following symlinked directories that stay inside the repository.
+   *
+   * **Symlinks used to be skipped entirely** (`entry.kind === 'dir'` is false for one), so
+   * a repository whose `.cursor/rules` was a link — an ordinary way to share one rule set
+   * between checkouts — detected as using Cursor and imported **zero rules**, silently
+   * (T069).
+   *
+   * Following them needs a containment check of its own, and this is the part that must not
+   * be simplified away: `escapesRoot` is purely *lexical*, so `.cursor/rules -> ~/shared`
+   * yields repo-relative paths whose real targets are anywhere at all. Without the
+   * `realpath` test below, `sync` would read — and then, through `writeFile`, write —
+   * outside the repository while every path it handled looked perfectly legal.
+   *
+   * The `seen` set is for cycles: a link pointing at an ancestor otherwise recurses until
+   * the stack gives out.
+   */
   async glob(pattern: string): Promise<readonly string[]> {
     const out: string[] = [];
+    const root = await realpathOr(this.repoRoot);
+    const seen = new Set<string>();
+
+    const contained = async (abs: string): Promise<boolean> => {
+      const real = await realpathOr(abs);
+      const rel = path.relative(root, real);
+      return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+    };
+
     const walk = async (dir: string): Promise<void> => {
       for (const entry of await this.listDir(dir)) {
         const child = dir === '' ? entry.name : `${dir}/${entry.name}`;
-        if (entry.kind === 'dir') {
-          if (entry.name === 'node_modules' || entry.name === '.git') continue;
+        if (entry.name === 'node_modules' || entry.name === '.git') continue;
+
+        let kind = entry.kind;
+        if (kind === 'symlink') {
+          const abs = path.join(this.repoRoot, fromPosix(child));
+          if (!(await contained(abs))) continue;
+          const stat = await fs.stat(abs).catch(() => undefined);
+          if (stat === undefined) continue;
+          kind = stat.isDirectory() ? 'dir' : 'file';
+        }
+
+        if (kind === 'dir') {
+          const real = await realpathOr(path.join(this.repoRoot, fromPosix(child)));
+          if (seen.has(real)) continue;
+          seen.add(real);
           await walk(child);
           continue;
         }
         if (matchesGlob(child, pattern)) out.push(child);
       }
     };
+
     await walk('');
     out.sort(compareCodepoint);
     return out;
   }
 
+  /**
+   * Remove a symlink standing where we are about to write.
+   *
+   * `fs.writeFile` and `fs.copyFile` both **follow** a symlink at the destination, so a
+   * repository where `CLAUDE.md` links to `AGENTS.md` had its `AGENTS.md` silently rewritten
+   * by a render aimed at `CLAUDE.md` — and `runInit` passes `force: true`, so `init --yes`
+   * did it on a first run (T069).
+   *
+   * Replacing the link is the right product behaviour: Driftgate exists to own that path.
+   * `restore` will put the bytes back as a regular file rather than as a link, which is
+   * stated in `docs/determinism.md` rather than left to be discovered.
+   */
+  async #materialize(abs: string): Promise<void> {
+    const stat = await fs.lstat(abs).catch(() => undefined);
+    if (stat?.isSymbolicLink() === true) await fs.unlink(abs);
+  }
+
   async writeFile(relPath: string, contents: string): Promise<void> {
     const abs = this.resolve(relPath);
-    await fs.mkdir(path.dirname(abs), { recursive: true });
-    await fs.writeFile(abs, contents, 'utf8');
+    await withPathErrors(relPath, async () => {
+      await fs.mkdir(path.dirname(abs), { recursive: true });
+      await this.#materialize(abs);
+      await fs.writeFile(abs, contents, 'utf8');
+    });
   }
 
   async copyFile(fromRelPath: string, toRelPath: string): Promise<void> {
     const to = this.resolve(toRelPath);
-    await fs.mkdir(path.dirname(to), { recursive: true });
-    await fs.copyFile(this.resolve(fromRelPath), to);
+    await withPathErrors(toRelPath, async () => {
+      await fs.mkdir(path.dirname(to), { recursive: true });
+      await this.#materialize(to);
+      await fs.copyFile(this.resolve(fromRelPath), to);
+    });
   }
 
   async deleteFile(relPath: string): Promise<void> {
@@ -238,4 +301,33 @@ export function createReadOnlyFileSystem(root: string): ReadOnlyFileSystem {
     listDir: (p) => fs.listDir(p),
     glob: (p) => fs.glob(p),
   };
+}
+
+/** `realpath`, falling back to the given path when it cannot be resolved. */
+async function realpathOr(abs: string): Promise<string> {
+  return fs.realpath(abs).catch(() => abs);
+}
+
+/**
+ * Turn a platform path refusal into a named error with a hint.
+ *
+ * Windows' 260-character limit surfaces as a bare `ENAMETOOLONG` naming no limit and
+ * suggesting no action — and it makes `check` fail there while passing on Linux for the
+ * same repository, which reads as a Driftgate bug rather than a platform one.
+ */
+async function withPathErrors<T>(relPath: string, run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    if (code === 'ENAMETOOLONG' || code === 'ERR_FS_EISDIR') {
+      throw new DriftgateError({
+        code: 'E_PATH_TOO_LONG',
+        message: `the filesystem refused the path ${relPath} (${String(code)})`,
+        hint: 'Windows limits paths to 260 characters unless long paths are enabled; shorten a rule id or move the repository nearer the drive root.',
+        cause: e,
+      });
+    }
+    throw e;
+  }
 }

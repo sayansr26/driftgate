@@ -201,10 +201,20 @@ export function scanTextForSecrets(text: string): string[] {
  * The conversion T044 asks import to perform: a literal becomes a reference named after
  * the key it was found under.
  *
- * Exported now and wired up by MCP import (T048), which is where a literal can first
- * arrive from somebody else's config file.
+ * **Case is preserved, deliberately (T048).** Upper-casing looks like tidying and is not:
+ * the Codex writer can only express `env_vars = ["NAME"]`, which names one string that is
+ * both the key and the variable, so it refuses with `E_MCP_UNREPRESENTABLE` whenever the
+ * reference name differs from its key. Folding `github_token` to `GITHUB_TOKEN` therefore
+ * made the *secret-handling feature itself* abort `init` on an ordinary `.mcp.json`, on
+ * any repository where codex is detected. Sanitizing is still required — a key is not
+ * necessarily a legal variable name, and `parseEnvRef` will not accept one that is not —
+ * but that is a smaller claim than renaming.
+ *
+ * A key that is not already identifier-shaped (`api-key`) still yields a different name
+ * and still meets Codex's refusal. That is T083, not this function's business: the fix
+ * there is to exclude the server from codex rather than to invent a name for it.
  */
 export function literalToEnvRef(key: string): EnvRef {
-  const upper = key.replace(/[^A-Za-z0-9]+/g, '_').toUpperCase();
-  return envRef(/^[A-Za-z_]/.test(upper) ? upper : `_${upper}`);
+  const safe = key.replace(/[^A-Za-z0-9]+/g, '_');
+  return envRef(/^[A-Za-z_]/.test(safe) ? safe : `_${safe}`);
 }

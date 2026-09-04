@@ -251,8 +251,17 @@ describe('literalToEnvRef', () => {
   it('names the variable after the key it was found under', () => {
     // The conversion T044 asks import to perform. Wired up by MCP import (T048), which
     // is where a literal can first arrive from somebody else's config file.
-    expect(literalToEnvRef('githubToken')).toEqual({ kind: 'env', name: 'GITHUBTOKEN' });
-    expect(literalToEnvRef('api-key')).toEqual({ kind: 'env', name: 'API_KEY' });
-    expect(literalToEnvRef('1password')).toEqual({ kind: 'env', name: '_1PASSWORD' });
+    expect(literalToEnvRef('api-key')).toEqual({ kind: 'env', name: 'api_key' });
+    expect(literalToEnvRef('1password')).toEqual({ kind: 'env', name: '_1password' });
+  });
+
+  it('preserves case, so an identifier-shaped key converts to its own name', () => {
+    // T048. The Codex writer expresses a reference as `env_vars = ["NAME"]` — one string
+    // that is both the key and the variable — and refuses when the two differ. Upper-casing
+    // here made the secret conversion abort `init` on an ordinary `.mcp.json` wherever
+    // codex is detected: the feature breaking the command it runs inside.
+    for (const key of ['github_token', 'GITHUB_TOKEN', 'apiKey']) {
+      expect(literalToEnvRef(key)).toEqual({ kind: 'env', name: key });
+    }
   });
 });

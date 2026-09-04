@@ -132,7 +132,7 @@ describe('driftgate doctor — T078 duplicate loading', () => {
     const dup = r.warnings.find((w) => w.code === 'W_DUPLICATE_LOAD' && w.tool === 'copilot');
     expect(dup).toBeDefined();
     expect(dup?.message).toContain('GitHub Copilot will load');
-    expect(dup?.message).toContain("duplicates of another adapter's output");
+    expect(dup?.message).toContain('carry content that also arrives from another file');
     // The attribution has to name the adapters that generated the copies, because "you
     // load three identical files" without saying which adapter wrote each is not actionable.
     expect(dup?.message).toContain('from codex');
@@ -387,7 +387,7 @@ describe('driftgate doctor — presentation (T027)', () => {
     await runDoctor({ cwd: repo, color: false, noGlobal: true });
     expect(stdout.join('')).toContain('will load');
     expect(stdout.join('')).not.toContain('duplicates of another');
-    expect(stderr.join('')).toContain("duplicates of another adapter's output");
+    expect(stderr.join('')).toContain('carry content that also arrives from another file');
   });
 
   it('--json emits a report whose only absolute path is repoRoot', async () => {

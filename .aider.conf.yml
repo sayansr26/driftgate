@@ -1,0 +1,5 @@
+# Aider loads no instruction file automatically — it reads what this key names. Without
+# this line the generated CONVENTIONS.md would be in sync, correct, and loaded by nothing,
+# which is the exact anti-pattern the aider adapter warns about. Driftgate never writes
+# this file; it is committed by hand so the dogfooding is honest.
+read: CONVENTIONS.md

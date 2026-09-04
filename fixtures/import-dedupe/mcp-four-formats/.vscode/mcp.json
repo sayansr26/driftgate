@@ -1,0 +1,22 @@
+{
+  // VS Code's own editor accepts comments in its configuration files; the MCP reference
+  // does not say whether mcp.json is JSONC, so the importer strips them either way.
+  "servers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp",
+      "headers": { "Authorization": "${env:GITHUB_TOKEN}" }
+    },
+    "memory": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "postgres": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["mcp-server-postgres"],
+      "env": { "PGPASSWORD": "${env:PGPASSWORD}" }
+    }
+  }
+}

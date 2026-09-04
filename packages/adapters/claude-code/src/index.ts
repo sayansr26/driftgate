@@ -13,13 +13,17 @@ import {
   type Artifact,
   type Canonical,
   type DetectResult,
+  type ImportResult,
 } from '@driftgate/adapter-kit';
-import { MCP_FILE, renderMcpJson } from './mcp.js';
+import { MCP_FILE, importMcpConfig, renderMcpJson } from './mcp.js';
 import { docs } from './docs.js';
 
 export const CLAUDE_MD = 'CLAUDE.md';
 
-const DETECTION_PATHS = [CLAUDE_MD, 'CLAUDE.local.md', '.claude'] as const;
+// `.mcp.json` is evidence as well as an artifact: `collectImports` is handed only the
+// adapters that detected, so without it a repository whose sole AI configuration is an
+// MCP file is never asked for its servers and `read()` never runs.
+const DETECTION_PATHS = [CLAUDE_MD, 'CLAUDE.local.md', '.claude', MCP_FILE] as const;
 
 async function detect(ctx: AdapterContext): Promise<DetectResult> {
   const evidence: string[] = [];
@@ -36,15 +40,37 @@ async function read(ctx: AdapterContext): Promise<Partial<Canonical>> {
   if (isCanonicalSource(ctx.canonical.manifest, CLAUDE_MD)) return {};
 
   const contents = await ctx.fs.tryReadFile(CLAUDE_MD);
-  if (contents === undefined) return {};
 
   return {
-    rules: importConcatenated({
-      file: CLAUDE_MD,
-      contents,
-      headingLevel: 2,
-      idFallback: 'claude',
-    }),
+    ...(contents === undefined
+      ? {}
+      : {
+          rules: importConcatenated({
+            file: CLAUDE_MD,
+            contents,
+            headingLevel: 2,
+            idFallback: 'claude',
+          }),
+        }),
+    ...(await readMcp(ctx)),
+  };
+}
+
+/**
+ * The MCP half, guarded separately from the rules half.
+ *
+ * A repository can have `.mcp.json` and no `CLAUDE.md`, so returning early when the
+ * instruction file is missing would import no servers at all — the mirror of the bug T046
+ * found on the write side, where one early return covered the whole adapter.
+ */
+async function readMcp(ctx: AdapterContext): Promise<ImportResult> {
+  if (isCanonicalSource(ctx.canonical.manifest, MCP_FILE)) return {};
+  const contents = await ctx.fs.tryReadFile(MCP_FILE);
+  if (contents === undefined) return {};
+  const { servers, warnings } = importMcpConfig(contents);
+  return {
+    ...(servers.length === 0 ? {} : { mcpServers: servers }),
+    ...(warnings.length === 0 ? {} : { warnings }),
   };
 }
 

@@ -28,8 +28,24 @@ export interface PrecedenceEntry {
  *
  * `'override'` is the default because it is what a reader assumes, and stating the
  * assumption is cheaper than a field every adapter has to set.
+ *
+ * The three are genuinely different, and the distinction between the first two is the one
+ * that took a real tool to surface (T050a):
+ *
+ * - `'additive'` — every present file is sent. Ordering ranks specificity, not authority.
+ * - `'override'` — every present file is still **sent**, and the nearest one wins a
+ *   *conflict*. Claude Code reads `CLAUDE.local.md`, `CLAUDE.md` and `~/.claude/CLAUDE.md`
+ *   together; a shadowed file loses the argument and still costs its tokens.
+ * - `'first-match'` — the tool opens the **first file that exists and stops**. The rest are
+ *   never read, so they cost nothing and contribute nothing. Zed's nine-file chain is the
+ *   first of these in the roster, and modelling it as `'override'` would make `doctor`
+ *   report eight files as loaded that Zed never opens, and bill the user for them.
+ *
+ * Added 2026-09-04 (T050a). A new union member is a non-breaking addition per
+ * `docs/adapter-api-v1.md`: no existing adapter declares it, and every existing value keeps
+ * its meaning.
  */
-export type FileResolution = 'override' | 'additive';
+export type FileResolution = 'override' | 'additive' | 'first-match';
 
 export interface DocNote {
   readonly level: 'info' | 'warn';
@@ -80,4 +96,23 @@ export interface AdapterDocs {
     readonly note?: string;
   };
   readonly notes?: readonly DocNote[];
+  /**
+   * Who looks after this adapter, for the generated registry page (T066).
+   *
+   * Optional, and **unset on every adapter this repository ships** — the org name is not
+   * settled until T033/T034 claim it, and a plausible-looking handle would be exactly the
+   * unverified claim the `1970-01-01` scaffold placeholders exist to prevent. The generated
+   * page falls back to a neutral label, so "nobody has claimed this" and "maintained by X"
+   * do not print the same string.
+   */
+  readonly maintainer?: string;
+  /**
+   * How much an adopter should trust this adapter.
+   *
+   * **Stated, never derived.** Computing it from `verifiedAgainst.date` staleness would make
+   * the generated page depend on the host clock — a guaranteed CI-gate flapper, and the same
+   * defect class `isIsoDate` refuses. Absent means "not stated", which the page renders
+   * distinctly from an explicit `stable`.
+   */
+  readonly status?: 'stable' | 'experimental' | 'unmaintained';
 }

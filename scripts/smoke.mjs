@@ -38,7 +38,13 @@ const PACKAGES = [
   '@driftgate/adapter-claude-code',
   '@driftgate/adapter-codex',
   '@driftgate/adapter-copilot',
+  '@driftgate/adapter-cline',
+  '@driftgate/adapter-aider',
   '@driftgate/adapter-cursor',
+  '@driftgate/adapter-roo-code',
+  '@driftgate/adapter-zed',
+  '@driftgate/interop',
+  '@driftgate/adapter-windsurf',
   '@driftgate/adapter-gemini',
 ];
 

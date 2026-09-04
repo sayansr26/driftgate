@@ -20,7 +20,7 @@ whole workflow, and it is written for someone who has never seen this codebase.
 Within a directory, files are sorted **by basename, case-insensitively**, and appended in
 that order. All applicable directories are loaded, not just the first non-empty one.
 
-**Documentation:** Roo Code — Custom instructions — https://docs.roocode.com/features/custom-instructions
+**Documentation:** Roo Code — Custom instructions — https://roocodeinc.github.io/Roo-Code/features/custom-instructions (docs.roocode.com 301s here)
 _(read 2026-09-04; re-read it before you file the precedence data, and put the date you
 actually read it in `retrieved`.)_
 
@@ -39,6 +39,11 @@ to sort under Roo's rule into the order the canonical `order` field asks for. Pr
 a fixture whose rule order and alphabetical order disagree.
 
 Modes are out of scope for a first adapter: generate `.roo/rules/` only.
+
+**MCP is in scope**, contrary to the original wording of this issue: Roo has a real
+project-level `.roo/mcp.json` with a `mcpServers` key. Note its transport discriminator is
+`"streamable-http"`, **not** `"http"` — writing `http` produces a config that parses
+cleanly and selects no transport Roo recognizes.
 
 ## Steps
 

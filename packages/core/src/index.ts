@@ -17,6 +17,7 @@ export * from './adapter/docs.js';
 export * from './fs/types.js';
 export * from './fs/paths.js';
 export * from './fs/glob.js';
+export * from './fs/mask.js';
 
 export * from './render/eol.js';
 export * from './render/order.js';

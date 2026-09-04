@@ -27,6 +27,27 @@ export interface DetectResult {
  * Adapters are pure. No network, no process spawning, no global state, no writes.
  * They read, and they return values.
  */
+/**
+ * What `read()` returns: canonical content, plus anything the importer needs to say.
+ *
+ * `warnings` was added at T048 and is **optional**, so every adapter written against v1
+ * still satisfies this and no `ADAPTER_API_VERSION` bump is owed — the policy in
+ * `docs/adapter-api-v1.md`, and the reason `Exact<A, B>` cannot see an added optional
+ * member (recorded at T011).
+ *
+ * It exists because MCP import can legitimately *not* import something — a server holding
+ * a literal that is not a credential, a `${NAME:-default}` reference, a `${input:}` — and
+ * an adapter that silently returned fewer servers than the file contains would be exactly
+ * the quiet loss this project refuses everywhere else. Strings rather than
+ * `DriftgateError`s because these are not failures: `init` prints them and continues.
+ *
+ * **Never quote a value in one.** A message naming the secret would print it into a CI
+ * log — T044's failure, committed to a different file.
+ */
+export type ImportResult = Partial<Canonical> & {
+  readonly warnings?: readonly string[];
+};
+
 export interface Adapter {
   /** Stable kebab-case id, e.g. "claude-code". Matches the npm package suffix. */
   readonly name: ToolId;
@@ -40,7 +61,7 @@ export interface Adapter {
    * understand is preserved verbatim rather than dropped, because a first-run import
    * that quietly discards someone's rules is trust-fatal (PRD §11).
    */
-  read(ctx: AdapterContext): Promise<Partial<Canonical>>;
+  read(ctx: AdapterContext): Promise<ImportResult>;
 
   /** Canonical -> artifacts. Deterministic: same input, byte-identical output. */
   write(ctx: AdapterContext): Promise<readonly Artifact[]>;

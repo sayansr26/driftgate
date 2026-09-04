@@ -109,7 +109,12 @@ export async function expectContentCovered(
       const line = raw.replace(/^\uFEFF/, '').trim();
       if (line === '' || line === '---' || line === '...') continue;
       if (line.includes(MARKER_TEXT)) continue;
-      if (/^alwaysApply\s*:/.test(line)) continue;
+      // Derived frontmatter keys. Neither is authored in canonical: Cursor's `alwaysApply`
+      // and Windsurf's `trigger` are both *computed* from whether the rule has globs, so
+      // `read()` deliberately drops them and the next render recomputes them. Recovering
+      // one would put a value in canonical nobody wrote, which is how `sync` starts
+      // reporting drift against text Driftgate invented (T019).
+      if (/^(alwaysApply|trigger)\s*:/.test(line)) continue;
       // A frontmatter key with nothing after it — Cursor's empty `globs:` — carries no
       // content to lose. It is the *absence* of globs, and the import represents that
       // absence as an empty array.

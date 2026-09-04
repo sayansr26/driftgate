@@ -39,6 +39,18 @@ const FROZEN_V1 = [
   'selectMcpServers (value)',
   'stableJsonStringify (value)',
   'withJsonMarker (value)',
+  // Added 2026-09-04 (T048), MCP import. Eight exports, none removed, so no
+  // `ADAPTER_API_VERSION` bump. `read()`'s return widened by one OPTIONAL field
+  // (`ImportResult`), which every v1 adapter already satisfies — the same reason
+  // `Exact<A, B>` cannot see an added optional member (T011). Fourth exercise of the policy.
+  'ImportMcpJsonOptions (type)',
+  'ImportResult (type)',
+  'ImportedMcpResult (type)',
+  'ImportedServerInit (type)',
+  'ParseReference (type)',
+  'ReferenceParse (type)',
+  'importMcpJson (value)',
+  'importedServer (value)',
   'ADAPTER_API_VERSION (value)',
   'ALL_TOOLS (value)',
   'Adapter (type)',

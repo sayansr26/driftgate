@@ -1,9 +1,13 @@
 import {
+  envRef,
+  importMcpJson,
   selectMcpServers,
   stableJsonStringify,
   withJsonMarker,
   type JsonValue,
+  type ImportedMcpResult,
   type McpServer,
+  type ReferenceParse,
   type SecretValue,
 } from '@driftgate/adapter-kit';
 
@@ -61,4 +65,20 @@ export function renderMcpJson(servers: readonly McpServer[], marker: boolean): s
   for (const server of selected) mcpServers[server.id] = serverJson(server);
 
   return stableJsonStringify(withJsonMarker({ mcpServers }, marker));
+}
+
+/**
+ * Cursor spells it `${env:NAME}` — one character from Claude Code's, and the inverse of
+ * the divergence the writer documents.
+ *
+ * Source: https://cursor.com/docs/context/mcp (read 2026-09-04).
+ */
+function parseReference(raw: string): ReferenceParse | undefined {
+  const m = /^\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}$/.exec(raw);
+  return m === null ? undefined : { kind: 'ref', ref: envRef(m[1]!) };
+}
+
+/** The inverse of `renderMcpJson`. Never throws: a file it cannot read is warned about. */
+export function importMcpConfig(contents: string, file = MCP_FILE): ImportedMcpResult {
+  return importMcpJson(contents, { serversKey: 'mcpServers', parseReference, file });
 }

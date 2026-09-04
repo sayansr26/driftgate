@@ -53,9 +53,21 @@ export async function collectImports(options: CollectOptions): Promise<CollectRe
         options: options.options?.[adapter.name] ?? {},
         apiVersion: ADAPTER_API_VERSION,
       });
-      sources.push({ tool: adapter.name, rules: partial.rules ?? [] });
+      sources.push({
+        tool: adapter.name,
+        rules: partial.rules ?? [],
+        mcpServers: partial.mcpServers ?? [],
+        carriesMcp: carriesMcp(adapter),
+        mcpWarnings: partial.warnings ?? [],
+      });
     } catch (error) {
-      sources.push({ tool: adapter.name, rules: [] });
+      sources.push({
+        tool: adapter.name,
+        rules: [],
+        mcpServers: [],
+        carriesMcp: carriesMcp(adapter),
+        mcpWarnings: [],
+      });
       errors.push(
         error instanceof DriftgateError
           ? error
@@ -69,4 +81,17 @@ export async function collectImports(options: CollectOptions): Promise<CollectRe
   }
 
   return { sources, errors };
+}
+
+/**
+ * Does this adapter generate a project-level MCP file?
+ *
+ * Read off the adapter's own `docs` rather than from a list of tool names, for the reason
+ * T078 established: a warning or a selector derived from a hardcoded roster stops being
+ * true the moment somebody writes a sixth adapter.
+ */
+function carriesMcp(adapter: Adapter): boolean {
+  return adapter.docs.files.some(
+    (f) => f.managed && f.role === 'mcp' && f.scope !== 'global',
+  );
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { DriftgateError, envRef, type Canonical, type McpServer } from '@driftgate/adapter-kit';
+import { envRef, type Canonical, type McpServer } from '@driftgate/adapter-kit';
 import { codex, MCP_FILE, renderConfigToml } from '../src/index.js';
+import { unrepresentableServers } from '../src/mcp.js';
 import {
   contextFor,
   expectFixtureMatch,
@@ -169,37 +170,50 @@ describe('codex MCP output (T047)', () => {
   });
 });
 
-describe('codex refuses what Codex cannot say (T047)', () => {
-  const codeOf = (fn: () => unknown): string | undefined => {
-    try {
-      fn();
-      return undefined;
-    } catch (e) {
-      return e instanceof DriftgateError ? e.code : `not a DriftgateError: ${String(e)}`;
-    }
-  };
-
-  it('refuses a renamed environment reference rather than dropping it', async () => {
+describe('codex omits what Codex cannot say, and says so (T047, changed by T083)', () => {
+  it('omits a renamed environment reference and names it in the file', async () => {
+    // **T083 changed this from a refusal to an omission.** Throwing put an error in
+    // `computePlan`, and `sync` writes nothing while any error stands — so one server
+    // Codex could not express took down the whole run: no CLAUDE.md, no AGENTS.md, and
+    // not even the servers every tool *can* express. Reproduced on a hand-written
+    // servers.yaml, which is the documented way to use this feature.
     const list = await servers();
     const stdio = serverAt(list, 'zebra-stdio');
     const renamed: McpServer = { ...stdio, env: { API_KEY: envRef('MY_TOKEN') } };
 
-    expect(codeOf(() => renderConfigToml([renamed], true))).toBe('E_MCP_UNREPRESENTABLE');
-    // The control. An assertion that something throws passes against a function that
-    // throws for everything (T020), so the same server with a same-named reference must
-    // render — and the message must name the server without quoting anything.
-    expect(codeOf(() => renderConfigToml([stdio], true))).toBeUndefined();
-    expect(renderConfigToml([stdio], true)).toContain('env_vars = ["GITHUB_TOKEN"]');
+    const rendered = renderConfigToml([renamed, serverAt(list, 'alpha-http')], true);
+
+    // Omitted, not silently dropped: the explanation is in the generated file, which is
+    // where the consequence is. It is committed, it appears in `check`'s diff, and a
+    // reader of .codex/config.toml learns why a server they configured is missing.
+    expect(rendered).toContain('# omitted: `zebra-stdio`');
+    expect(rendered).toContain('differently-named variable');
+    expect(rendered).not.toContain('[mcp_servers.zebra-stdio]');
+
+    // And the rest of the file still renders. This is the whole point of the change.
+    expect(rendered).toContain('[mcp_servers.alpha-http]');
   });
 
-  it('refuses an environment reference in a header Codex cannot resolve', async () => {
+  it('renders a same-named reference normally', async () => {
+    // The control. An assertion that something is omitted passes against a renderer that
+    // omits everything (T020's lesson), so the expressible case must still appear.
+    const list = await servers();
+    const stdio = serverAt(list, 'zebra-stdio');
+    expect(renderConfigToml([stdio], true)).toContain('env_vars = ["GITHUB_TOKEN"]');
+    expect(renderConfigToml([stdio], true)).not.toContain('# omitted');
+  });
+
+  it('omits an environment reference in a header Codex cannot resolve', async () => {
     const list = await servers();
     const http = serverAt(list, 'alpha-http');
     const other: McpServer = { ...http, headers: { 'X-Api-Key': envRef('DOCS_API_KEY') } };
 
-    expect(codeOf(() => renderConfigToml([other], true))).toBe('E_MCP_UNREPRESENTABLE');
+    const rendered = renderConfigToml([other, serverAt(list, 'zebra-stdio')], true);
+    expect(rendered).toContain('# omitted: `alpha-http`');
+    expect(rendered).toContain('[mcp_servers.zebra-stdio]');
+
     // Control: Authorization is the one header it can express.
-    expect(codeOf(() => renderConfigToml([http], true))).toBeUndefined();
+    expect(renderConfigToml([http], true)).not.toContain('# omitted');
   });
 
   it('accepts an Authorization header in any casing', async () => {
@@ -210,21 +224,29 @@ describe('codex refuses what Codex cannot say (T047)', () => {
     expect(renderConfigToml([lower], false)).toContain('bearer_token_env_var = "DOCS_API_KEY"');
   });
 
-  it('names the server it refused, and never the value', async () => {
+  it('writes no file at all when every server is unrepresentable', async () => {
+    // A file of nothing but apologies is an artifact `check` has to reason about and a
+    // user has to wonder about. `doctor` still reports the gap, from the same canonical.
     const list = await servers();
     const renamed: McpServer = {
       ...serverAt(list, 'zebra-stdio'),
       env: { API_KEY: envRef('MY_TOKEN') },
     };
+    expect(renderConfigToml([renamed], true)).toBe('');
+  });
 
-    try {
-      renderConfigToml([renamed], true);
-      expect.unreachable('should have refused');
-    } catch (e) {
-      const err = e as DriftgateError;
-      expect(err.message).toContain('zebra-stdio');
-      expect(err.hint).toBeDefined();
-      expect(err.source).toBeDefined();
-    }
+  it('names the server and never the value', async () => {
+    // Unchanged by T083 and still the rule that matters most: a message naming the
+    // credential would commit the secret to a different file (T044).
+    const list = await servers();
+    const renamed: McpServer = {
+      ...serverAt(list, 'zebra-stdio'),
+      env: { API_KEY: envRef('MY_TOKEN') },
+    };
+    const reported = unrepresentableServers([renamed, serverAt(list, 'alpha-http')]);
+
+    expect(reported.map((r) => r.id)).toEqual(['zebra-stdio']);
+    expect(reported[0]!.hint).toContain('tools:');
+    expect(reported[0]!.why).not.toContain('MY_TOKEN=');
   });
 });

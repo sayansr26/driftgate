@@ -48,7 +48,19 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/adapters/aider:
+    dependencies:
+      '@driftgate/adapter-kit':
+        specifier: workspace:*
+        version: link:../../adapter-kit
+
   packages/adapters/claude-code:
+    dependencies:
+      '@driftgate/adapter-kit':
+        specifier: workspace:*
+        version: link:../../adapter-kit
+
+  packages/adapters/cline:
     dependencies:
       '@driftgate/adapter-kit':
         specifier: workspace:*
@@ -78,11 +90,35 @@ importers:
         specifier: workspace:*
         version: link:../../adapter-kit
 
+  packages/adapters/roo-code:
+    dependencies:
+      '@driftgate/adapter-kit':
+        specifier: workspace:*
+        version: link:../../adapter-kit
+
+  packages/adapters/windsurf:
+    dependencies:
+      '@driftgate/adapter-kit':
+        specifier: workspace:*
+        version: link:../../adapter-kit
+
+  packages/adapters/zed:
+    dependencies:
+      '@driftgate/adapter-kit':
+        specifier: workspace:*
+        version: link:../../adapter-kit
+
   packages/cli:
     dependencies:
+      '@driftgate/adapter-aider':
+        specifier: workspace:*
+        version: link:../adapters/aider
       '@driftgate/adapter-claude-code':
         specifier: workspace:*
         version: link:../adapters/claude-code
+      '@driftgate/adapter-cline':
+        specifier: workspace:*
+        version: link:../adapters/cline
       '@driftgate/adapter-codex':
         specifier: workspace:*
         version: link:../adapters/codex
@@ -95,9 +131,21 @@ importers:
       '@driftgate/adapter-gemini':
         specifier: workspace:*
         version: link:../adapters/gemini
+      '@driftgate/adapter-roo-code':
+        specifier: workspace:*
+        version: link:../adapters/roo-code
+      '@driftgate/adapter-windsurf':
+        specifier: workspace:*
+        version: link:../adapters/windsurf
+      '@driftgate/adapter-zed':
+        specifier: workspace:*
+        version: link:../adapters/zed
       '@driftgate/core':
         specifier: workspace:*
         version: link:../core
+      '@driftgate/interop':
+        specifier: workspace:*
+        version: link:../interop
       commander:
         specifier: ^12.1.0
         version: 12.1.0
@@ -110,6 +158,12 @@ importers:
       yaml:
         specifier: ^2.6.0
         version: 2.9.0
+
+  packages/interop:
+    dependencies:
+      '@driftgate/adapter-kit':
+        specifier: workspace:*
+        version: link:../adapter-kit
 
 packages:
 

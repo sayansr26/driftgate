@@ -1,9 +1,13 @@
 import {
+  envRef,
+  importMcpJson,
   selectMcpServers,
   stableJsonStringify,
   withJsonMarker,
   type JsonValue,
+  type ImportedMcpResult,
   type McpServer,
+  type ReferenceParse,
   type SecretValue,
 } from '@driftgate/adapter-kit';
 
@@ -65,4 +69,20 @@ export function renderMcpJson(servers: readonly McpServer[], marker: boolean): s
   // comments, so a generated file declares itself with a top-level `"//"` key, and it
   // sorts ahead of every ordinary key under `compareCodepoint` with no special case.
   return stableJsonStringify(withJsonMarker({ mcpServers }, marker));
+}
+
+/**
+ * Claude Code expands `${NAME}`. The `${NAME:-default}` form it also supports has no
+ * canonical shape and is refused by the kit before this is reached.
+ *
+ * Source: https://code.claude.com/docs/en/mcp (read 2026-09-04).
+ */
+function parseReference(raw: string): ReferenceParse | undefined {
+  const m = /^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$/.exec(raw);
+  return m === null ? undefined : { kind: 'ref', ref: envRef(m[1]!) };
+}
+
+/** The inverse of `renderMcpJson`. Never throws: a file it cannot read is warned about. */
+export function importMcpConfig(contents: string, file = MCP_FILE): ImportedMcpResult {
+  return importMcpJson(contents, { serversKey: 'mcpServers', parseReference, file });
 }

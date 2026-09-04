@@ -65,12 +65,24 @@ function generate(fixture, adapter) {
     : renderFixture(fixture, adapter);
 }
 
+/**
+ * Fixtures belonging to something that is not an adapter (T054).
+ *
+ * `ruler-import` and `rulesync-import` have the `input`/`expected` shape and no adapter
+ * behind them — they are goldens of an interop importer, which this script cannot drive
+ * because `INTEROP` is not `ADAPTERS`. Left in the sweep they abort the run, and if that
+ * abort were ever softened to a skip-and-delete they would be reported as stale goldens to
+ * remove: the same aim-at-goldens-it-does-not-own bug T017 hit with `-import`.
+ */
+const NOT_ADAPTER_FIXTURES = new Set(['ruler-import', 'rulesync-import']);
+
 /** Every `fixtures/<dir>` that has both `input/` and `expected/`. */
 async function writeFixtures() {
   const entries = await readdir(fixturesRoot, { withFileTypes: true });
   const out = [];
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
+    if (NOT_ADAPTER_FIXTURES.has(entry.name)) continue;
     const names = await readdir(path.join(fixturesRoot, entry.name)).catch(() => []);
     if (names.includes('input') && names.includes('expected')) out.push(entry.name);
   }

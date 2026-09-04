@@ -15,11 +15,17 @@ export default defineConfig({
       // '@driftgate/adapter-kit/testing' into '.../src/index.ts/testing'.
       '@driftgate/adapter-kit/testing': src('./packages/adapter-kit/src/testing/index.ts'),
       '@driftgate/adapter-kit': src('./packages/adapter-kit/src/index.ts'),
+      '@driftgate/adapter-aider': src('./packages/adapters/aider/src/index.ts'),
       '@driftgate/adapter-claude-code': src('./packages/adapters/claude-code/src/index.ts'),
+      '@driftgate/adapter-cline': src('./packages/adapters/cline/src/index.ts'),
       '@driftgate/adapter-codex': src('./packages/adapters/codex/src/index.ts'),
       '@driftgate/adapter-copilot': src('./packages/adapters/copilot/src/index.ts'),
       '@driftgate/adapter-cursor': src('./packages/adapters/cursor/src/index.ts'),
       '@driftgate/adapter-gemini': src('./packages/adapters/gemini/src/index.ts'),
+      '@driftgate/adapter-roo-code': src('./packages/adapters/roo-code/src/index.ts'),
+      '@driftgate/adapter-windsurf': src('./packages/adapters/windsurf/src/index.ts'),
+      '@driftgate/adapter-zed': src('./packages/adapters/zed/src/index.ts'),
+      '@driftgate/interop': src('./packages/interop/src/index.ts'),
       // `action/` imports the CLI by its published name. Without this the Action's tests
       // would be the only ones running against `dist/`, so they would pass or fail on
       // whatever was last built rather than on the source in the diff.

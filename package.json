@@ -17,6 +17,7 @@
     "format:fix": "prettier --write .",
     "verify": "pnpm lint && pnpm build && pnpm typecheck && pnpm test",
     "fixtures:update": "node scripts/update-fixtures.mjs",
+    "docs:generate": "node scripts/generate-docs.mjs",
     "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {

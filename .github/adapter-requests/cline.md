@@ -21,6 +21,10 @@ Workspace rules take precedence over global ones when they conflict.
 _(read 2026-09-04; re-read it before you file the precedence data, and put the date you
 actually read it in `retrieved`.)_
 
+**MCP is out of scope for this adapter.** Cline documents no project-level MCP config file:
+servers live in user-level storage outside any repository, and Driftgate never writes there.
+The adapter emits no MCP artifact and records the global rules path as unmanaged instead.
+
 ## What to build
 
 - **Adapter id:** `cline`

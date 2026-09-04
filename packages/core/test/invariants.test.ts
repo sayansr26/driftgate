@@ -26,9 +26,17 @@ async function packageManifests(): Promise<{ name: string; dir: string; json: Pa
   // Adapters are *discovered*, not listed. A hardcoded list would silently stop covering
   // the next adapter someone scaffolds (T028), and an invariant that quietly narrows its
   // own scope while staying green is worse than not having it.
-  const dirs = ['packages/core', 'packages/cli', 'packages/adapter-kit', 'action'].concat(
-    await adapterDirs(),
-  );
+  // `packages/interop` is listed explicitly (T054): it is not an adapter and does not live
+  // under `packages/adapters/`, but it ships, so the dependency allowlist and the engines
+  // pin must cover it. A package that escapes this list is a package where a third-party
+  // dependency can arrive unnoticed.
+  const dirs = [
+    'packages/core',
+    'packages/cli',
+    'packages/adapter-kit',
+    'packages/interop',
+    'action',
+  ].concat(await adapterDirs());
   return Promise.all(
     dirs.map(async (dir) => {
       const json = JSON.parse(

@@ -1023,7 +1023,7 @@ var require_command = __commonJS({
           writeErr: (str) => process2.stderr.write(str),
           getOutHelpWidth: () => process2.stdout.isTTY ? process2.stdout.columns : void 0,
           getErrHelpWidth: () => process2.stderr.isTTY ? process2.stderr.columns : void 0,
-          outputError: (str, write6) => write6(str)
+          outputError: (str, write11) => write11(str)
         };
         this._hidden = false;
         this._helpOption = void 0;
@@ -2823,13 +2823,13 @@ Expecting one of '${allowedValues.join("', '")}'`);
       _getHelpContext(contextOptions) {
         contextOptions = contextOptions || {};
         const context = { error: !!contextOptions.error };
-        let write6;
+        let write11;
         if (context.error) {
-          write6 = (arg) => this._outputConfiguration.writeErr(arg);
+          write11 = (arg) => this._outputConfiguration.writeErr(arg);
         } else {
-          write6 = (arg) => this._outputConfiguration.writeOut(arg);
+          write11 = (arg) => this._outputConfiguration.writeOut(arg);
         }
-        context.write = contextOptions.write || write6;
+        context.write = contextOptions.write || write11;
         context.command = this;
         return context;
       }
@@ -10229,14 +10229,14 @@ var require_public_api = __commonJS({
       const { lineCounter: lineCounter2, prettyErrors } = parseOptions2(options2);
       const parser$1 = new parser.Parser(lineCounter2?.addNewLine);
       const composer$1 = new composer.Composer(options2);
-      const docs6 = Array.from(composer$1.compose(parser$1.parse(source)));
+      const docs11 = Array.from(composer$1.compose(parser$1.parse(source)));
       if (prettyErrors && lineCounter2)
-        for (const doc of docs6) {
+        for (const doc of docs11) {
           doc.errors.forEach(errors.prettifyError(source, lineCounter2));
           doc.warnings.forEach(errors.prettifyError(source, lineCounter2));
         }
-      if (docs6.length > 0)
-        return docs6;
+      if (docs11.length > 0)
+        return docs11;
       return Object.assign([], { empty: true }, composer$1.streamInfo());
     }
     function parseDocument2(source, options2 = {}) {
@@ -11129,6 +11129,10 @@ function scanTextForSecrets(text) {
   });
   return found;
 }
+function literalToEnvRef(key) {
+  const safe = key.replace(/[^A-Za-z0-9]+/g, "_");
+  return envRef(/^[A-Za-z_]/.test(safe) ? safe : `_${safe}`);
+}
 
 // ../packages/core/dist/parse/mcp.js
 var KNOWN_KEYS = /* @__PURE__ */ new Set([
@@ -11721,6 +11725,241 @@ function importConcatenated(options2) {
   });
 }
 
+// ../packages/core/dist/import/mcp.js
+function importedServer(init) {
+  return {
+    id: init.id,
+    transport: init.transport,
+    env: init.env ?? {},
+    headers: init.headers ?? {},
+    tools: ALL_TOOLS,
+    scope: DEFAULT_MCP_SCOPE,
+    enabled: true,
+    unknown: init.unknown ?? {},
+    source: init.source
+  };
+}
+function unrepresentableReference(raw) {
+  if (/^\$\{[A-Za-z_][A-Za-z0-9_]*:[-=?+]/.test(raw)) {
+    return { why: "uses a shell-style default (`${NAME:-...}`), which canonical has no form for" };
+  }
+  if (/^\$\{input:/.test(raw)) {
+    return {
+      why: "refers to an `${input:...}` variable, which prompts the user rather than naming an environment variable"
+    };
+  }
+  return void 0;
+}
+function canonicalReference(raw) {
+  const ref = parseEnvRef(raw);
+  return ref === void 0 ? void 0 : { kind: "ref", ref };
+}
+function isObject(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function importSecrets(raw, what, options2, warnings, serverId) {
+  if (raw === void 0)
+    return { kind: "ok", map: {} };
+  if (!isObject(raw))
+    return { kind: "refuse", why: `\`${what}\` is not an object` };
+  const map = {};
+  for (const key of Object.keys(raw).sort()) {
+    const value = raw[key];
+    if (typeof value !== "string") {
+      return { kind: "refuse", why: `\`${what}.${key}\` is not a string` };
+    }
+    const bad = unrepresentableReference(value);
+    if (bad !== void 0)
+      return { kind: "refuse", why: `\`${what}.${key}\` ${bad.why}` };
+    const parsed = options2.parseReference(value) ?? canonicalReference(value);
+    if (parsed !== void 0) {
+      if (parsed.kind === "unrepresentable") {
+        return { kind: "refuse", why: `\`${what}.${key}\` ${parsed.why}` };
+      }
+      map[key] = parsed.ref;
+      continue;
+    }
+    if (isLiteralSecret(key, value)) {
+      map[key] = literalToEnvRef(key);
+      warnings.push(`${options2.file}: server \`${serverId}\` had a literal credential under \`${what}.${key}\`; imported as \`env:${literalToEnvRef(key).name}\`. Set that variable before running the server.`);
+      continue;
+    }
+    if (/\$\{[^}]+\}/.test(value)) {
+      return {
+        kind: "refuse",
+        why: `\`${what}.${key}\` embeds a variable reference inside other text, and canonical MCP servers hold a bare reference (the surrounding text has nowhere to go)`
+      };
+    }
+    return {
+      kind: "refuse",
+      why: `\`${what}.${key}\` is a literal value rather than an environment-variable reference, and canonical MCP servers can only hold references`
+    };
+  }
+  return { kind: "ok", map };
+}
+var INTERPRETED = /* @__PURE__ */ new Set(["command", "args", "url", "type", "env", "headers"]);
+function importTransport(body) {
+  const command = body["command"];
+  const url = body["url"];
+  if (typeof command === "string" && typeof url === "string") {
+    return { why: "declares both `command` and `url`" };
+  }
+  if (typeof command === "string") {
+    const rawArgs = body["args"];
+    if (rawArgs !== void 0 && !Array.isArray(rawArgs))
+      return { why: "`args` is not an array" };
+    const args = rawArgs ?? [];
+    if (!args.every((a) => typeof a === "string")) {
+      return { why: "`args` contains a non-string entry" };
+    }
+    return { kind: "stdio", command, args };
+  }
+  if (typeof url !== "string")
+    return { why: "has neither `command` nor `url`" };
+  const declared = body["type"];
+  if (declared !== void 0 && typeof declared !== "string") {
+    return { why: "`type` is not a string" };
+  }
+  if (declared === void 0 || declared === "http" || declared === "streamable-http") {
+    return { kind: "http", url };
+  }
+  if (declared === "sse")
+    return { kind: "sse", url };
+  return { why: `\`type: ${declared}\` has no canonical transport` };
+}
+function importMcpJson(contents, options2) {
+  const warnings = [];
+  let root;
+  try {
+    root = JSON.parse(stripJsonc(contents));
+  } catch (error) {
+    return {
+      servers: [],
+      warnings: [`${options2.file}: could not be parsed as JSON (${String(error)}); skipped`]
+    };
+  }
+  if (!isObject(root))
+    return { servers: [], warnings };
+  if (root["inputs"] !== void 0) {
+    warnings.push(`${options2.file}: the top-level \`inputs\` array is not imported \u2014 canonical MCP servers name environment variables rather than prompting.`);
+  }
+  const servers = root[options2.serversKey];
+  if (!isObject(servers))
+    return { servers: [], warnings };
+  const out = [];
+  for (const id of Object.keys(servers).sort()) {
+    if (id === "//")
+      continue;
+    const body = servers[id];
+    if (!isObject(body)) {
+      warnings.push(`${options2.file}: server \`${id}\` is not an object; skipped`);
+      continue;
+    }
+    const transport = importTransport(body);
+    if (!("kind" in transport)) {
+      warnings.push(`${options2.file}: server \`${id}\` ${transport.why}; skipped`);
+      continue;
+    }
+    const env = importSecrets(body["env"], "env", options2, warnings, id);
+    if (env.kind === "refuse") {
+      warnings.push(`${options2.file}: server \`${id}\` skipped \u2014 ${env.why}`);
+      continue;
+    }
+    const headers = importSecrets(body["headers"], "headers", options2, warnings, id);
+    if (headers.kind === "refuse") {
+      warnings.push(`${options2.file}: server \`${id}\` skipped \u2014 ${headers.why}`);
+      continue;
+    }
+    const unknown = {};
+    for (const key of Object.keys(body).sort()) {
+      if (!INTERPRETED.has(key))
+        unknown[key] = body[key];
+    }
+    out.push(importedServer({
+      id,
+      transport,
+      env: env.map,
+      headers: headers.map,
+      unknown,
+      source: { file: options2.file }
+    }));
+  }
+  return { servers: out, warnings };
+}
+function stripJsonc(text) {
+  let out = "";
+  let i = 0;
+  let inString = false;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inString) {
+      out += ch;
+      if (ch === "\\") {
+        out += text[i + 1] ?? "";
+        i += 2;
+        continue;
+      }
+      if (ch === '"')
+        inString = false;
+      i += 1;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      out += ch;
+      i += 1;
+      continue;
+    }
+    if (ch === "/" && text[i + 1] === "/") {
+      while (i < text.length && text[i] !== "\n")
+        i += 1;
+      continue;
+    }
+    if (ch === "/" && text[i + 1] === "*") {
+      i += 2;
+      while (i < text.length && !(text[i] === "*" && text[i + 1] === "/"))
+        i += 1;
+      i += 2;
+      continue;
+    }
+    out += ch;
+    i += 1;
+  }
+  return dropTrailingCommas(out);
+}
+function dropTrailingCommas(text) {
+  let out = "";
+  let inString = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (inString) {
+      out += ch;
+      if (ch === "\\") {
+        out += text[i + 1] ?? "";
+        i += 1;
+        continue;
+      }
+      if (ch === '"')
+        inString = false;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      out += ch;
+      continue;
+    }
+    if (ch === ",") {
+      let j = i + 1;
+      while (j < text.length && /\s/.test(text[j]))
+        j += 1;
+      if (text[j] === "}" || text[j] === "]")
+        continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
 // ../packages/core/dist/state/state.js
 import { createHash } from "node:crypto";
 var STATE_SCHEMA_VERSION = 1;
@@ -11874,17 +12113,18 @@ async function computePlan(input) {
         }));
         continue;
       }
-      const other = claimedBy.get(path4);
+      const key = path4.toLowerCase();
+      const other = claimedBy.get(key);
       if (other !== void 0) {
         errors.push(new DriftgateError({
           code: "E_ARTIFACT_PATH_CONFLICT",
           message: `adapters \`${other}\` and \`${adapter.name}\` both generate ${path4}`,
           source: { file: path4 },
-          hint: "disable one of the two tools, or report this as an adapter bug"
+          hint: "disable one of the two tools, or report this as an adapter bug. Paths that differ only in case are the same file on Windows and macOS."
         }));
         continue;
       }
-      claimedBy.set(path4, adapter.name);
+      claimedBy.set(key, adapter.name);
       artifacts.push({ ...artifact, path: path4 });
     }
   }
@@ -12267,14 +12507,52 @@ var NodeFileSystem = class {
     entries.sort((a, b) => compareCodepoint(a.name, b.name));
     return entries;
   }
+  /**
+   * Walk the tree, following symlinked directories that stay inside the repository.
+   *
+   * **Symlinks used to be skipped entirely** (`entry.kind === 'dir'` is false for one), so
+   * a repository whose `.cursor/rules` was a link — an ordinary way to share one rule set
+   * between checkouts — detected as using Cursor and imported **zero rules**, silently
+   * (T069).
+   *
+   * Following them needs a containment check of its own, and this is the part that must not
+   * be simplified away: `escapesRoot` is purely *lexical*, so `.cursor/rules -> ~/shared`
+   * yields repo-relative paths whose real targets are anywhere at all. Without the
+   * `realpath` test below, `sync` would read — and then, through `writeFile`, write —
+   * outside the repository while every path it handled looked perfectly legal.
+   *
+   * The `seen` set is for cycles: a link pointing at an ancestor otherwise recurses until
+   * the stack gives out.
+   */
   async glob(pattern) {
     const out = [];
+    const root = await realpathOr(this.repoRoot);
+    const seen = /* @__PURE__ */ new Set();
+    const contained = async (abs) => {
+      const real = await realpathOr(abs);
+      const rel = path2.relative(root, real);
+      return rel === "" || !rel.startsWith("..") && !path2.isAbsolute(rel);
+    };
     const walk = async (dir) => {
       for (const entry of await this.listDir(dir)) {
         const child = dir === "" ? entry.name : `${dir}/${entry.name}`;
-        if (entry.kind === "dir") {
-          if (entry.name === "node_modules" || entry.name === ".git")
+        if (entry.name === "node_modules" || entry.name === ".git")
+          continue;
+        let kind = entry.kind;
+        if (kind === "symlink") {
+          const abs = path2.join(this.repoRoot, fromPosix(child));
+          if (!await contained(abs))
             continue;
+          const stat = await fs.stat(abs).catch(() => void 0);
+          if (stat === void 0)
+            continue;
+          kind = stat.isDirectory() ? "dir" : "file";
+        }
+        if (kind === "dir") {
+          const real = await realpathOr(path2.join(this.repoRoot, fromPosix(child)));
+          if (seen.has(real))
+            continue;
+          seen.add(real);
           await walk(child);
           continue;
         }
@@ -12286,15 +12564,38 @@ var NodeFileSystem = class {
     out.sort(compareCodepoint);
     return out;
   }
+  /**
+   * Remove a symlink standing where we are about to write.
+   *
+   * `fs.writeFile` and `fs.copyFile` both **follow** a symlink at the destination, so a
+   * repository where `CLAUDE.md` links to `AGENTS.md` had its `AGENTS.md` silently rewritten
+   * by a render aimed at `CLAUDE.md` — and `runInit` passes `force: true`, so `init --yes`
+   * did it on a first run (T069).
+   *
+   * Replacing the link is the right product behaviour: Driftgate exists to own that path.
+   * `restore` will put the bytes back as a regular file rather than as a link, which is
+   * stated in `docs/determinism.md` rather than left to be discovered.
+   */
+  async #materialize(abs) {
+    const stat = await fs.lstat(abs).catch(() => void 0);
+    if (stat?.isSymbolicLink() === true)
+      await fs.unlink(abs);
+  }
   async writeFile(relPath, contents) {
     const abs = this.resolve(relPath);
-    await fs.mkdir(path2.dirname(abs), { recursive: true });
-    await fs.writeFile(abs, contents, "utf8");
+    await withPathErrors(relPath, async () => {
+      await fs.mkdir(path2.dirname(abs), { recursive: true });
+      await this.#materialize(abs);
+      await fs.writeFile(abs, contents, "utf8");
+    });
   }
   async copyFile(fromRelPath, toRelPath) {
     const to = this.resolve(toRelPath);
-    await fs.mkdir(path2.dirname(to), { recursive: true });
-    await fs.copyFile(this.resolve(fromRelPath), to);
+    await withPathErrors(toRelPath, async () => {
+      await fs.mkdir(path2.dirname(to), { recursive: true });
+      await this.#materialize(to);
+      await fs.copyFile(this.resolve(fromRelPath), to);
+    });
   }
   async deleteFile(relPath) {
     try {
@@ -12321,6 +12622,25 @@ function createReadOnlyFileSystem(root) {
     listDir: (p) => fs2.listDir(p),
     glob: (p) => fs2.glob(p)
   };
+}
+async function realpathOr(abs) {
+  return fs.realpath(abs).catch(() => abs);
+}
+async function withPathErrors(relPath, run2) {
+  try {
+    return await run2();
+  } catch (e) {
+    const code = e.code;
+    if (code === "ENAMETOOLONG" || code === "ERR_FS_EISDIR") {
+      throw new DriftgateError({
+        code: "E_PATH_TOO_LONG",
+        message: `the filesystem refused the path ${relPath} (${String(code)})`,
+        hint: "Windows limits paths to 260 characters unless long paths are enabled; shorten a rule id or move the repository nearer the drive root.",
+        cause: e
+      });
+    }
+    throw e;
+  }
 }
 
 // ../packages/core/dist/git/index.js
@@ -12464,6 +12784,109 @@ function run(args, cwd) {
   });
 }
 
+// ../packages/adapters/aider/dist/docs.js
+var CONVENTIONS_DOCS = {
+  url: "https://aider.chat/docs/usage/conventions.html",
+  title: "Aider \u2014 Specifying coding conventions",
+  retrieved: "2026-09-04"
+};
+var docs = {
+  toolName: "Aider",
+  homepage: "https://aider.chat",
+  verifiedAgainst: { version: "Aider docs as published 2026-09-04", date: "2026-09-04" },
+  // Every file named by `read:` is loaded; there is no chain and nothing is superseded.
+  resolution: "additive",
+  files: [
+    {
+      pattern: "CONVENTIONS.md",
+      scope: "project",
+      role: "instructions",
+      managed: true,
+      description: "The conventional filename, and what Driftgate generates. Aider loads it only when .aider.conf.yml names it under `read:`, or when it is passed with --read / /read. The name is a convention, not a requirement.",
+      source: CONVENTIONS_DOCS
+    },
+    {
+      pattern: ".aider.conf.yml",
+      scope: "project",
+      role: "settings",
+      managed: false,
+      description: "Aider\u2019s configuration, and the only thing that decides whether CONVENTIONS.md is read at all. Driftgate never writes it: it is the user\u2019s file and it can hold literal API keys.",
+      source: CONVENTIONS_DOCS
+    }
+  ],
+  limits: { note: "Aider publishes no size cap for a conventions file." },
+  notes: [
+    {
+      level: "warn",
+      message: "Aider loads no instruction file automatically. A generated CONVENTIONS.md is read only if .aider.conf.yml names it under `read:` (or it is passed with --read). Without that line the file is in sync, correct, and loaded by nothing \u2014 check the config, not just the file.",
+      source: CONVENTIONS_DOCS
+    },
+    {
+      level: "info",
+      message: "Driftgate never writes .aider.conf.yml, under any flag. It is the user\u2019s file, it can hold literal API keys, and owning it would mean owning every Aider setting \u2014 the trade-off the codex adapter makes for config.toml and this one deliberately does not.",
+      source: CONVENTIONS_DOCS
+    },
+    {
+      level: "info",
+      message: "Whether `read:` merges or replaces across Aider\u2019s home, git-root and cwd config files is undocumented. If it replaces, a repository-level config silently drops a user\u2019s global conventions \u2014 worth knowing before relying on both.",
+      source: CONVENTIONS_DOCS
+    }
+  ]
+};
+
+// ../packages/adapters/aider/dist/index.js
+var CONVENTIONS_MD = "CONVENTIONS.md";
+var DETECTION_PATHS = [".aider.conf.yml"];
+async function detect(ctx) {
+  const evidence = [];
+  for (const path4 of DETECTION_PATHS) {
+    if (await ctx.fs.exists(path4))
+      evidence.push(path4);
+  }
+  return detected(evidence);
+}
+async function read(ctx) {
+  if (isCanonicalSource(ctx.canonical.manifest, CONVENTIONS_MD))
+    return {};
+  const contents = await ctx.fs.tryReadFile(CONVENTIONS_MD);
+  if (contents === void 0)
+    return {};
+  return {
+    rules: importConcatenated({
+      file: CONVENTIONS_MD,
+      contents,
+      headingLevel: 2,
+      idFallback: "aider"
+    })
+  };
+}
+async function write(ctx) {
+  const { canonical } = ctx;
+  if (isCanonicalSource(canonical.manifest, CONVENTIONS_MD))
+    return [];
+  const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, "aider")));
+  if (rules.length === 0)
+    return [];
+  const body = renderConcatenated(rules, { headingLevel: 2, showGlobs: true });
+  return Promise.resolve([
+    finalizeArtifact({
+      path: CONVENTIONS_MD,
+      contents: withHtmlMarker(body, canonical.manifest.options.marker),
+      adapter: "aider",
+      kind: "rules",
+      provenance: { ruleIds: rules.map((r) => r.id) }
+    })
+  ]);
+}
+var aider = {
+  name: "aider",
+  apiVersion: ADAPTER_API_VERSION,
+  detect,
+  read,
+  write,
+  docs
+};
+
 // ../packages/adapters/claude-code/dist/mcp.js
 var MCP_FILE = ".mcp.json";
 function reference(value) {
@@ -12501,6 +12924,13 @@ function renderMcpJson(servers, marker) {
     mcpServers[server.id] = serverJson(server);
   return stableJsonStringify(withJsonMarker({ mcpServers }, marker));
 }
+function parseReference(raw) {
+  const m = /^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$/.exec(raw);
+  return m === null ? void 0 : { kind: "ref", ref: envRef(m[1]) };
+}
+function importMcpConfig(contents, file = MCP_FILE) {
+  return importMcpJson(contents, { serversKey: "mcpServers", parseReference, file });
+}
 
 // ../packages/adapters/claude-code/dist/docs.js
 var MCP_DOCS = {
@@ -12516,7 +12946,7 @@ var CLAUDE_MEMORY_DOCS = {
   title: "Claude Code \u2014 Manage Claude\u2019s memory",
   retrieved: "2026-09-01"
 };
-var docs = {
+var docs2 = {
   toolName: "Claude Code",
   homepage: "https://docs.claude.com/en/docs/claude-code",
   verifiedAgainst: { version: "2.x", date: "2026-09-01" },
@@ -12611,31 +13041,44 @@ var docs = {
 
 // ../packages/adapters/claude-code/dist/index.js
 var CLAUDE_MD = "CLAUDE.md";
-var DETECTION_PATHS = [CLAUDE_MD, "CLAUDE.local.md", ".claude"];
-async function detect(ctx) {
+var DETECTION_PATHS2 = [CLAUDE_MD, "CLAUDE.local.md", ".claude", MCP_FILE];
+async function detect2(ctx) {
   const evidence = [];
-  for (const path4 of DETECTION_PATHS) {
+  for (const path4 of DETECTION_PATHS2) {
     if (await ctx.fs.exists(path4))
       evidence.push(path4);
   }
   return detected(evidence);
 }
-async function read(ctx) {
+async function read2(ctx) {
   if (isCanonicalSource(ctx.canonical.manifest, CLAUDE_MD))
     return {};
   const contents = await ctx.fs.tryReadFile(CLAUDE_MD);
-  if (contents === void 0)
-    return {};
   return {
-    rules: importConcatenated({
-      file: CLAUDE_MD,
-      contents,
-      headingLevel: 2,
-      idFallback: "claude"
-    })
+    ...contents === void 0 ? {} : {
+      rules: importConcatenated({
+        file: CLAUDE_MD,
+        contents,
+        headingLevel: 2,
+        idFallback: "claude"
+      })
+    },
+    ...await readMcp(ctx)
   };
 }
-async function write(ctx) {
+async function readMcp(ctx) {
+  if (isCanonicalSource(ctx.canonical.manifest, MCP_FILE))
+    return {};
+  const contents = await ctx.fs.tryReadFile(MCP_FILE);
+  if (contents === void 0)
+    return {};
+  const { servers, warnings } = importMcpConfig(contents);
+  return {
+    ...servers.length === 0 ? {} : { mcpServers: servers },
+    ...warnings.length === 0 ? {} : { warnings }
+  };
+}
+async function write2(ctx) {
   const { canonical } = ctx;
   const marker = canonical.manifest.options.marker;
   const artifacts = [];
@@ -12665,10 +13108,161 @@ async function write(ctx) {
 var claudeCode = {
   name: "claude-code",
   apiVersion: ADAPTER_API_VERSION,
-  detect,
-  read,
-  write,
-  docs
+  detect: detect2,
+  read: read2,
+  write: write2,
+  docs: docs2
+};
+
+// ../packages/adapters/cline/dist/docs.js
+var RULES_DOCS = {
+  url: "https://docs.cline.bot/features/cline-rules",
+  title: "Cline \u2014 Cline Rules",
+  retrieved: "2026-09-04"
+};
+var docs3 = {
+  toolName: "Cline",
+  homepage: "https://cline.bot",
+  // The rules page carries no version number, so the documentation date is the honest
+  // stamp. Gemini's entry uses the same form for the same reason.
+  verifiedAgainst: { version: "Cline docs as published 2026-09-04", date: "2026-09-04" },
+  // Every detected rule file is combined; the panel lets a user toggle them individually.
+  resolution: "additive",
+  files: [
+    {
+      pattern: ".clinerules/*.md",
+      scope: "project",
+      role: "instructions",
+      managed: true,
+      description: "Workspace rules. Cline processes all .md and .txt files inside .clinerules/ and combines them. This is what Driftgate generates; it writes .md only, and imports both extensions.",
+      source: RULES_DOCS
+    },
+    {
+      pattern: ".cursorrules",
+      scope: "project",
+      role: "instructions",
+      managed: false,
+      description: "Cline reads Cursor\u2019s legacy rules file as well as its own. Generated by the cursor adapter when options.legacy is set, not by this one. The vendor documents no rank among the workspace formats.",
+      source: RULES_DOCS
+    },
+    {
+      pattern: ".windsurfrules",
+      scope: "project",
+      role: "instructions",
+      managed: false,
+      description: "Cline reads Windsurf\u2019s legacy rules file as well as its own. Driftgate never writes it. The vendor documents no rank among the workspace formats.",
+      source: RULES_DOCS
+    },
+    {
+      pattern: "AGENTS.md",
+      scope: "project",
+      role: "instructions",
+      managed: false,
+      description: "Cline reads AGENTS.md as well as its own directory. Generated by the codex adapter, so enabling cline and codex together sends Cline the same rules twice. The vendor documents no rank among the workspace formats.",
+      source: RULES_DOCS
+    },
+    {
+      pattern: "~/Documents/Cline/Rules",
+      scope: "global",
+      role: "instructions",
+      managed: false,
+      description: "User-level rules, combined with workspace rules. Workspace rules take precedence when the two conflict \u2014 the one ranking the vendor does document. Outside the repository, so Driftgate reports it and never writes it.",
+      source: RULES_DOCS
+    }
+  ],
+  // No cap is published. Said explicitly, because "no limit" and "nobody checked" must not
+  // look the same in `doctor`'s output.
+  limits: { note: "Cline publishes no size cap for rule files." },
+  notes: [
+    {
+      level: "warn",
+      message: "Cline reads .cursorrules, .windsurfrules and AGENTS.md in addition to .clinerules/. These are additive, not an override chain, so enabling cline alongside codex, cursor or windsurf sends Cline the same canonical rules more than once. `driftgate doctor` counts the cost per repository (W_DUPLICATE_LOAD); this note records why it happens.",
+      source: RULES_DOCS
+    },
+    {
+      level: "info",
+      message: "The vendor documents no precedence among the four workspace formats \u2014 only that workspace rules beat global ones. The order in this file leads with Cline\u2019s own directory and asserts nothing further.",
+      source: RULES_DOCS
+    },
+    {
+      level: "info",
+      message: "Cline has no project-level MCP configuration file: MCP servers live in user-level storage, outside any repository. This adapter therefore generates no MCP artifact.",
+      source: RULES_DOCS
+    }
+  ]
+};
+
+// ../packages/adapters/cline/dist/index.js
+var RULES_DIR2 = ".clinerules";
+var READ_EXTENSIONS = ["md", "txt"];
+var DETECTION_PATHS3 = [RULES_DIR2];
+async function detect3(ctx) {
+  const evidence = [];
+  for (const path4 of DETECTION_PATHS3) {
+    if (await ctx.fs.exists(path4))
+      evidence.push(path4);
+  }
+  return detected(evidence);
+}
+async function read3(ctx) {
+  const rules = [];
+  const taken = /* @__PURE__ */ new Set();
+  for (const extension of READ_EXTENSIONS) {
+    for (const path4 of await ctx.fs.glob(`${RULES_DIR2}/*.${extension}`)) {
+      if (isCanonicalSource(ctx.canonical.manifest, path4))
+        continue;
+      const contents = await ctx.fs.tryReadFile(path4);
+      if (contents === void 0)
+        continue;
+      const base = basenamePosix(path4).replace(/\.(md|txt)$/i, "");
+      const parsed = importConcatenated({
+        file: path4,
+        contents,
+        headingLevel: 2,
+        idFallback: importRuleId(base, "cline")
+      });
+      for (const rule of parsed) {
+        rules.push({ ...rule, id: claimRuleId(importRuleId(base, "cline"), taken) });
+      }
+    }
+  }
+  return rules.length === 0 ? {} : { rules };
+}
+function write3(ctx) {
+  const { canonical } = ctx;
+  const marker = canonical.manifest.options.marker;
+  const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, "cline")));
+  const artifacts = [];
+  const claimed = /* @__PURE__ */ new Map();
+  for (const rule of rules) {
+    const path4 = `${RULES_DIR2}/${slugForId(rule.id)}.md`;
+    const previous = claimed.get(path4);
+    if (previous !== void 0) {
+      throw new DriftgateError({
+        code: "E_ARTIFACT_PATH_CONFLICT",
+        message: `rules \`${previous}\` and \`${rule.id}\` both render to ${path4}`,
+        source: rule.source,
+        hint: "rename one of them; cline rule filenames are flattened rule ids"
+      });
+    }
+    claimed.set(path4, rule.id);
+    artifacts.push(finalizeArtifact({
+      path: path4,
+      contents: withHtmlMarker(renderRuleSection(rule, { headingLevel: 2, showGlobs: true }), marker),
+      adapter: "cline",
+      kind: "rules",
+      provenance: { ruleIds: [rule.id] }
+    }));
+  }
+  return Promise.resolve(artifacts);
+}
+var cline = {
+  name: "cline",
+  apiVersion: ADAPTER_API_VERSION,
+  detect: detect3,
+  read: read3,
+  write: write3,
+  docs: docs3
 };
 
 // ../packages/adapters/codex/dist/toml.js
@@ -12740,16 +13334,248 @@ function tomlTable(header, entries) {
   return lines.join("\n");
 }
 
+// ../packages/adapters/codex/dist/toml-read.js
+function splitPath(raw) {
+  const parts = [];
+  let i = 0;
+  while (i < raw.length) {
+    while (i < raw.length && /\s/.test(raw[i]))
+      i += 1;
+    if (i >= raw.length)
+      break;
+    const ch = raw[i];
+    if (ch === '"' || ch === "'") {
+      const parsed = readString(raw, i);
+      if (parsed === void 0)
+        return void 0;
+      parts.push(parsed.value);
+      i = parsed.next;
+    } else {
+      let j = i;
+      while (j < raw.length && /[A-Za-z0-9_-]/.test(raw[j]))
+        j += 1;
+      if (j === i)
+        return void 0;
+      parts.push(raw.slice(i, j));
+      i = j;
+    }
+    while (i < raw.length && /\s/.test(raw[i]))
+      i += 1;
+    if (i < raw.length) {
+      if (raw[i] !== ".")
+        return void 0;
+      i += 1;
+    }
+  }
+  return parts.length === 0 ? void 0 : parts;
+}
+function readString(text, start) {
+  const quote2 = text[start];
+  if (quote2 === "'") {
+    const end = text.indexOf("'", start + 1);
+    return end === -1 ? void 0 : { value: text.slice(start + 1, end), next: end + 1 };
+  }
+  let out = "";
+  let i = start + 1;
+  while (i < text.length) {
+    const ch = text[i];
+    if (ch === '"')
+      return { value: out, next: i + 1 };
+    if (ch === "\\") {
+      const esc = text[i + 1];
+      if (esc === void 0)
+        return void 0;
+      const simple = {
+        n: "\n",
+        r: "\r",
+        t: "	",
+        b: "\b",
+        f: "\f",
+        '"': '"',
+        "\\": "\\"
+      };
+      if (esc in simple) {
+        out += simple[esc];
+        i += 2;
+        continue;
+      }
+      if (esc === "u" || esc === "U") {
+        const width = esc === "u" ? 4 : 8;
+        const hex = text.slice(i + 2, i + 2 + width);
+        if (!/^[0-9a-fA-F]+$/.test(hex) || hex.length !== width)
+          return void 0;
+        out += String.fromCodePoint(Number.parseInt(hex, 16));
+        i += 2 + width;
+        continue;
+      }
+      return void 0;
+    }
+    out += ch;
+    i += 1;
+  }
+  return void 0;
+}
+var UNREADABLE = Symbol("unreadable");
+function readValue(raw) {
+  const text = raw.trim();
+  if (text === "")
+    return UNREADABLE;
+  if (text.startsWith('"') || text.startsWith("'")) {
+    if (text.startsWith('"""') || text.startsWith("'''"))
+      return UNREADABLE;
+    const parsed = readString(text, 0);
+    if (parsed === void 0 || text.slice(parsed.next).trim() !== "")
+      return UNREADABLE;
+    return parsed.value;
+  }
+  if (text === "true")
+    return true;
+  if (text === "false")
+    return false;
+  if (text.startsWith("[")) {
+    if (!text.endsWith("]"))
+      return UNREADABLE;
+    const inner = text.slice(1, -1).trim();
+    if (inner === "")
+      return [];
+    const items = [];
+    let depth = 0;
+    let current = "";
+    let inString;
+    for (let i = 0; i < inner.length; i += 1) {
+      const ch = inner[i];
+      if (inString !== void 0) {
+        current += ch;
+        if (ch === "\\" && inString === '"') {
+          current += inner[i + 1] ?? "";
+          i += 1;
+        } else if (ch === inString)
+          inString = void 0;
+        continue;
+      }
+      if (ch === '"' || ch === "'") {
+        inString = ch;
+        current += ch;
+        continue;
+      }
+      if (ch === "[" || ch === "{")
+        depth += 1;
+      if (ch === "]" || ch === "}")
+        depth -= 1;
+      if (ch === "," && depth === 0) {
+        items.push(readValue(current));
+        current = "";
+        continue;
+      }
+      current += ch;
+    }
+    if (current.trim() !== "")
+      items.push(readValue(current));
+    return items.some((v) => v === UNREADABLE) ? UNREADABLE : items;
+  }
+  if (text.startsWith("{"))
+    return UNREADABLE;
+  if (/^[+-]?(0|[1-9][0-9_]*)$/.test(text)) {
+    const n = Number(text.replace(/_/g, ""));
+    return Number.isSafeInteger(n) ? n : UNREADABLE;
+  }
+  if (/^[+-]?(0|[1-9][0-9_]*)\.[0-9_]+([eE][+-]?[0-9]+)?$/.test(text)) {
+    const n = Number(text.replace(/_/g, ""));
+    return Number.isFinite(n) ? n : UNREADABLE;
+  }
+  return UNREADABLE;
+}
+function stripComment(line) {
+  let inString;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (inString !== void 0) {
+      if (ch === "\\" && inString === '"') {
+        i += 1;
+        continue;
+      }
+      if (ch === inString)
+        inString = void 0;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      inString = ch;
+      continue;
+    }
+    if (ch === "#")
+      return line.slice(0, i);
+  }
+  return line;
+}
+function parseToml(contents) {
+  const tables = [];
+  let current = { path: [], entries: {}, unreadable: [] };
+  tables.push(current);
+  for (const rawLine of contents.split("\n")) {
+    const line = stripComment(rawLine).trim();
+    if (line === "")
+      continue;
+    if (line.startsWith("[[")) {
+      current = { path: ["\0unsupported"], entries: {}, unreadable: [] };
+      tables.push(current);
+      continue;
+    }
+    if (line.startsWith("[")) {
+      const end = line.lastIndexOf("]");
+      const path4 = end === -1 ? void 0 : splitPath(line.slice(1, end));
+      current = {
+        path: path4 ?? ["\0unsupported"],
+        entries: {},
+        unreadable: []
+      };
+      tables.push(current);
+      continue;
+    }
+    const eq = indexOfAssignment(line);
+    if (eq === -1)
+      continue;
+    const key = splitPath(line.slice(0, eq));
+    if (key === void 0 || key.length !== 1) {
+      current.unreadable.push(line.slice(0, eq).trim());
+      continue;
+    }
+    const value = readValue(line.slice(eq + 1));
+    if (value === UNREADABLE) {
+      current.unreadable.push(key[0]);
+      continue;
+    }
+    current.entries[key[0]] = value;
+  }
+  return tables.filter((t) => t.path[0] !== "\0unsupported");
+}
+function indexOfAssignment(line) {
+  let inString;
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (inString !== void 0) {
+      if (ch === "\\" && inString === '"') {
+        i += 1;
+        continue;
+      }
+      if (ch === inString)
+        inString = void 0;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      inString = ch;
+      continue;
+    }
+    if (ch === "=")
+      return i;
+  }
+  return -1;
+}
+
 // ../packages/adapters/codex/dist/mcp.js
 var MCP_FILE2 = ".codex/config.toml";
 var TABLE = "mcp_servers";
-function unrepresentable2(server, what, hint) {
-  return new DriftgateError({
-    code: "E_MCP_UNREPRESENTABLE",
-    message: `server \`${server.id}\` cannot be written to Codex's config.toml: ${what}`,
-    source: server.source,
-    hint
-  });
+function isSkipped(value) {
+  return value.kind === "skipped";
 }
 function serverTable(server) {
   const body = { ...server.unknown };
@@ -12762,7 +13588,12 @@ function serverTable(server) {
     for (const key of Object.keys(server.env)) {
       const ref = server.env[key];
       if (ref.name !== key) {
-        throw unrepresentable2(server, `\`env.${key}\` reads a differently-named variable, and Codex has no variable substitution`, `rename the variable to ${key}, or exclude codex from this server with a \`tools:\` selector`);
+        return {
+          kind: "skipped",
+          id: server.id,
+          why: `env.${key} reads a differently-named variable, and Codex has no variable substitution`,
+          hint: `rename the variable to ${key}, or exclude codex from this server with a \`tools:\` selector`
+        };
       }
       forwarded.push(key);
     }
@@ -12772,7 +13603,12 @@ function serverTable(server) {
     body["url"] = transport.url;
     for (const key of Object.keys(server.headers)) {
       if (key.toLowerCase() !== "authorization") {
-        throw unrepresentable2(server, `header \`${key}\` cannot hold an environment reference; Codex resolves only \`Authorization\`, as \`bearer_token_env_var\``, "move the credential to the Authorization header, or exclude codex from this server with a `tools:` selector");
+        return {
+          kind: "skipped",
+          id: server.id,
+          why: `header ${key} cannot hold an environment reference; Codex resolves only Authorization, as bearer_token_env_var`,
+          hint: "move the credential to the Authorization header, or exclude codex from this server with a `tools:` selector"
+        };
       }
       body["bearer_token_env_var"] = server.headers[key].name;
     }
@@ -12783,8 +13619,90 @@ function renderConfigToml(servers, marker) {
   const selected = selectMcpServers(servers, "codex");
   if (selected.length === 0)
     return "";
-  const tables = selected.map((server) => tomlTable([TABLE, server.id], serverTable(server)));
-  return withHashMarker(tables.join("\n\n"), marker);
+  const tables = [];
+  const skipped = [];
+  for (const server of selected) {
+    const body2 = serverTable(server);
+    if (isSkipped(body2)) {
+      skipped.push(body2);
+      continue;
+    }
+    tables.push(tomlTable([TABLE, server.id], body2));
+  }
+  if (tables.length === 0)
+    return "";
+  const notes = skipped.map((s) => `# omitted: \`${s.id}\` \u2014 ${s.why}.
+#   ${s.hint}`);
+  const body = [...notes, ...tables].join("\n\n");
+  return withHashMarker(body, marker);
+}
+var INTERPRETED2 = /* @__PURE__ */ new Set(["command", "args", "url", "env_vars", "bearer_token_env_var"]);
+function importConfigToml(contents, file = MCP_FILE2) {
+  const tables = parseToml(contents);
+  const servers = [];
+  const warnings = [];
+  const foreign = /* @__PURE__ */ new Set();
+  for (const table of tables) {
+    if (table.path.length === 0) {
+      if (Object.keys(table.entries).length > 0)
+        foreign.add("(top level)");
+      continue;
+    }
+    if (table.path[0] !== TABLE) {
+      foreign.add(table.path.join("."));
+      continue;
+    }
+    if (table.path.length !== 2)
+      continue;
+    const id = table.path[1];
+    for (const key of table.unreadable) {
+      warnings.push(`${file}: server \`${id}\` has a \`${key}\` this reader cannot represent; the key is dropped`);
+    }
+    const entries = table.entries;
+    const command = entries["command"];
+    const url = entries["url"];
+    let transport;
+    if (typeof command === "string" && typeof url === "string") {
+      warnings.push(`${file}: server \`${id}\` declares both \`command\` and \`url\`; skipped`);
+      continue;
+    } else if (typeof command === "string") {
+      const rawArgs = entries["args"] ?? [];
+      if (!Array.isArray(rawArgs) || !rawArgs.every((a) => typeof a === "string")) {
+        warnings.push(`${file}: server \`${id}\` has a non-string \`args\` entry; skipped`);
+        continue;
+      }
+      transport = { kind: "stdio", command, args: rawArgs };
+    } else if (typeof url === "string") {
+      transport = { kind: "http", url };
+    } else {
+      warnings.push(`${file}: server \`${id}\` has neither \`command\` nor \`url\`; skipped`);
+      continue;
+    }
+    const env = {};
+    const rawVars = entries["env_vars"];
+    if (rawVars !== void 0) {
+      if (!Array.isArray(rawVars) || !rawVars.every((v) => typeof v === "string")) {
+        warnings.push(`${file}: server \`${id}\` has a non-string \`env_vars\` entry; skipped`);
+        continue;
+      }
+      for (const name of rawVars)
+        env[name] = envRef(name);
+    }
+    const headers = {};
+    const bearer = entries["bearer_token_env_var"];
+    if (typeof bearer === "string")
+      headers["Authorization"] = envRef(bearer);
+    const unknown = {};
+    for (const key of Object.keys(entries).sort()) {
+      if (!INTERPRETED2.has(key))
+        unknown[key] = entries[key];
+    }
+    servers.push(importedServer({ id, transport, env, headers, unknown, source: { file } }));
+  }
+  if (foreign.size > 0) {
+    warnings.push(`${file}: ${String(foreign.size)} non-MCP table(s) (${[...foreign].sort().join(", ")}) are not imported. Driftgate owns this whole file once it writes it, so those settings will not survive the first \`sync\` \u2014 copy them somewhere safe first.`);
+  }
+  return { servers, warnings };
 }
 
 // ../packages/adapters/codex/dist/docs.js
@@ -12808,7 +13726,7 @@ var AGENTS_MD_SPEC = {
   title: "AGENTS.md \u2014 a simple, open format for guiding coding agents",
   retrieved: "2026-09-02"
 };
-var docs2 = {
+var docs4 = {
   toolName: "Codex CLI",
   homepage: "https://developers.openai.com/codex",
   verifiedAgainst: { version: "CLI docs as published 2026-09-02", date: "2026-09-02" },
@@ -12865,6 +13783,11 @@ var docs2 = {
   notes: [
     {
       level: "warn",
+      message: "A server Codex cannot express is omitted from .codex/config.toml and named in it as a `# omitted:` comment, rather than failing the run (T083). Codex resolves environment references only through env_vars (which needs the variable and the key to share a name) and bearer_token_env_var (Authorization only), so a renamed reference or a credential in another header has nowhere to go. Check the top of the generated file if a server you configured is missing.",
+      source: CODEX_MCP_DOCS
+    },
+    {
+      level: "warn",
       message: "Driftgate owns the whole of `.codex/config.toml`, not just its `[mcp_servers.*]` tables \u2014 it is where every Codex setting lives, and there is no way to write part of a file. A pre-existing one is somebody else\u2019s and is refused until `--force` backs it up; a setting added by hand afterwards is reported as a hand-edit that `sync --import` can recover.",
       source: CODEX_CONFIG_REFERENCE
     },
@@ -12897,16 +13820,20 @@ var docs2 = {
 
 // ../packages/adapters/codex/dist/index.js
 var AGENTS_MD2 = "AGENTS.md";
-var DETECTION_PATHS2 = [AGENTS_MD2, ".codex"];
-async function detect2(ctx) {
+var DETECTION_PATHS4 = [AGENTS_MD2, ".codex"];
+async function detect4(ctx) {
   const evidence = [];
-  for (const path4 of DETECTION_PATHS2) {
+  for (const path4 of DETECTION_PATHS4) {
     if (await ctx.fs.exists(path4))
       evidence.push(path4);
   }
   return detected(evidence);
 }
-async function read2(ctx) {
+async function read4(ctx) {
+  const rules = await readRules(ctx);
+  return { ...rules, ...await readMcp2(ctx) };
+}
+async function readRules(ctx) {
   if (isCanonicalSource(ctx.canonical.manifest, AGENTS_MD2))
     return {};
   const contents = await ctx.fs.tryReadFile(AGENTS_MD2);
@@ -12921,7 +13848,19 @@ async function read2(ctx) {
     })
   };
 }
-async function write2(ctx) {
+async function readMcp2(ctx) {
+  if (isCanonicalSource(ctx.canonical.manifest, MCP_FILE2))
+    return {};
+  const contents = await ctx.fs.tryReadFile(MCP_FILE2);
+  if (contents === void 0)
+    return {};
+  const { servers, warnings } = importConfigToml(contents);
+  return {
+    ...servers.length === 0 ? {} : { mcpServers: servers },
+    ...warnings.length === 0 ? {} : { warnings }
+  };
+}
+async function write4(ctx) {
   const { canonical } = ctx;
   const marker = canonical.manifest.options.marker;
   const artifacts = [];
@@ -12946,10 +13885,10 @@ async function write2(ctx) {
 var codex = {
   name: "codex",
   apiVersion: ADAPTER_API_VERSION,
-  detect: detect2,
-  read: read2,
-  write: write2,
-  docs: docs2
+  detect: detect4,
+  read: read4,
+  write: write4,
+  docs: docs4
 };
 
 // ../packages/adapters/copilot/dist/instructions.js
@@ -13073,6 +14012,13 @@ function renderMcpJson2(servers, marker) {
     servers_[server.id] = serverJson2(server);
   return stableJsonStringify(withJsonMarker({ [SERVERS_KEY]: servers_ }, marker));
 }
+function parseReference2(raw) {
+  const m = /^\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}$/.exec(raw);
+  return m === null ? void 0 : { kind: "ref", ref: envRef(m[1]) };
+}
+function importMcpConfig2(contents, file = MCP_FILE3) {
+  return importMcpJson(contents, { serversKey: SERVERS_KEY, parseReference: parseReference2, file });
+}
 
 // ../packages/adapters/copilot/dist/docs.js
 var GITHUB_REPO_INSTRUCTIONS = {
@@ -13095,7 +14041,7 @@ var VSCODE_CUSTOM_INSTRUCTIONS = {
   title: "Visual Studio Code \u2014 Use custom instructions in VS Code",
   retrieved: "2026-09-02"
 };
-var docs3 = {
+var docs5 = {
   toolName: "GitHub Copilot",
   homepage: "https://docs.github.com/en/copilot",
   verifiedAgainst: {
@@ -13195,16 +14141,16 @@ var docs3 = {
 // ../packages/adapters/copilot/dist/index.js
 var REPO_INSTRUCTIONS = ".github/copilot-instructions.md";
 var INSTRUCTIONS_DIR = ".github/instructions";
-var DETECTION_PATHS3 = [REPO_INSTRUCTIONS, INSTRUCTIONS_DIR];
-async function detect3(ctx) {
+var DETECTION_PATHS5 = [REPO_INSTRUCTIONS, INSTRUCTIONS_DIR, MCP_FILE3];
+async function detect5(ctx) {
   const evidence = [];
-  for (const path4 of DETECTION_PATHS3) {
+  for (const path4 of DETECTION_PATHS5) {
     if (await ctx.fs.exists(path4))
       evidence.push(path4);
   }
   return detected(evidence);
 }
-async function read3(ctx) {
+async function read5(ctx) {
   const rules = [];
   const taken = /* @__PURE__ */ new Set();
   if (!isCanonicalSource(ctx.canonical.manifest, REPO_INSTRUCTIONS)) {
@@ -13240,7 +14186,22 @@ async function read3(ctx) {
       source: { file: path4, line: 1 }
     }));
   }
-  return rules.length === 0 ? {} : { rules };
+  return {
+    ...rules.length === 0 ? {} : { rules },
+    ...await readMcp3(ctx)
+  };
+}
+async function readMcp3(ctx) {
+  if (isCanonicalSource(ctx.canonical.manifest, MCP_FILE3))
+    return {};
+  const contents = await ctx.fs.tryReadFile(MCP_FILE3);
+  if (contents === void 0)
+    return {};
+  const { servers, warnings } = importMcpConfig2(contents);
+  return {
+    ...servers.length === 0 ? {} : { mcpServers: servers },
+    ...warnings.length === 0 ? {} : { warnings }
+  };
 }
 function instructionsPath(rule) {
   return `${INSTRUCTIONS_DIR}/${slugForId(rule.id)}.instructions.md`;
@@ -13255,7 +14216,7 @@ function renderInstructions(rule, marker) {
 ${body}` : `${head}
 ${body}`;
 }
-async function write3(ctx) {
+async function write5(ctx) {
   const { canonical } = ctx;
   const marker = canonical.manifest.options.marker;
   const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, "copilot")));
@@ -13304,10 +14265,10 @@ async function write3(ctx) {
 var copilot = {
   name: "copilot",
   apiVersion: ADAPTER_API_VERSION,
-  detect: detect3,
-  read: read3,
-  write: write3,
-  docs: docs3
+  detect: detect5,
+  read: read5,
+  write: write5,
+  docs: docs5
 };
 
 // ../packages/adapters/cursor/dist/mdc.js
@@ -13430,6 +14391,13 @@ function renderMcpJson3(servers, marker) {
     mcpServers[server.id] = serverJson3(server);
   return stableJsonStringify(withJsonMarker({ mcpServers }, marker));
 }
+function parseReference3(raw) {
+  const m = /^\$\{env:([A-Za-z_][A-Za-z0-9_]*)\}$/.exec(raw);
+  return m === null ? void 0 : { kind: "ref", ref: envRef(m[1]) };
+}
+function importMcpConfig3(contents, file = MCP_FILE4) {
+  return importMcpJson(contents, { serversKey: "mcpServers", parseReference: parseReference3, file });
+}
 
 // ../packages/adapters/cursor/dist/docs.js
 var MCP_DOCS2 = {
@@ -13437,12 +14405,12 @@ var MCP_DOCS2 = {
   title: "Cursor \u2014 Model Context Protocol",
   retrieved: "2026-09-04"
 };
-var RULES_DOCS = {
+var RULES_DOCS2 = {
   url: "https://docs.cursor.com/context/rules",
   title: "Cursor \u2014 Rules",
   retrieved: "2026-09-01"
 };
-var docs4 = {
+var docs6 = {
   toolName: "Cursor",
   homepage: "https://docs.cursor.com",
   verifiedAgainst: { version: "1.x", date: "2026-09-01" },
@@ -13456,7 +14424,7 @@ var docs4 = {
       managed: true,
       nesting: "nearest-wins",
       description: "Project rules. One file per rule, each with .mdc frontmatter carrying description, globs, and alwaysApply. Cursor also reads .cursor/rules directories nested in subdirectories.",
-      source: RULES_DOCS
+      source: RULES_DOCS2
     },
     {
       pattern: ".cursorrules",
@@ -13464,7 +14432,7 @@ var docs4 = {
       role: "instructions",
       managed: true,
       description: "Legacy single-file rules, superseded by .cursor/rules. Driftgate writes it only when `options.legacy` is true.",
-      source: RULES_DOCS
+      source: RULES_DOCS2
     },
     {
       pattern: "~/.cursor/rules",
@@ -13472,7 +14440,7 @@ var docs4 = {
       role: "instructions",
       managed: false,
       description: "User-level rules applied across projects. Read-only context for `doctor`; Driftgate never writes outside the repository.",
-      source: RULES_DOCS
+      source: RULES_DOCS2
     },
     {
       pattern: ".cursor/mcp.json",
@@ -13508,7 +14476,7 @@ var docs4 = {
     {
       level: "warn",
       message: "Cursor\u2019s .mdc frontmatter is not strict YAML: `globs` is a bare comma-joined string, an empty `globs` is written as a bare key, and `alwaysApply` is derived rather than authored. Rendering it through a YAML emitter produces plausible-looking output that Cursor interprets differently.",
-      source: RULES_DOCS
+      source: RULES_DOCS2
     },
     {
       level: "info",
@@ -13522,21 +14490,21 @@ var docs4 = {
 };
 
 // ../packages/adapters/cursor/dist/index.js
-var RULES_DIR2 = ".cursor/rules";
+var RULES_DIR3 = ".cursor/rules";
 var LEGACY_FILE = ".cursorrules";
-var DETECTION_PATHS4 = [".cursor", LEGACY_FILE];
-async function detect4(ctx) {
+var DETECTION_PATHS6 = [".cursor", LEGACY_FILE];
+async function detect6(ctx) {
   const evidence = [];
-  for (const path4 of DETECTION_PATHS4) {
+  for (const path4 of DETECTION_PATHS6) {
     if (await ctx.fs.exists(path4))
       evidence.push(path4);
   }
   return detected(evidence);
 }
-async function read4(ctx) {
+async function read6(ctx) {
   const rules = [];
   const taken = /* @__PURE__ */ new Set();
-  for (const path4 of await ctx.fs.glob(`${RULES_DIR2}/**/*.mdc`)) {
+  for (const path4 of await ctx.fs.glob(`${RULES_DIR3}/**/*.mdc`)) {
     if (isCanonicalSource(ctx.canonical.manifest, path4))
       continue;
     const contents = await ctx.fs.tryReadFile(path4);
@@ -13568,10 +14536,25 @@ async function read4(ctx) {
       }
     }
   }
-  return rules.length === 0 ? {} : { rules };
+  return {
+    ...rules.length === 0 ? {} : { rules },
+    ...await readMcp4(ctx)
+  };
+}
+async function readMcp4(ctx) {
+  if (isCanonicalSource(ctx.canonical.manifest, MCP_FILE4))
+    return {};
+  const contents = await ctx.fs.tryReadFile(MCP_FILE4);
+  if (contents === void 0)
+    return {};
+  const { servers, warnings } = importMcpConfig3(contents);
+  return {
+    ...servers.length === 0 ? {} : { mcpServers: servers },
+    ...warnings.length === 0 ? {} : { warnings }
+  };
 }
 function mdcPath(rule) {
-  return `${RULES_DIR2}/${slugForId(rule.id)}.mdc`;
+  return `${RULES_DIR3}/${slugForId(rule.id)}.mdc`;
 }
 function renderMdc(rule, marker) {
   assertRenderable2(rule);
@@ -13583,7 +14566,7 @@ function renderMdc(rule, marker) {
 ${body}` : `${head}
 ${body}`;
 }
-async function write4(ctx) {
+async function write6(ctx) {
   const { canonical } = ctx;
   const marker = canonical.manifest.options.marker;
   const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, "cursor")));
@@ -13634,10 +14617,10 @@ async function write4(ctx) {
 var cursor = {
   name: "cursor",
   apiVersion: ADAPTER_API_VERSION,
-  detect: detect4,
-  read: read4,
-  write: write4,
-  docs: docs4
+  detect: detect6,
+  read: read6,
+  write: write6,
+  docs: docs6
 };
 
 // ../packages/adapters/gemini/dist/docs.js
@@ -13646,7 +14629,7 @@ var GEMINI_CONTEXT_DOCS = {
   title: "Gemini CLI \u2014 Provide context with GEMINI.md files",
   retrieved: "2026-09-02"
 };
-var docs5 = {
+var docs7 = {
   toolName: "Gemini CLI",
   homepage: "https://google-gemini.github.io/gemini-cli/",
   verifiedAgainst: { version: "CLI docs as published 2026-09-02", date: "2026-09-02" },
@@ -13711,16 +14694,16 @@ var docs5 = {
 
 // ../packages/adapters/gemini/dist/index.js
 var GEMINI_MD = "GEMINI.md";
-var DETECTION_PATHS5 = [GEMINI_MD, ".gemini"];
-async function detect5(ctx) {
+var DETECTION_PATHS7 = [GEMINI_MD, ".gemini"];
+async function detect7(ctx) {
   const evidence = [];
-  for (const path4 of DETECTION_PATHS5) {
+  for (const path4 of DETECTION_PATHS7) {
     if (await ctx.fs.exists(path4))
       evidence.push(path4);
   }
   return detected(evidence);
 }
-async function read5(ctx) {
+async function read7(ctx) {
   if (isCanonicalSource(ctx.canonical.manifest, GEMINI_MD))
     return {};
   const contents = await ctx.fs.tryReadFile(GEMINI_MD);
@@ -13735,7 +14718,7 @@ async function read5(ctx) {
     })
   };
 }
-async function write5(ctx) {
+async function write7(ctx) {
   const { canonical } = ctx;
   if (isCanonicalSource(canonical.manifest, GEMINI_MD))
     return [];
@@ -13756,14 +14739,600 @@ async function write5(ctx) {
 var gemini = {
   name: "gemini",
   apiVersion: ADAPTER_API_VERSION,
-  detect: detect5,
-  read: read5,
-  write: write5,
-  docs: docs5
+  detect: detect7,
+  read: read7,
+  write: write7,
+  docs: docs7
+};
+
+// ../packages/adapters/roo-code/dist/mcp.js
+var MCP_FILE5 = ".roo/mcp.json";
+function transportType(kind) {
+  return kind === "http" ? "streamable-http" : "sse";
+}
+function reference4(value) {
+  return `env:${value.name}`;
+}
+function secretMap4(map) {
+  const out = {};
+  for (const key of Object.keys(map))
+    out[key] = reference4(map[key]);
+  return out;
+}
+function serverJson4(server) {
+  const body = { ...server.unknown };
+  const { transport } = server;
+  if (transport.kind === "stdio") {
+    body["type"] = "stdio";
+    body["command"] = transport.command;
+    if (transport.args.length > 0)
+      body["args"] = [...transport.args];
+    if (Object.keys(server.env).length > 0)
+      body["env"] = secretMap4(server.env);
+  } else {
+    body["type"] = transportType(transport.kind);
+    body["url"] = transport.url;
+    if (Object.keys(server.headers).length > 0)
+      body["headers"] = secretMap4(server.headers);
+  }
+  return body;
+}
+function renderMcpJson4(servers, marker) {
+  const selected = selectMcpServers(servers, "roo-code");
+  if (selected.length === 0)
+    return "";
+  const mcpServers = {};
+  for (const server of selected)
+    mcpServers[server.id] = serverJson4(server);
+  return stableJsonStringify(withJsonMarker({ mcpServers }, marker));
+}
+function parseReference4(raw) {
+  const m = /^env:([A-Za-z_][A-Za-z0-9_]*)$/.exec(raw);
+  return m === null ? void 0 : { kind: "ref", ref: envRef(m[1]) };
+}
+function importMcpConfig4(contents, file = MCP_FILE5) {
+  return importMcpJson(contents, { serversKey: "mcpServers", parseReference: parseReference4, file });
+}
+
+// ../packages/adapters/roo-code/dist/docs.js
+var RULES_DOCS3 = {
+  url: "https://roocodeinc.github.io/Roo-Code/features/custom-instructions",
+  title: "Roo Code \u2014 Custom Instructions",
+  retrieved: "2026-09-04"
+};
+var MCP_DOCS3 = {
+  url: "https://roocodeinc.github.io/Roo-Code/features/mcp/using-mcp-in-roo",
+  title: "Roo Code \u2014 Using MCP in Roo",
+  retrieved: "2026-09-04"
+};
+var docs8 = {
+  toolName: "Roo Code",
+  homepage: "https://roocode.com",
+  verifiedAgainst: { version: "Roo Code docs as published 2026-09-04", date: "2026-09-04" },
+  resolution: "additive",
+  files: [
+    {
+      pattern: ".roo/rules/*.md",
+      scope: "project",
+      role: "instructions",
+      managed: true,
+      nesting: "all-merged",
+      description: "Workspace rules. Read recursively, including subdirectories, and concatenated sorted by basename only, case-insensitive. Driftgate prefixes each generated filename with a zero-padded index so that sort reproduces the canonical order.",
+      source: RULES_DOCS3
+    },
+    {
+      pattern: ".roo/rules-*/",
+      scope: "project",
+      role: "instructions",
+      managed: false,
+      description: "Mode-specific workspace rules, inserted before the generic ones. Driftgate has no canonical model for modes, so it never writes these; a repository that uses them keeps them untouched.",
+      source: RULES_DOCS3
+    },
+    {
+      pattern: ".roorules",
+      scope: "project",
+      role: "instructions",
+      managed: false,
+      description: "Legacy single-file fallback, read only when .roo/rules/ is absent or empty. Driftgate imports it and never writes it.",
+      source: RULES_DOCS3
+    },
+    {
+      pattern: ".clinerules",
+      scope: "project",
+      role: "instructions",
+      managed: false,
+      description: "Read for Cline compatibility, and only when the Roo directories are absent or empty. Managed by the cline adapter, not this one.",
+      source: RULES_DOCS3
+    },
+    {
+      pattern: "AGENTS.md",
+      scope: "project",
+      role: "instructions",
+      managed: false,
+      description: "Read from the workspace root by default, disabled by the roo-cline.useAgentRules setting. Generated by the codex adapter, so enabling roo-code and codex together sends Roo the same rules twice \u2014 `driftgate doctor` reports the duplicate and its token cost.",
+      source: RULES_DOCS3
+    },
+    {
+      pattern: ".roo/mcp.json",
+      scope: "project",
+      role: "mcp",
+      managed: true,
+      description: 'Project MCP servers. Takes precedence over the global configuration when a server name appears in both. Roo spells streamable HTTP "streamable-http" rather than "http".',
+      source: MCP_DOCS3
+    },
+    {
+      pattern: "~/.roo/rules/",
+      scope: "global",
+      role: "instructions",
+      managed: false,
+      description: "User-level rules, aggregated with the workspace ones rather than replaced by them. Outside the repository, so Driftgate reports it and never writes it.",
+      source: RULES_DOCS3
+    }
+  ],
+  limits: { note: "Roo Code publishes no size cap for rule files." },
+  notes: [
+    {
+      level: "warn",
+      message: "Roo Code sorts rule files by basename only, case-insensitively, and that ordering knows nothing about Driftgate\u2019s `order` field. Generated filenames therefore carry a zero-padded index; renaming or reordering rules renames files, which is the cost of making Roo\u2019s sort agree with the canonical one.",
+      source: RULES_DOCS3
+    },
+    {
+      level: "warn",
+      message: "Roo documents no variable substitution in .roo/mcp.json, so a canonical env: reference is written through as the literal text `env:NAME`. That is inert rather than wrong \u2014 Driftgate will not write a literal credential into a git-committed file under any flag \u2014 but the server will not authenticate until the value is supplied another way.",
+      source: MCP_DOCS3
+    },
+    {
+      level: "info",
+      message: "Roo reads every file in .roo/rules/ regardless of extension. Driftgate imports .md and .txt only; a rule kept under another extension is not lost from disk, but it will not be imported into .driftgate/.",
+      source: RULES_DOCS3
+    }
+  ]
+};
+
+// ../packages/adapters/roo-code/dist/index.js
+var RULES_DIR4 = ".roo/rules";
+var LEGACY_FILE2 = ".roorules";
+var DETECTION_PATHS8 = [".roo", LEGACY_FILE2];
+async function detect8(ctx) {
+  const evidence = [];
+  for (const path4 of DETECTION_PATHS8) {
+    if (await ctx.fs.exists(path4))
+      evidence.push(path4);
+  }
+  return detected(evidence);
+}
+function ruleFilename(rule, position) {
+  const index = String(position + 1).padStart(3, "0");
+  return `${RULES_DIR4}/${index}-${slugForId(rule.id)}.md`;
+}
+async function read8(ctx) {
+  const rules = [];
+  const taken = /* @__PURE__ */ new Set();
+  for (const extension of ["md", "txt"]) {
+    for (const path4 of await ctx.fs.glob(`${RULES_DIR4}/**/*.${extension}`)) {
+      if (isCanonicalSource(ctx.canonical.manifest, path4))
+        continue;
+      const contents = await ctx.fs.tryReadFile(path4);
+      if (contents === void 0)
+        continue;
+      const base = basenamePosix(path4).replace(/\.(md|txt)$/i, "").replace(/^\d{3}-/, "");
+      for (const rule of importConcatenated({
+        file: path4,
+        contents,
+        headingLevel: 2,
+        idFallback: importRuleId(base, "roo-code")
+      })) {
+        rules.push({ ...rule, id: claimRuleId(importRuleId(base, "roo-code"), taken) });
+      }
+    }
+  }
+  if (!isCanonicalSource(ctx.canonical.manifest, LEGACY_FILE2)) {
+    const legacy = await ctx.fs.tryReadFile(LEGACY_FILE2);
+    if (legacy !== void 0) {
+      for (const rule of importConcatenated({
+        file: LEGACY_FILE2,
+        contents: legacy,
+        headingLevel: 2,
+        idFallback: "roorules"
+      })) {
+        rules.push({ ...rule, id: claimRuleId(rule.id, taken) });
+      }
+    }
+  }
+  const mcp = await readMcp5(ctx);
+  return { ...rules.length === 0 ? {} : { rules }, ...mcp };
+}
+async function readMcp5(ctx) {
+  if (isCanonicalSource(ctx.canonical.manifest, MCP_FILE5))
+    return {};
+  const contents = await ctx.fs.tryReadFile(MCP_FILE5);
+  if (contents === void 0)
+    return {};
+  const { servers, warnings } = importMcpConfig4(contents);
+  return {
+    ...servers.length === 0 ? {} : { mcpServers: servers },
+    ...warnings.length === 0 ? {} : { warnings }
+  };
+}
+function write8(ctx) {
+  const { canonical } = ctx;
+  const marker = canonical.manifest.options.marker;
+  const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, "roo-code")));
+  const artifacts = rules.map((rule, i) => finalizeArtifact({
+    path: ruleFilename(rule, i),
+    contents: withHtmlMarker(renderRuleSection(rule, { headingLevel: 2, showGlobs: true }), marker),
+    adapter: "roo-code",
+    kind: "rules",
+    provenance: { ruleIds: [rule.id] }
+  }));
+  const mcp = renderMcpJson4(canonical.mcpServers, marker);
+  if (mcp !== "" && !isCanonicalSource(canonical.manifest, MCP_FILE5)) {
+    artifacts.push(finalizeArtifact({ path: MCP_FILE5, contents: mcp, adapter: "roo-code", kind: "mcp" }));
+  }
+  return Promise.resolve(artifacts);
+}
+var rooCode = {
+  name: "roo-code",
+  apiVersion: ADAPTER_API_VERSION,
+  detect: detect8,
+  read: read8,
+  write: write8,
+  docs: docs8
+};
+
+// ../packages/adapters/windsurf/dist/frontmatter.js
+function invalid(what, hint) {
+  return new DriftgateError({ code: "E_FRONTMATTER_INVALID", message: what, hint });
+}
+function renderGlobs(globs) {
+  for (const glob of globs) {
+    if (glob.includes(",")) {
+      throw invalid(`glob \`${glob}\` contains a comma, which windsurf cannot express`, "windsurf separates patterns with commas and has no escape for one inside a pattern; split the rule in two");
+    }
+  }
+  return globs.join(",");
+}
+function renderDescription(description) {
+  return description.replace(/\s+/g, " ").trim();
+}
+function renderFrontmatter(init) {
+  const lines = ["---"];
+  const scoped = init.globs.length > 0;
+  lines.push(`trigger: ${scoped ? "glob" : "always_on"}`);
+  if (scoped)
+    lines.push(`globs: ${renderGlobs(init.globs)}`);
+  if (init.description !== void 0 && init.description !== "") {
+    lines.push(`description: ${renderDescription(init.description)}`);
+  }
+  lines.push("---", "", "");
+  return lines.join("\n");
+}
+function parseRule(contents) {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(contents);
+  if (match === null)
+    return { globs: [], body: stripMarker(contents).trim() };
+  const body = stripMarker(contents.slice(match[0].length).replace(/^\s*\n/, ""));
+  const globs = [];
+  let description;
+  for (const line of match[1].split(/\r?\n/)) {
+    const pair = /^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.*)$/.exec(line);
+    if (pair === null)
+      continue;
+    const [, key, raw] = pair;
+    const value = raw.trim().replace(/^["']|["']$/g, "");
+    if (key === "globs" && value !== "") {
+      globs.push(...value.split(",").map((g) => g.trim()).filter((g) => g !== ""));
+    } else if (key === "description" && value !== "") {
+      description = value;
+    }
+  }
+  return {
+    globs,
+    ...description === void 0 ? {} : { description },
+    body: body.trim()
+  };
+}
+
+// ../packages/adapters/windsurf/dist/docs.js
+var RULES_DOCS4 = {
+  url: "https://docs.devin.ai/desktop/cascade/memories",
+  title: "Windsurf \u2014 Rules and memories (Cascade)",
+  retrieved: "2026-09-04"
+};
+var docs9 = {
+  toolName: "Windsurf",
+  homepage: "https://windsurf.com",
+  // Not a release number: the vendor page carries none, and inventing one would be the
+  // kind of plausible-looking claim the `1970-01-01` placeholders exist to prevent.
+  verifiedAgainst: { version: "Cascade docs as published 2026-09-04", date: "2026-09-04" },
+  // Every applicable rule file is applied; ordering ranks specificity, not authority.
+  resolution: "additive",
+  files: [
+    {
+      pattern: ".devin/rules/*.md",
+      scope: "project",
+      role: "instructions",
+      managed: false,
+      nesting: "all-merged",
+      description: "Devin Desktop workspace rules. Documented as taking precedence over .windsurf/rules. Driftgate reads these on import so a Devin user does not lose them, and never writes them: the directory belongs to a different product.",
+      source: RULES_DOCS4
+    },
+    {
+      pattern: ".windsurf/rules/*.md",
+      scope: "project",
+      role: "instructions",
+      managed: true,
+      nesting: "all-merged",
+      description: "Workspace rules, one file per rule, each with a trigger: frontmatter key. Discovered in subdirectories and in parent directories up to the git root. This is what Driftgate generates.",
+      source: RULES_DOCS4
+    },
+    {
+      pattern: ".windsurfrules",
+      scope: "project",
+      role: "instructions",
+      managed: false,
+      description: "Legacy single-file rules at the workspace root, superseded by .windsurf/rules. Driftgate imports it and never writes it.",
+      source: RULES_DOCS4
+    },
+    {
+      pattern: "AGENTS.md",
+      scope: "project",
+      role: "instructions",
+      managed: false,
+      description: "Read at the workspace root, without frontmatter. Generated by the codex adapter, not by this one \u2014 so enabling windsurf and codex together sends Windsurf the same rules twice.",
+      source: RULES_DOCS4
+    },
+    {
+      pattern: "~/.codeium/windsurf/memories/global_rules.md",
+      scope: "global",
+      role: "instructions",
+      managed: false,
+      description: "User-level rules, always applied, no frontmatter. Outside the repository, so Driftgate reports it and never writes it.",
+      source: RULES_DOCS4
+    }
+  ],
+  limits: {
+    // The vendor states 12,000 CHARACTERS per workspace file and 6,000 for the global one.
+    // `maxBytesPerFile` is measured in bytes, and for non-ASCII rules bytes exceed
+    // characters — so this can warn on a file that is legally under the cap. Declared
+    // anyway with the mismatch stated: a cap nobody recorded and a cap that is slightly
+    // conservative are not the same thing, and only the second can be corrected.
+    maxBytesPerFile: 12e3,
+    note: "Windsurf documents 12,000 characters per workspace rule file and 6,000 for the global one. Driftgate measures bytes, so a rule using non-ASCII characters may be reported over the limit while still being under it."
+  },
+  notes: [
+    {
+      level: "warn",
+      message: "Multiple glob patterns are undocumented. The vendor shows a single bare pattern (globs: **/*.test.ts) and does not say how several are separated; Driftgate joins them with commas, matching Cursor .mdc and community practice. A rule whose scoping matters and that carries more than one pattern is worth checking in Windsurf before relying on it.",
+      source: RULES_DOCS4
+    },
+    {
+      level: "warn",
+      message: ".devin/rules takes precedence over .windsurf/rules. In a repository that has both, the files Driftgate generates are shadowed by a directory it deliberately does not write.",
+      source: RULES_DOCS4
+    },
+    {
+      level: "info",
+      message: "trigger: is derived, not authored. A rule with globs becomes trigger: glob and a repo-wide rule becomes trigger: always_on; model_decision and manual are never generated, because both let the model skip a rule the author asked for.",
+      source: RULES_DOCS4
+    }
+  ]
+};
+
+// ../packages/adapters/windsurf/dist/index.js
+var RULES_DIR5 = ".windsurf/rules";
+var DEVIN_RULES_DIR = ".devin/rules";
+var LEGACY_FILE3 = ".windsurfrules";
+var DETECTION_PATHS9 = [".windsurf", LEGACY_FILE3];
+async function detect9(ctx) {
+  const evidence = [];
+  for (const path4 of DETECTION_PATHS9) {
+    if (await ctx.fs.exists(path4))
+      evidence.push(path4);
+  }
+  return detected(evidence);
+}
+async function read9(ctx) {
+  const rules = [];
+  const taken = /* @__PURE__ */ new Set();
+  for (const dir of [DEVIN_RULES_DIR, RULES_DIR5]) {
+    for (const path4 of await ctx.fs.glob(`${dir}/**/*.md`)) {
+      if (isCanonicalSource(ctx.canonical.manifest, path4))
+        continue;
+      const contents = await ctx.fs.tryReadFile(path4);
+      if (contents === void 0)
+        continue;
+      const parsed = parseRule(contents);
+      if (parsed.body === "" && parsed.description === void 0)
+        continue;
+      const base = basenamePosix(path4).replace(/\.md$/i, "");
+      rules.push(importedRule({
+        id: claimRuleId(importRuleId(base, "windsurf"), taken),
+        ...parsed.description === void 0 ? {} : { description: parsed.description },
+        globs: parsed.globs,
+        body: parsed.body,
+        source: { file: path4, line: 1 }
+      }));
+    }
+  }
+  if (!isCanonicalSource(ctx.canonical.manifest, LEGACY_FILE3)) {
+    const legacy = await ctx.fs.tryReadFile(LEGACY_FILE3);
+    if (legacy !== void 0) {
+      for (const rule of importConcatenated({
+        file: LEGACY_FILE3,
+        contents: legacy,
+        headingLevel: 2,
+        idFallback: "windsurfrules"
+      })) {
+        rules.push({ ...rule, id: claimRuleId(rule.id, taken) });
+      }
+    }
+  }
+  return rules.length === 0 ? {} : { rules };
+}
+function write9(ctx) {
+  const { canonical } = ctx;
+  const marker = canonical.manifest.options.marker;
+  const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, "windsurf")));
+  const artifacts = [];
+  const claimed = /* @__PURE__ */ new Map();
+  for (const rule of rules) {
+    const path4 = `${RULES_DIR5}/${slugForId(rule.id)}.md`;
+    const previous = claimed.get(path4);
+    if (previous !== void 0) {
+      throw new DriftgateError({
+        code: "E_ARTIFACT_PATH_CONFLICT",
+        message: `rules \`${previous}\` and \`${rule.id}\` both render to ${path4}`,
+        source: rule.source,
+        hint: "rename one of them; windsurf rule filenames are flattened rule ids"
+      });
+    }
+    claimed.set(path4, rule.id);
+    const frontmatter = renderFrontmatter({
+      globs: rule.frontmatter.globs,
+      ...rule.frontmatter.description === void 0 ? {} : { description: rule.frontmatter.description }
+    });
+    artifacts.push(finalizeArtifact({
+      path: path4,
+      // The marker goes *after* the frontmatter: Windsurf requires the block to occupy
+      // the first bytes of the file, so a comment above it would push it out of position
+      // and the rule would be read as untriggered prose.
+      contents: `${frontmatter}${withHtmlMarker(rule.body, marker)}`,
+      adapter: "windsurf",
+      kind: "rules",
+      provenance: { ruleIds: [rule.id] }
+    }));
+  }
+  return Promise.resolve(artifacts);
+}
+var windsurf = {
+  name: "windsurf",
+  apiVersion: ADAPTER_API_VERSION,
+  detect: detect9,
+  read: read9,
+  write: write9,
+  docs: docs9
+};
+
+// ../packages/adapters/zed/dist/docs.js
+var INSTRUCTIONS_DOCS = {
+  url: "https://zed.dev/docs/ai/instructions",
+  title: "Zed \u2014 Agent Instructions",
+  retrieved: "2026-09-04"
+};
+function link(pattern, description) {
+  return {
+    pattern,
+    scope: "project",
+    role: "instructions",
+    managed: false,
+    description,
+    source: INSTRUCTIONS_DOCS
+  };
+}
+var docs10 = {
+  toolName: "Zed",
+  homepage: "https://zed.dev",
+  // The instructions page carries no version number; the documentation date is the honest
+  // stamp, and `verifiedAgainst.version` must not be a plausible-looking guess.
+  verifiedAgainst: { version: "Zed docs as published 2026-09-04", date: "2026-09-04" },
+  resolution: "first-match",
+  files: [
+    {
+      pattern: ".rules",
+      scope: "project",
+      role: "instructions",
+      managed: true,
+      description: "First in Zed\u2019s list, so it wins whenever it exists. This is what Driftgate generates: writing it is what makes the other eight irrelevant, rather than leaving the answer to whichever file happens to be present.",
+      source: INSTRUCTIONS_DOCS
+    },
+    link(".cursorrules", "Second. Read only when .rules is absent. Generated by the cursor adapter under options.legacy."),
+    link(".windsurfrules", "Third. Read only when the two above are absent."),
+    link(".clinerules", "Fourth. Note this is the legacy single *file*; the cline adapter generates the .clinerules/ directory."),
+    link(".github/copilot-instructions.md", "Fifth. Generated by the copilot adapter, and read here only when the four above are absent."),
+    link("AGENT.md", "Sixth. Singular, and distinct from AGENTS.md below. No adapter writes it."),
+    link("AGENTS.md", "Seventh. Generated by the codex adapter, and read only when the six above are absent."),
+    link("CLAUDE.md", "Eighth. Generated by the claude-code adapter, and read only when the seven above are absent."),
+    link("GEMINI.md", "Ninth and last. Generated by the gemini adapter, and read only when every file above is absent."),
+    {
+      pattern: "~/.config/zed/AGENTS.md",
+      scope: "global",
+      role: "instructions",
+      managed: false,
+      description: "Personal instructions, applied alongside the project file rather than competing with it \u2014 project instructions override it when they conflict. Outside the repository, so Driftgate reports it and never writes it.",
+      source: INSTRUCTIONS_DOCS
+    }
+  ],
+  limits: { note: "Zed publishes no size cap for instruction files." },
+  notes: [
+    {
+      level: "warn",
+      message: "Zed reads the FIRST of .rules, .cursorrules, .windsurfrules, .clinerules, .github/copilot-instructions.md, AGENT.md, AGENTS.md, CLAUDE.md, GEMINI.md \u2014 and no others. Five of those are files other Driftgate adapters generate, so in a repository that has several, everything below the first is invisible to Zed however carefully it was written.",
+      source: INSTRUCTIONS_DOCS
+    },
+    {
+      level: "info",
+      message: "Whether Zed searches subdirectories or only the worktree root is undocumented, and multi-worktree behaviour is not described either. No entry here declares `nesting`, so doctor reports the worktree root only rather than claiming a walk that may not happen.",
+      source: INSTRUCTIONS_DOCS
+    }
+  ]
+};
+
+// ../packages/adapters/zed/dist/index.js
+var RULES_FILE = ".rules";
+var DETECTION_PATHS10 = [RULES_FILE, ".zed"];
+async function detect10(ctx) {
+  const evidence = [];
+  for (const path4 of DETECTION_PATHS10) {
+    if (await ctx.fs.exists(path4))
+      evidence.push(path4);
+  }
+  return detected(evidence);
+}
+async function read10(ctx) {
+  if (isCanonicalSource(ctx.canonical.manifest, RULES_FILE))
+    return {};
+  const contents = await ctx.fs.tryReadFile(RULES_FILE);
+  if (contents === void 0)
+    return {};
+  return {
+    rules: importConcatenated({
+      file: RULES_FILE,
+      contents,
+      headingLevel: 2,
+      idFallback: "zed"
+    })
+  };
+}
+async function write10(ctx) {
+  const { canonical } = ctx;
+  if (isCanonicalSource(canonical.manifest, RULES_FILE))
+    return [];
+  const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, "zed")));
+  if (rules.length === 0)
+    return [];
+  const body = renderConcatenated(rules, { headingLevel: 2, showGlobs: true });
+  return Promise.resolve([
+    finalizeArtifact({
+      path: RULES_FILE,
+      contents: withHtmlMarker(body, canonical.manifest.options.marker),
+      adapter: "zed",
+      kind: "rules",
+      provenance: { ruleIds: rules.map((r) => r.id) }
+    })
+  ]);
+}
+var zed = {
+  name: "zed",
+  apiVersion: ADAPTER_API_VERSION,
+  detect: detect10,
+  read: read10,
+  write: write10,
+  docs: docs10
 };
 
 // ../packages/cli/dist/registry.js
-var ADAPTERS = [claudeCode, codex, copilot, cursor, gemini];
+var ADAPTERS = [aider, claudeCode, cline, codex, copilot, cursor, gemini, rooCode, windsurf, zed];
 var ADAPTER_NAMES = ADAPTERS.map((a) => a.name);
 
 // ../packages/cli/dist/ui/report.js

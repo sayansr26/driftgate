@@ -68,7 +68,7 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
       expect(stdout).toContain('repo  ');
       expect(stdout).toContain('GitHub Copilot');
       // The T078 finding has to survive the real binary, not just the aliased source.
-      expect(stderr).toContain("duplicates of another adapter's output");
+      expect(stderr).toContain('carry content that also arrives from another file');
       const after = await stat(path.join(repo, 'CLAUDE.md'));
       expect(after.mtimeMs).toBe(before.mtimeMs);
     } finally {

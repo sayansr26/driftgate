@@ -31,6 +31,8 @@ interface StubInit {
   readonly notes?: readonly DocNote[];
   readonly detect?: boolean;
   readonly writes?: readonly (readonly [string, string])[];
+  /** path -> the canonical rule ids that produced it, for the T084 duplicate scan. */
+  readonly provenance?: Readonly<Record<string, readonly string[]>>;
 }
 
 function stub(init: StubInit): Adapter {
@@ -56,6 +58,9 @@ function stub(init: StubInit): Adapter {
           contents,
           adapter: init.name,
           kind: 'rules' as const,
+          ...(init.provenance?.[path] === undefined
+            ? {}
+            : { provenance: { ruleIds: init.provenance[path] } }),
         })),
       ),
     docs,
@@ -183,6 +188,86 @@ describe('buildDoctorReport — resolution', () => {
 });
 
 describe('buildDoctorReport — warnings', () => {
+  it('W_DUPLICATE_LOAD fires when the same rule arrives from differently-shaped files', async () => {
+    // T084. This is the case byte comparison could never see, and it is the common one:
+    // Cline reads AGENTS.md on top of `.clinerules/*.md`, Roo Code on top of
+    // `.roo/rules/*.md` — the same canonical rules, sent twice, in different bytes. The
+    // warning stayed silent exactly where the token cost was real, and both adapters
+    // shipped a hand-written docs note as a workaround for the detector's blind spot.
+    //
+    // Set equality is not enough either: the concatenated file carries the *union* of what
+    // the split files carry, so no two of them have the same rule set. The question is per
+    // rule, which is what `Artifact.provenance.ruleIds` answers.
+    // Enabled, not merely detected: provenance exists only for files Driftgate generates,
+    // so the rule-level key is available exactly where Driftgate knows what it wrote. A
+    // detected-but-disabled tool falls back to the byte comparison, which is all there is.
+    const r = await buildDoctorReport({
+      repoRoot: '/repo',
+      fs: new MemoryFileSystem([
+        manifestEnabling('reader', 'writer'),
+        ['style.md', 'style rules'],
+        ['testing.md', 'testing rules'],
+        ['ALL.md', 'style rules and testing rules, concatenated — different bytes entirely'],
+      ]),
+      adapters: [
+        stub({
+          name: 'reader',
+          resolution: 'additive',
+          files: [entry('style.md'), entry('testing.md'), entry('ALL.md')],
+          writes: [
+            ['style.md', 'style rules'],
+            ['testing.md', 'testing rules'],
+          ],
+          provenance: { 'style.md': ['10-style'], 'testing.md': ['20-testing'] },
+        }),
+        stub({
+          name: 'writer',
+          files: [entry('ALL.md', { managed: true })],
+          detect: false,
+          writes: [['ALL.md', 'style rules and testing rules, concatenated — different bytes entirely']],
+          provenance: { 'ALL.md': ['10-style', '20-testing'] },
+        }),
+      ],
+    });
+
+    const dup = r.warnings.find((w) => w.code === 'W_DUPLICATE_LOAD');
+    expect(dup?.tool).toBe('reader');
+    // Every file involved, not only the concatenated one: each split file is delivering a
+    // rule that also arrives from ALL.md.
+    expect(dup?.paths).toEqual(['ALL.md', 'style.md', 'testing.md']);
+    expect(dup?.message).toContain('ALL.md from writer');
+  });
+
+  it('W_DUPLICATE_LOAD stays silent when the rules genuinely differ', async () => {
+    // The control, and it is the assertion that stops the new rule-level key from simply
+    // firing on everything: two files, two disjoint rule sets, no duplication.
+    const r = await buildDoctorReport({
+      repoRoot: '/repo',
+      fs: new MemoryFileSystem([
+        manifestEnabling('reader', 'writer'),
+        ['style.md', 'style rules'],
+        ['ONLY-TESTING.md', 'testing rules only'],
+      ]),
+      adapters: [
+        stub({
+          name: 'reader',
+          resolution: 'additive',
+          files: [entry('style.md'), entry('ONLY-TESTING.md')],
+          writes: [['style.md', 'style rules']],
+          provenance: { 'style.md': ['10-style'] },
+        }),
+        stub({
+          name: 'writer',
+          files: [entry('ONLY-TESTING.md', { managed: true })],
+          detect: false,
+          writes: [['ONLY-TESTING.md', 'testing rules only']],
+          provenance: { 'ONLY-TESTING.md': ['20-testing'] },
+        }),
+      ],
+    });
+    expect(codes(r)).not.toContain('W_DUPLICATE_LOAD');
+  });
+
   it('W_DUPLICATE_LOAD fires on byte-identical loaded files and names the owner', async () => {
     const r = await report(
       [
@@ -310,6 +395,72 @@ describe('buildDoctorReport — warnings', () => {
 
     const read = await report([['RULES.md', 'root']], adapters);
     expect(codes(read)).not.toContain('W_ORPHAN_FILE');
+  });
+
+  it('first-match reports only the first present file as loaded, and bills only that one', async () => {
+    // T050a. Zed opens the first file in its nine-file list and stops; the rest are never
+    // read. `override` gets the *shadowing* right and the *loading* wrong — under it a
+    // shadowed file still counts as loaded, which is correct for Claude Code (a losing
+    // file still costs its tokens) and false here.
+    const files = [entry('.rules'), entry('.cursorrules'), entry('AGENTS.md')];
+    const disk = [
+      ['.rules', 'first'],
+      ['.cursorrules', 'second, never opened'],
+      ['AGENTS.md', 'third, never opened'],
+    ] as const;
+
+    const first = await report(disk, [
+      stub({ name: 'alpha', files, resolution: 'first-match' }),
+    ]);
+    const rows = first.tools[0]!.files;
+    expect(rows.map((f) => f.loaded)).toEqual([true, false, false]);
+
+    // The header as well as the rows. `loadedCount` and `loadedTokens` are computed from a
+    // separate list, and the first version of this fix narrowed only the rows — so every
+    // row said "not loaded" while the header still billed all three. Caught by dogfooding,
+    // not by the row assertion above, which is why both are pinned.
+    expect(first.tools[0]!.loadedCount).toBe(1);
+    expect(first.tools[0]!.loadedTokens).toBe(rows[0]!.tokens);
+
+    // The control, and the reason this is not a vacuous assertion: the identical fixture
+    // under `override` loads all three, because there a shadowed file is still sent.
+    const all = await report(disk, [stub({ name: 'alpha', files, resolution: 'override' })]);
+    expect(all.tools[0]!.files.map((f) => f.loaded)).toEqual([true, true, true]);
+    expect(all.tools[0]!.loadedCount).toBe(3);
+
+    // Shadowing is unchanged between the two: `first-match` narrows what is *read*, not
+    // which entry wins.
+    expect(first.tools[0]!.files.map((f) => f.shadowed)).toEqual(
+      all.tools[0]!.files.map((f) => f.shadowed),
+    );
+  });
+
+  it('W_ORPHAN_FILE keys a directory pattern on its directory, not on its extension', async () => {
+    // T082. `orphanWarnings` derived the shape from `basenamePosix(entry.pattern)`, so a
+    // directory-scoped pattern like `.toolrules/*.md` reduced to `*.md` and claimed every
+    // Markdown file in the repository had the shape of a tool instruction file. No shipped
+    // adapter had a bare-extension basename, so nothing caught it until an adapter with one
+    // was enabled — at which point `doctor` reported the whole repository.
+    //
+    // The fixture must use a pattern WITH a directory: for a bare name the mutated and
+    // unmutated globs are byte-identical (`**/RULES.md` either way), so a bare-name case
+    // passes under both and proves nothing.
+    const adapters = [stub({ name: 'alpha', files: [entry('.toolrules/*.md')] })];
+
+    const r = await report(
+      [
+        ['.toolrules/a.md', 'read'],
+        ['pkg/.toolrules/b.md', 'a misplaced copy of the directory'],
+        ['README.md', 'not an instruction file'],
+        ['docs/guide.md', 'also not an instruction file'],
+      ],
+      adapters,
+    );
+
+    // Only the misplaced `.toolrules/` copy. Before the fix this was every `.md` on disk.
+    expect(r.warnings.find((w) => w.code === 'W_ORPHAN_FILE')?.paths).toEqual([
+      'pkg/.toolrules/b.md',
+    ]);
   });
 
   it('W_ORPHAN_FILE does not fire when nesting makes the nested copy readable', async () => {

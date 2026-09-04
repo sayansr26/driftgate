@@ -66,6 +66,23 @@ export { DEFAULT_MCP_SCOPE, envRef, formatEnvRef, parseEnvRef } from '@driftgate
 // selector — and two adapters restating it independently is how one of them ends up
 // writing a server the other was told to skip.
 export { selectMcpServers } from '@driftgate/core';
+// MCP import (T048). Three of the four target formats are the same object-of-servers JSON
+// shape, differing only in the top-level key and the reference spelling, so the inverse is
+// one shared function parameterized by those two — the same argument that put
+// `importConcatenated` here at T017. Codex's TOML is the fourth and has its own reader.
+//
+// Added 2026-09-04 (T048). Eight exports, none removed. `read()`'s return type widened by
+// one OPTIONAL field, which every v1 adapter already satisfies, so no `ADAPTER_API_VERSION`
+// bump is owed — see `ImportResult` and docs/adapter-api-v1.md.
+export type {
+  ImportResult,
+  ImportMcpJsonOptions,
+  ImportedMcpResult,
+  ImportedServerInit,
+  ParseReference,
+  ReferenceParse,
+} from '@driftgate/core';
+export { importMcpJson, importedServer } from '@driftgate/core';
 
 // Rendering. These exist so that every adapter produces byte-identical output for the
 // same input without reimplementing normalization, ordering, or the generated-file

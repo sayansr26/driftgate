@@ -11,6 +11,8 @@ whole workflow, and it is written for someone who has never seen this codebase.
 
 ## What Windsurf reads
 
+- `.devin/rules/*.md` — **takes precedence over `.windsurf/rules/`.** Devin Desktop's
+  directory; Driftgate reads it on import and never writes it.
 - `.windsurf/rules/*.md` — workspace rules, the modern form. Discovered in
   subdirectories and in parent directories up to the git root.
 - `.windsurfrules` — a single file at the workspace root. Legacy, still read.
@@ -20,11 +22,18 @@ Workspace rule files carry a `trigger` frontmatter key: `always_on`, `model_deci
 `glob` (with `globs`), or `manual`. There are documented size caps — 12,000 characters per
 workspace rule file and 6,000 for the global one — which belong in `AdapterDocs.limits`.
 
-**Documentation:** Windsurf — Rules and memories — https://docs.windsurf.com/windsurf/cascade/memories
+**Documentation:** Windsurf — Rules and memories — https://docs.devin.ai/desktop/cascade/memories
+(the documented `docs.windsurf.com/windsurf/cascade/memories` URL 307-redirects there)
 _(read 2026-09-04; re-read it before you file the precedence data, and put the date you
 actually read it in `retrieved`.)_
 
 ## What to build
+
+**MCP is out of scope for this adapter.** Cascade's only MCP config is
+`~/.codeium/windsurf/mcp_config.json`, outside the repository; the project-level
+`.devin/mcp_config.json` is documented under the **Devin CLI**, a different product.
+Driftgate never writes outside the repository, so `windsurf` emits no MCP artifact and
+records the global path as unmanaged instead.
 
 - **Adapter id:** `windsurf`
 - **Artifact to generate:** `.windsurf/rules/<slug>.md`, one file per rule

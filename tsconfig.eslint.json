@@ -17,7 +17,13 @@
       "@driftgate/adapter-claude-code": ["packages/adapters/claude-code/src/index.ts"],
       "@driftgate/adapter-codex": ["packages/adapters/codex/src/index.ts"],
       "@driftgate/adapter-copilot": ["packages/adapters/copilot/src/index.ts"],
+      "@driftgate/adapter-cline": ["packages/adapters/cline/src/index.ts"],
+      "@driftgate/adapter-aider": ["packages/adapters/aider/src/index.ts"],
       "@driftgate/adapter-cursor": ["packages/adapters/cursor/src/index.ts"],
+      "@driftgate/adapter-roo-code": ["packages/adapters/roo-code/src/index.ts"],
+      "@driftgate/adapter-zed": ["packages/adapters/zed/src/index.ts"],
+      "@driftgate/interop": ["packages/interop/src/index.ts"],
+      "@driftgate/adapter-windsurf": ["packages/adapters/windsurf/src/index.ts"],
       "@driftgate/adapter-gemini": ["packages/adapters/gemini/src/index.ts"]
     }
   },

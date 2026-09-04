@@ -18,11 +18,12 @@ import {
   type Artifact,
   type Canonical,
   type DetectResult,
+  type ImportResult,
   slugForId,
   type RuleDocument,
 } from '@driftgate/adapter-kit';
 import { assertRenderable, frontmatterFor, parseMdc, renderMdcFrontmatter } from './mdc.js';
-import { MCP_FILE, renderMcpJson } from './mcp.js';
+import { MCP_FILE, importMcpConfig, renderMcpJson } from './mcp.js';
 import { docs } from './docs.js';
 
 export const RULES_DIR = '.cursor/rules';
@@ -85,8 +86,30 @@ async function read(ctx: AdapterContext): Promise<Partial<Canonical>> {
     }
   }
 
-  return rules.length === 0 ? {} : { rules };
+  return {
+    ...(rules.length === 0 ? {} : { rules }),
+    ...(await readMcp(ctx)),
+  };
 }
+
+/**
+ * The MCP half, guarded separately from the rules half.
+ *
+ * A repository can hold `.cursor/mcp.json` and no rules at all, so folding this into the rules
+ * return would import no servers there — the mirror of the bug T046 found on the write
+ * side, where one early return covered the whole adapter.
+ */
+async function readMcp(ctx: AdapterContext): Promise<ImportResult> {
+  if (isCanonicalSource(ctx.canonical.manifest, MCP_FILE)) return {};
+  const contents = await ctx.fs.tryReadFile(MCP_FILE);
+  if (contents === undefined) return {};
+  const { servers, warnings } = importMcpConfig(contents);
+  return {
+    ...(servers.length === 0 ? {} : { mcpServers: servers }),
+    ...(warnings.length === 0 ? {} : { warnings }),
+  };
+}
+
 
 function mdcPath(rule: RuleDocument): string {
   return `${RULES_DIR}/${slugForId(rule.id)}.mdc`;

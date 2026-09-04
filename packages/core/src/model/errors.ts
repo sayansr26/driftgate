@@ -39,6 +39,11 @@ export type DriftgateErrorCode =
   | 'E_LITERAL_SECRET'
   // A canonical MCP server is valid, and the target format has no way to say it (T047).
   //
+  // **No longer raised by the Codex writer (T083)** — that path omits the server and names
+  // it in the generated file instead, because failing the run took down every other
+  // artifact too. The code stays: it is the right answer for a target that cannot degrade
+  // at all, and removing it would make the next such case reach for something weaker.
+  //
   // Distinct from `E_MCP_INVALID`, which means the *author* wrote something wrong. Here
   // the canonical file is correct and one destination cannot express it — Codex has no
   // variable substitution at all, so an `env:` reference under a key it cannot map is
@@ -46,7 +51,20 @@ export type DriftgateErrorCode =
   // be silent and wrong (a credential that never arrives); a loss that is merely lossy and
   // still functional, such as `transport: sse` on a target with no discriminator, is a
   // `warn` note in the adapter's `docs` instead.
-  | 'E_MCP_UNREPRESENTABLE';
+  | 'E_MCP_UNREPRESENTABLE'
+  // Something in somebody else's MCP config was not imported (T048). A **warning**, and
+  // deliberately not an error: `runInit` writes nothing while `errors` is non-empty, so an
+  // error here would make a new user's first command fail on a file Driftgate only read —
+  // T077's shape. The server is absent from canonical and the reason is printed.
+  | 'W_MCP_IMPORT'
+  // The platform refused a path — Windows' 260-character limit, in practice (T069). Its own
+  // code because the bare errno names no limit and suggests no action, and because it makes
+  // `check` fail on one platform and pass on another for the same repository.
+  | 'E_PATH_TOO_LONG'
+  // A competing rule-sync tool held something Driftgate imports rules but not everything
+  // from — MCP, skills, subagents (T054). A warning: `init` completes, and the user is told
+  // what did not come across rather than discovering it when a server stops working.
+  | 'W_INTEROP_NOT_IMPORTED';
 
 export interface DriftgateErrorInit {
   readonly code: DriftgateErrorCode;

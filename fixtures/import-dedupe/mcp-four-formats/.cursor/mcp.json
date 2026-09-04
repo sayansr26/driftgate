@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp",
+      "headers": { "Authorization": "${env:GITHUB_TOKEN}" }
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "postgres": {
+      "command": "uvx",
+      "args": ["mcp-server-postgres"],
+      "env": { "PGPASSWORD": "${env:PGPASSWORD}" }
+    }
+  }
+}

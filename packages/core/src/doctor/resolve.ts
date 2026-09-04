@@ -77,6 +77,10 @@ export async function resolveTool(docs: AdapterDocs, ctx: ResolveContext): Promi
   const measurements = found.map((list, i) => list.filter((m) => owner.get(m.path) === i));
 
   const shadowed = decideShadowed(docs.files, measurements, resolution);
+  // Under `first-match` the tool stops at the first file that exists, so a shadowed entry
+  // is not merely outranked — it is never opened. `loaded` has to say so, or the token
+  // total bills the user for eight files Zed does not read.
+  const unread = resolution === 'first-match';
 
   const files: FileDiagnosis[] = docs.files.map((entry, i) => {
     const found = measurements[i] ?? [];
@@ -91,7 +95,7 @@ export async function resolveTool(docs: AdapterDocs, ctx: ResolveContext): Promi
       role: entry.role,
       managed: entry.managed,
       ...(owner === undefined ? {} : { managedBy: owner }),
-      loaded: found.some((m) => m.loaded),
+      loaded: found.some((m) => m.loaded) && !(unread && (shadowed[i] ?? false)),
       shadowed: shadowed[i] ?? false,
       status: aggregateStatus(found, entry, ctx.detection),
       nested: found.filter((m) => m.path !== entry.pattern).length,
@@ -101,7 +105,15 @@ export async function resolveTool(docs: AdapterDocs, ctx: ResolveContext): Promi
     };
   });
 
-  return { files, loaded: measurements.flat().filter((m) => m.loaded) };
+  // Narrowed by entry, not only per file. `loadedCount`, `loadedTokens` and every warning
+  // that takes a token total read *this* list, so narrowing `FileDiagnosis.loaded` alone
+  // left `doctor` still billing Zed for eight files it never opens — the row said one
+  // thing and the header said another.
+  const read = measurements
+    .flatMap((list, i) => (unread && (shadowed[i] ?? false) ? [] : list))
+    .filter((m) => m.loaded);
+
+  return { files, loaded: read };
 }
 
 async function measureEntry(
@@ -224,6 +236,9 @@ function decideShadowed(
   return entries.map((entry, i) => {
     if ((measurements[i] ?? []).length === 0) return false;
     if (resolution === 'additive') return false;
+    // `override` and `first-match` share this shape — the first present entry in a chain
+    // wins — and differ only in whether the losers are still read. That is decided by
+    // `loaded` at the call site, not here.
     const chain = `${entry.role} ${entry.scope}`;
     if (claimed.has(chain)) return true;
     claimed.add(chain);

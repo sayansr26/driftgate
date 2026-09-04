@@ -1,6 +1,5 @@
 import { compareCodepoint } from '../render/order.js';
 import { matchesGlob } from '../fs/glob.js';
-import { basenamePosix } from '../fs/paths.js';
 import type { Adapter } from '../adapter/adapter.js';
 import type { AdapterDocs } from '../adapter/docs.js';
 import type { DiskComparison } from '../state/compare.js';
@@ -22,24 +21,74 @@ import type { DoctorWarning, ToolDiagnosis } from './types.js';
  * scrutiny: two adapters writing genuinely different files to a tool is not waste, and
  * saying it is would train people to ignore the warning.
  */
+/**
+ * What makes two loaded files the same context, twice.
+ *
+ * **Byte identity was the wrong question, and using it was the bug (T084).** It catches
+ * `CLAUDE.md` / `AGENTS.md` / `GEMINI.md`, which are identical concatenations, and misses
+ * every adapter that writes one file per rule: Cline reads `AGENTS.md` on top of
+ * `.clinerules/*.md`, and Roo Code reads it on top of `.roo/rules/*.md` — the same canonical
+ * rules, sent twice, in different bytes. The warning stayed silent exactly where the token
+ * cost was real, and both adapters shipped a hand-written `docs` note as a workaround.
+ *
+ * Set *equality* is not enough either: `AGENTS.md` carries the union of what five
+ * `.clinerules` files carry, so no two of those files have the same rule set. The question
+ * is per **rule** — is this rule reaching the model from more than one file? —  which is
+ * what `Artifact.provenance.ruleIds` answers directly.
+ *
+ * A file with no provenance (a global file, an unmanaged one, anything Driftgate did not
+ * generate) is keyed by its content hash instead, which is the only signal available for it
+ * and is still correct for the identical-concatenation case.
+ */
+function unitsOf(m: Measured, provenance: ReadonlyMap<string, readonly string[]>): readonly string[] {
+  const rules = provenance.get(m.path);
+  if (rules !== undefined && rules.length > 0) return rules.map((id) => `rule:${id}`);
+  return m.hash === undefined ? [] : [`hash:${m.hash}`];
+}
+
 export function duplicateLoadWarnings(
   tool: ToolDiagnosis,
   loaded: readonly Measured[],
+  provenance: ReadonlyMap<string, readonly string[]> = new Map(),
 ): DoctorWarning[] {
-  const groups = new Map<string, Measured[]>();
+  // Every unit of context, and which files deliver it.
+  const carriers = new Map<string, Measured[]>();
   for (const m of loaded) {
-    if (m.hash === undefined) continue;
-    const group = groups.get(m.hash) ?? [];
-    group.push(m);
-    groups.set(m.hash, group);
+    for (const unit of unitsOf(m, provenance)) {
+      const group = carriers.get(unit) ?? [];
+      group.push(m);
+      carriers.set(unit, group);
+    }
   }
 
-  const duplicated = [...groups.values()].filter((g) => g.length > 1);
+  const groups = new Map<string, Measured[]>();
+  for (const [unit, files] of carriers) {
+    if (files.length > 1) groups.set(unit, files);
+  }
+
+  const duplicated = [...groups.values()];
   if (duplicated.length === 0) return [];
 
-  const redundant = duplicated.reduce((n, g) => n + g.length - 1, 0);
-  const wasted = duplicated.reduce((n, g) => n + (g[0]?.tokens ?? 0) * (g.length - 1), 0);
-  const paths = duplicated.flatMap((g) => g.map((m) => m.path)).sort(compareCodepoint);
+  // A file's tokens spread over the units it carries, so a rule duplicated between a
+  // five-rule `AGENTS.md` and a one-rule `.clinerules/10-style.md` is charged what that
+  // rule actually costs rather than what the whole file does.
+  const share = (m: Measured): number => {
+    const units = unitsOf(m, provenance).length;
+    return units === 0 ? 0 : m.tokens / units;
+  };
+
+  // The number reported is the number of *files listed*, because those are what a reader
+  // can act on and what the message goes on to name. Counting rule-copies instead gave
+  // "10 copies" beside a list of three paths, which is accurate and unreadable.
+  const involved = new Set<string>();
+  for (const group of duplicated) for (const m of group) involved.add(m.path);
+  const wasted = Math.round(
+    duplicated.reduce((n, g) => {
+      const cheapest = Math.min(...g.map(share));
+      return n + cheapest * (g.length - 1);
+    }, 0),
+  );
+  const paths = [...involved].sort(compareCodepoint);
 
   return [
     {
@@ -47,9 +96,9 @@ export function duplicateLoadWarnings(
       tool: tool.name,
       paths,
       message:
-        `${tool.toolName} will load ${tool.loadedCount} files ~${tool.loadedTokens} tokens, of which ` +
-        `${redundant} ${redundant === 1 ? 'is a duplicate' : 'are duplicates'} of another adapter's ` +
-        `output (${attribute(paths, tool).join(', ')}) — about ${wasted} tokens are paid twice.`,
+        `${tool.toolName} will load ${tool.loadedCount} files ~${tool.loadedTokens} tokens. ` +
+        `${paths.length} of them carry content that also arrives from another file ` +
+        `(${attribute(paths, tool).join(', ')}) — about ${wasted} tokens are paid twice.`,
     },
   ];
 }
@@ -184,7 +233,7 @@ export async function orphanWarnings(
   for (const adapter of active) {
     for (const entry of adapter.docs.files) {
       if (entry.scope === 'global' || entry.role !== 'instructions') continue;
-      shapes.add(basenamePosix(entry.pattern));
+      shapes.add(entry.pattern);
       readable.push(
         entry.scope === 'nested' || (entry.nesting !== undefined && entry.nesting !== 'root-only')
           ? expand(entry.pattern)
@@ -195,7 +244,7 @@ export async function orphanWarnings(
 
   const candidates = new Set<string>();
   for (const shape of [...shapes].sort(compareCodepoint)) {
-    for (const hit of await fs.glob(expand(shape))) candidates.add(hit);
+    for (const hit of await fs.glob(shapeGlob(shape))) candidates.add(hit);
   }
 
   const unread = [...candidates]
@@ -217,6 +266,21 @@ export async function orphanWarnings(
 
 function expand(pattern: string): string {
   return pattern.includes('/') ? pattern : `**/${pattern}`;
+}
+
+/**
+ * The shape a file must have to be a misplaced copy of a file some tool reads.
+ *
+ * A pattern carrying a directory identifies its files by that directory and not by their
+ * names: `.clinerules/*.md` means "every Markdown file in `.clinerules/`", so reducing it
+ * to its basename claims every Markdown file in the repository has the shape of a Cline
+ * rule. The directory stays, and a misplaced copy is therefore a misplaced *directory*.
+ *
+ * A leading any-depth prefix matches zero directories here (see `fs/glob.ts`), so the root
+ * copy is still found and still filtered out by `readable` — only the nested one survives.
+ */
+function shapeGlob(pattern: string): string {
+  return pattern.startsWith('**/') ? pattern : `**/${pattern}`;
 }
 
 /** Deterministic and stable: code, then tool, then first path, then message. */

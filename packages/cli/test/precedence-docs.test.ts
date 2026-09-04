@@ -27,6 +27,7 @@ const EXTRA_FIXTURES: Readonly<Record<string, readonly string[]>> = {
   codex: ['codex-mcp'],
   copilot: ['copilot-mcp'],
   cursor: ['cursor-legacy', 'cursor-mcp'],
+  'roo-code': ['roo-code-mcp'],
 };
 
 const writeFixturesFor = (tool: string): readonly string[] => [

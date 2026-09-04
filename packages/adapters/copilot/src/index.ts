@@ -20,6 +20,7 @@ import {
   type Artifact,
   type Canonical,
   type DetectResult,
+  type ImportResult,
   type RuleDocument,
 } from '@driftgate/adapter-kit';
 import {
@@ -28,7 +29,7 @@ import {
   parseInstructions,
   renderInstructionsFrontmatter,
 } from './instructions.js';
-import { MCP_FILE, renderMcpJson } from './mcp.js';
+import { MCP_FILE, importMcpConfig, renderMcpJson } from './mcp.js';
 import { docs } from './docs.js';
 
 export const REPO_INSTRUCTIONS = '.github/copilot-instructions.md';
@@ -36,7 +37,11 @@ export const INSTRUCTIONS_DIR = '.github/instructions';
 
 // `.github` alone is not evidence — nearly every repository has one, and a detector that
 // fires on it reports Copilot everywhere and means nothing.
-const DETECTION_PATHS = [REPO_INSTRUCTIONS, INSTRUCTIONS_DIR] as const;
+// `.vscode/mcp.json` is evidence; a bare `.vscode/` is not. The directory is as ubiquitous
+// as `.github/`, which was rejected as evidence for exactly this reason — but an `mcp.json`
+// inside it is a deliberate MCP configuration, and without it `collectImports` never hands
+// this adapter a repository whose only AI config is that file.
+const DETECTION_PATHS = [REPO_INSTRUCTIONS, INSTRUCTIONS_DIR, MCP_FILE] as const;
 
 async function detect(ctx: AdapterContext): Promise<DetectResult> {
   const evidence: string[] = [];
@@ -92,8 +97,30 @@ async function read(ctx: AdapterContext): Promise<Partial<Canonical>> {
     );
   }
 
-  return rules.length === 0 ? {} : { rules };
+  return {
+    ...(rules.length === 0 ? {} : { rules }),
+    ...(await readMcp(ctx)),
+  };
 }
+
+/**
+ * The MCP half, guarded separately from the rules half.
+ *
+ * A repository can hold `.vscode/mcp.json` and no rules at all, so folding this into the rules
+ * return would import no servers there — the mirror of the bug T046 found on the write
+ * side, where one early return covered the whole adapter.
+ */
+async function readMcp(ctx: AdapterContext): Promise<ImportResult> {
+  if (isCanonicalSource(ctx.canonical.manifest, MCP_FILE)) return {};
+  const contents = await ctx.fs.tryReadFile(MCP_FILE);
+  if (contents === undefined) return {};
+  const { servers, warnings } = importMcpConfig(contents);
+  return {
+    ...(servers.length === 0 ? {} : { mcpServers: servers }),
+    ...(warnings.length === 0 ? {} : { warnings }),
+  };
+}
+
 
 function instructionsPath(rule: RuleDocument): string {
   return `${INSTRUCTIONS_DIR}/${slugForId(rule.id)}.instructions.md`;

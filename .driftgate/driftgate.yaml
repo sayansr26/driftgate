@@ -4,10 +4,15 @@
 # the rule and every regenerated file together.
 schemaVersion: 1
 tools:
+  - aider
   - claude-code
+  - cline
   - codex
   - copilot
   - cursor
+  - roo-code
+  - windsurf
+  - zed
   - gemini
 
 options:
