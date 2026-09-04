@@ -12583,7 +12583,7 @@ var NodeFileSystem = class {
   }
   async writeFile(relPath, contents) {
     const abs = this.resolve(relPath);
-    await withPathErrors(relPath, async () => {
+    await withPathErrors(relPath, abs, async () => {
       await fs.mkdir(path2.dirname(abs), { recursive: true });
       await this.#materialize(abs);
       await fs.writeFile(abs, contents, "utf8");
@@ -12591,7 +12591,7 @@ var NodeFileSystem = class {
   }
   async copyFile(fromRelPath, toRelPath) {
     const to = this.resolve(toRelPath);
-    await withPathErrors(toRelPath, async () => {
+    await withPathErrors(toRelPath, to, async () => {
       await fs.mkdir(path2.dirname(to), { recursive: true });
       await this.#materialize(to);
       await fs.copyFile(this.resolve(fromRelPath), to);
@@ -12626,12 +12626,19 @@ function createReadOnlyFileSystem(root) {
 async function realpathOr(abs) {
   return fs.realpath(abs).catch(() => abs);
 }
-async function withPathErrors(relPath, run2) {
+var MAX_COMPONENT = 255;
+var MAX_WINDOWS_PATH = 260;
+function overrunsPathLimit(abs) {
+  if (abs.split(/[\\/]/).some((segment) => segment.length > MAX_COMPONENT))
+    return true;
+  return process.platform === "win32" && abs.length >= MAX_WINDOWS_PATH;
+}
+async function withPathErrors(relPath, abs, run2) {
   try {
     return await run2();
   } catch (e) {
     const code = e.code;
-    if (code === "ENAMETOOLONG" || code === "ERR_FS_EISDIR") {
+    if (code === "ENAMETOOLONG" || code === "ERR_FS_EISDIR" || code === "ENOENT" && overrunsPathLimit(abs)) {
       throw new DriftgateError({
         code: "E_PATH_TOO_LONG",
         message: `the filesystem refused the path ${relPath} (${String(code)})`,

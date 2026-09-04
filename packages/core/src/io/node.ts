@@ -149,7 +149,7 @@ export class NodeFileSystem implements WritableFileSystem {
 
   async writeFile(relPath: string, contents: string): Promise<void> {
     const abs = this.resolve(relPath);
-    await withPathErrors(relPath, async () => {
+    await withPathErrors(relPath, abs, async () => {
       await fs.mkdir(path.dirname(abs), { recursive: true });
       await this.#materialize(abs);
       await fs.writeFile(abs, contents, 'utf8');
@@ -158,7 +158,7 @@ export class NodeFileSystem implements WritableFileSystem {
 
   async copyFile(fromRelPath: string, toRelPath: string): Promise<void> {
     const to = this.resolve(toRelPath);
-    await withPathErrors(toRelPath, async () => {
+    await withPathErrors(toRelPath, to, async () => {
       await fs.mkdir(path.dirname(to), { recursive: true });
       await this.#materialize(to);
       await fs.copyFile(this.resolve(fromRelPath), to);
@@ -308,19 +308,44 @@ async function realpathOr(abs: string): Promise<string> {
   return fs.realpath(abs).catch(() => abs);
 }
 
+/** NAME_MAX on Linux and macOS, and the same per-component cap on NTFS. */
+const MAX_COMPONENT = 255;
+
+/** The classic Windows path limit, in force unless long paths are enabled. */
+const MAX_WINDOWS_PATH = 260;
+
+/**
+ * Does this path overrun a limit some platform will refuse?
+ *
+ * Only ever asked *about a path that already failed*, to tell one cause of failure from
+ * another. Windows reports an over-long path as a bare `ENOENT`, not `ENAMETOOLONG` —
+ * which is how the mapping below sat inert on the one platform whose limit it names, for
+ * the whole of its existence. `ENOENT` on its own proves nothing (`copyFile` raises it for
+ * a missing source too), so it counts as a path refusal only when the path is genuinely
+ * over a limit. That is checkable rather than guessable, which is the whole difference.
+ */
+function overrunsPathLimit(abs: string): boolean {
+  if (abs.split(/[\\/]/).some((segment) => segment.length > MAX_COMPONENT)) return true;
+  return process.platform === 'win32' && abs.length >= MAX_WINDOWS_PATH;
+}
+
 /**
  * Turn a platform path refusal into a named error with a hint.
  *
- * Windows' 260-character limit surfaces as a bare `ENAMETOOLONG` naming no limit and
- * suggesting no action — and it makes `check` fail there while passing on Linux for the
- * same repository, which reads as a Driftgate bug rather than a platform one.
+ * Windows' 260-character limit surfaces as a bare errno naming no limit and suggesting no
+ * action — and it makes `check` fail there while passing on Linux for the same repository,
+ * which reads as a Driftgate bug rather than a platform one.
  */
-async function withPathErrors<T>(relPath: string, run: () => Promise<T>): Promise<T> {
+async function withPathErrors<T>(relPath: string, abs: string, run: () => Promise<T>): Promise<T> {
   try {
     return await run();
   } catch (e) {
     const code = (e as NodeJS.ErrnoException).code;
-    if (code === 'ENAMETOOLONG' || code === 'ERR_FS_EISDIR') {
+    if (
+      code === 'ENAMETOOLONG' ||
+      code === 'ERR_FS_EISDIR' ||
+      (code === 'ENOENT' && overrunsPathLimit(abs))
+    ) {
       throw new DriftgateError({
         code: 'E_PATH_TOO_LONG',
         message: `the filesystem refused the path ${relPath} (${String(code)})`,

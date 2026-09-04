@@ -1,5 +1,4 @@
-import fsPromises from 'node:fs/promises';
-import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import fsPromises, { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -133,12 +132,16 @@ describe('writeFile and copyFile never follow a symlink', () => {
  * suggesting no action. `check` failing with a bare errno on Windows and succeeding on
  * Linux is a bug report nobody can act on, so `io/node.ts` maps it to a named error.
  *
- * Which path a platform *refuses*, though, is not portable, and the original single test
- * assumed it was: it built a ~1240-character path, which only macOS rejects (PATH_MAX
- * 1024). Linux allows 4096 and the Windows runners have long paths enabled, so the test
- * passed on one third of the matrix and asserted nothing on the rest. Hence two tests —
- * the mapping, which is ours and must hold everywhere, and the refusal, which is the
- * platform's and is allowed to be absent as long as it says so.
+ * Which path a platform *refuses*, and with which errno, is not portable — and the
+ * original single test assumed both were. It built a ~1240-character path, which only
+ * macOS rejects (PATH_MAX 1024); Linux allows 4096 and the Windows runners have long paths
+ * enabled, so it passed on a third of the matrix and asserted nothing on the rest. Worse,
+ * making it fail honestly showed that Windows reports an over-long path as ENOENT, so the
+ * mapping had never once fired on the platform whose limit it names.
+ *
+ * So the platform-dependent half is separated from the half Driftgate owns: the mappings
+ * are stubbed and must hold identically everywhere, while the one test that asks a real
+ * filesystem to refuse something is allowed to skip — out loud — where it will not.
  */
 describe('long paths', () => {
   it('maps a platform path refusal onto a named error with a hint', async () => {
@@ -157,6 +160,37 @@ describe('long paths', () => {
     // The hint is the whole point of the mapping; an error without it is the bare errno
     // again, wearing a nicer name.
     expect((refusal as DriftgateError).hint).toBeTruthy();
+  });
+
+  it('maps the bare ENOENT Windows reports for an over-long path', async () => {
+    // The branch that took a Windows runner to find. Windows does not raise ENAMETOOLONG
+    // for a path over its limit — it raises ENOENT, so the mapping above never fired on the
+    // one platform whose 260 characters it names. Pinned with a stub because the platform
+    // that behaves this way is not the one this suite usually runs on.
+    const fs = new NodeFileSystem(repo);
+    vi.spyOn(fsPromises, 'writeFile').mockRejectedValue(
+      Object.assign(new Error('no such file or directory'), { code: 'ENOENT' }),
+    );
+
+    const refusal = await fs.writeFile(`${'a'.repeat(300)}/rule.md`, 'x').catch((e: unknown) => e);
+
+    expect(refusal).toBeInstanceOf(DriftgateError);
+    expect(refusal).toMatchObject({ code: 'E_PATH_TOO_LONG' });
+  });
+
+  it('lets an ordinary ENOENT through rather than blaming the path length', async () => {
+    // The control, and the reason that branch tests the path and not just the errno:
+    // `copyFile` raises ENOENT for a missing *source*, which is a real error a reader must
+    // see rather than a lecture about Windows path limits.
+    const fs = new NodeFileSystem(repo);
+    vi.spyOn(fsPromises, 'writeFile').mockRejectedValue(
+      Object.assign(new Error('no such file or directory'), { code: 'ENOENT' }),
+    );
+
+    const refusal = await fs.writeFile('rule.md', 'x').catch((e: unknown) => e);
+
+    expect(refusal).not.toBeInstanceOf(DriftgateError);
+    expect(refusal).toMatchObject({ code: 'ENOENT' });
   });
 
   it('refuses a genuinely over-long path, where the platform imposes a limit', async ({ skip }) => {
