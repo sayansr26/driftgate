@@ -98,6 +98,53 @@ claim Driftgate makes carries a source URL and the tool version it was verified 
 `doctor` is read-only and **exits 0 even when it warns** — `check` owns exit 1, and a
 command that reports a correct permanent condition as a CI failure is one people mute.
 
+## If you hand-edit a generated file
+
+You will, and Driftgate does not punish it. `sync` refuses to overwrite the file and offers
+two ways out:
+
+```sh
+driftgate sync --import   # recover the edit into .driftgate/ (prints the merge; --yes to apply)
+driftgate sync --force    # discard it, after copying the original to .driftgate/backup/
+```
+
+`--import` reverses the edit through the same adapter that generated the file. It refuses,
+rather than guessing, when the canonical source has changed too — `state.json` records a
+hash, not the old text, so in that case the version you edited cannot be reconstructed from
+anything and both sides are shown instead.
+
+## Catch drift before it is committed
+
+`driftgate check --staged` verifies the **git index** instead of the working tree, which is
+what a commit hook needs: it answers "if this commit lands, will the generated files still
+match `.driftgate/`?" Both sides come from the index, so an edit you have not staged yet
+never blocks a commit, and staged artifacts that are stale never slip through one.
+
+With [pre-commit](https://pre-commit.com):
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/driftgate-dev/driftgate
+    rev: v0.1.0
+    hooks:
+      - id: driftgate-check
+```
+
+With husky:
+
+```sh
+# .husky/pre-commit
+npx driftgate check --staged
+```
+
+It adds well under 500 ms to a commit, and it is read-only like every other form of
+`check` — a failing hook tells you to run `driftgate sync`, it does not run it for you.
+
+Outside a git working tree `--staged` **refuses** rather than quietly checking the working
+tree instead. Being told a commit was verified against an index nobody read is worse than
+being told it could not be verified.
+
 ## How it compares
 
 |                                                               | ruler   | rulesync | symlinks / `@import` | **Driftgate** |

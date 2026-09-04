@@ -41,8 +41,22 @@ all count, each with the recovery hint `sync` would give. The diff runs from dis
 render, so `+` lines are what `sync` will write; changed lines show trailing spaces and
 tabs as `·` and `␉`, and a missing final newline is marked, because those are the
 differences a hash sees and a diff otherwise hides. It holds a filesystem with no write
-methods on it and never calls `applyPlan`. `--staged` is not implemented yet: reading the
-git index means spawning `git`, and that arrives with the pre-commit hook package (T052).
+methods on it and never calls `applyPlan`. `--staged` checks the **git index** instead of
+the working tree, which is what a pre-commit hook needs: both sides come from the index, so
+an unstaged edit never blocks a commit and stale staged artifacts never slip through one.
+Outside a git working tree it refuses rather than quietly checking the working tree.
+`packages/core/src/git/` is the only directory in shipped source allowed to spawn a process,
+it runs three read-only git subcommands, and `invariants.test.ts` pins both facts.
+
+`driftgate sync --import` merges a hand-edit on a generated file back into
+`.driftgate/`. It prints the merge as a diff and **writes nothing without `--yes`**. The
+ancestor is the current render, valid only while `state.json`'s recorded hash still matches
+it — if the canonical source moved on too, the version you edited cannot be reconstructed
+from anything, and the file is **refused** rather than merged from a guessed ancestor.
+Matching is by position via `Artifact.provenance.ruleIds`, because a rule's id does not
+survive rendering; a file whose section count no longer matches the rules that produced it
+is refused for the same reason. `sync --force` is the other half: it discards the edit
+instead of recovering it, after copying the original to `.driftgate/backup/`.
 
 `driftgate restore [path...]` puts back the originals under `.driftgate/backup/` — the undo
 for both `sync --force` and orphan deletion. Like `init` it **writes nothing without

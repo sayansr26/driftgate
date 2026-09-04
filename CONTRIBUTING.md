@@ -64,6 +64,18 @@ errors began exiting 1, which is the code that means _drift_.
   against a hand-edited file (exit 1), `doctor`, and an unknown command (exit 2).
 - **Prettier**, on one cell.
 
+## The pre-commit hook
+
+This repository ships `.pre-commit-hooks.yaml`, so `driftgate check --staged` can run as a
+commit hook in any repository that adopts Driftgate. See the README for the two snippets.
+
+`--staged` is the one place in shipped source that spawns a process, and
+`packages/core/src/git/` is the only directory allowed to — `invariants.test.ts` pins that
+allowlist to exactly one entry, pins the three read-only git subcommands it may run, and
+asserts the module uses `execFile` rather than `exec`. `git fetch` is one argument away from
+making "zero network calls" false, so the hole gets its own guard rather than relying on the
+file scan that no longer covers it.
+
 ## Invariants a pull request must not break
 
 These are not style preferences. Each is enforced mechanically, by

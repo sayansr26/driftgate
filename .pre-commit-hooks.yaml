@@ -1,0 +1,21 @@
+# Consumed by pre-commit (https://pre-commit.com) when this repository is listed as a
+# `repo:` in somebody's .pre-commit-config.yaml.
+#
+# `--staged` rather than plain `check`: the hook must judge the commit that is about to
+# land, not the working tree. Checking the working tree would block a commit over an
+# unstaged edit and pass one whose staged artifacts are stale — wrong in both directions.
+#
+# `pass_filenames: false` because `check` renders the whole plan from `.driftgate/` and
+# compares every artifact. Handing it the changed files would make the answer depend on
+# which files happened to be in the commit, and a hook that only sometimes notices drift is
+# worse than none.
+- id: driftgate-check
+  name: driftgate check --staged
+  description: Fail the commit if generated tool configs do not match .driftgate/
+  entry: driftgate check --staged
+  language: node
+  pass_filenames: false
+  # Any commit can invalidate the generated files, because the canonical source or the
+  # manifest may be part of it. Restricting by file pattern would let a rule deletion
+  # through untouched.
+  always_run: true

@@ -24,6 +24,12 @@ export type DriftgateErrorCode =
   // `driftgate adapter new` refused rather than overwrite a path that already exists, or
   // patch one that does not (T028).
   | 'E_SCAFFOLD_CONFLICT'
+  // `check --staged` needed the git index, and git could not answer. Two codes rather
+  // than one: not being in a git working tree at all is a different situation from a
+  // file that is simply not staged, and only the first is worth a hint about `--staged`.
+  | 'E_GIT_UNAVAILABLE'
+  | 'E_GIT_NOT_STAGED'
+  | 'E_GIT_FAILED'
   | 'E_ADAPTER_FAILED'
   | 'E_ADAPTER_API_VERSION';
 

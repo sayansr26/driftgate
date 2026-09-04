@@ -176,11 +176,22 @@ export async function applyPlan(
       continue;
     }
 
-    if (handEdited.has(artifact.path)) {
+    if (handEdited.has(artifact.path) && !force) {
       // Users hand-edit generated files; that habit will not be broken by punishing
       // it. Stopping and pointing at a recovery that works keeps their edit.
       skipped.push({ path: artifact.path, reason: 'hand-edited' });
       continue;
+    }
+
+    if (handEdited.has(artifact.path) && onDisk !== undefined && backupEnabled) {
+      // T075's remaining half. `--force` covered only `unmanaged` paths, so a hand-edited
+      // generated file had no flag-based escape hatch at all — the only way forward was to
+      // delete the file by hand, and nothing in the output said so. Widening it waited for
+      // the backup (T020) and for a recovery that keeps the edit (`--import`, T051), so
+      // that discarding one is now a choice between two stated options rather than the
+      // only door.
+      if (!options.dryRun) await fs.copyFile(artifact.path, backupPathFor(artifact.path));
+      backedUp.push(artifact.path);
     }
 
     if (unmanaged.has(artifact.path) && !force) {

@@ -3,9 +3,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NodeFileSystem, buildDoctorReport } from '@driftgate/core';
+import { NodeFileSystem, buildDoctorReport, hashContents } from '@driftgate/core';
 import { ADAPTERS } from '../src/registry.js';
 import { runDoctor } from '../src/commands/doctor.js';
+import { runSync } from '../src/commands/sync.js';
 import { ExitCode } from '../src/ui/exit.js';
 import type { DoctorReport } from '@driftgate/core';
 
@@ -15,6 +16,9 @@ const fixtures = fileURLToPath(new URL('../../../fixtures/', import.meta.url));
  *  character inside a regular expression, and a test that matches escape sequences has to
  *  name one somehow. */
 const ANSI = new RegExp(`${String.fromCharCode(27)}\\[`);
+
+/** Distinct from anything a real `~/.claude/CLAUDE.md` would hold, which is the point. */
+const HOME_RULES = '# machine-wide rules\n\nnot from any repository.\n';
 
 let repo: string;
 let stdout: string[];
@@ -179,6 +183,123 @@ describe('driftgate doctor — contract', () => {
     await writeFile(path.join(repo, 'added.txt'), 'new');
     await writeFile(path.join(repo, 'CLAUDE.md'), 'modified in place');
     expect(await snapshotTree(repo)).not.toEqual(before);
+  });
+
+  // T055. The global half had data since T016 and no way to be exercised: `runDoctor`
+  // built the home filesystem itself, so every test ran with `noGlobal: true` and the
+  // rows this feature is about were never rendered by any of them.
+  describe('user-level files (T055)', () => {
+    let home: string;
+
+    beforeEach(async () => {
+      home = await mkdtemp(path.join(tmpdir(), 'driftgate-home-'));
+      await mkdir(path.join(home, '.claude'), { recursive: true });
+      await writeFile(path.join(home, '.claude/CLAUDE.md'), HOME_RULES);
+      await cp(path.join(fixtures, 'doctor/adopted'), repo, { recursive: true });
+    });
+
+    afterEach(async () => {
+      await rm(home, { recursive: true, force: true });
+    });
+
+    it('reports a user-level file as read-only, by its ~/ name and never an absolute path', async () => {
+      await runDoctor({ cwd: repo, color: false, homeRoot: home });
+      const row = stdout
+        .join('')
+        .split('\n')
+        .find((l) => l.includes('~/.claude/CLAUDE.md'));
+
+      expect(row).toBeDefined();
+      expect(row).toContain('user-level, read-only');
+
+      // Pinned to the fixture's bytes, not merely to the path. The developer's real home
+      // has a `~/.claude/CLAUDE.md` too, so a path-only assertion passes with `homeRoot`
+      // ignored entirely — the row comes from the machine instead, and the test proves
+      // nothing while looking like it proves everything. The hash can only match the file
+      // this test wrote.
+      stdout.length = 0;
+      await runDoctor({ cwd: repo, json: true, color: false, homeRoot: home });
+      const report = JSON.parse(stdout.join('')) as DoctorReport;
+      const global = report.tools
+        .flatMap((t) => t.files)
+        .find((f) => f.paths.includes('~/.claude/CLAUDE.md'));
+      expect(global?.scope).toBe('global');
+      expect(global?.contentHash).toBe(hashContents(HOME_RULES));
+      // A DoctorReport is meant to be pasted into an issue, and the home directory is the
+      // one path that must never appear in it. `repoRoot` is the only absolute path
+      // allowed anywhere in the output.
+      expect(stdout.join('')).not.toContain(home);
+    });
+
+    it('the paired control: with --no-global the row is not-probed and carries no label', async () => {
+      const r = await buildDoctorReport({
+        repoRoot: repo,
+        fs: new NodeFileSystem(repo),
+        adapters: ADAPTERS,
+      });
+      const globals = r.tools.flatMap((t) => t.files).filter((f) => f.scope === 'global');
+      expect(globals.length).toBeGreaterThan(0);
+      expect(globals.every((f) => f.paths.length === 0)).toBe(true);
+
+      await runDoctor({ cwd: repo, color: false, noGlobal: true });
+      expect(stdout.join('')).not.toContain('user-level, read-only');
+    });
+
+    // T055's stated validation, and it is about `sync` rather than `doctor`: reporting a
+    // user's home directory is only acceptable while nothing can write to it. Every write
+    // in the codebase goes through one of these three methods — the same allowlist
+    // `invariants.test.ts` pins to `core/src/io` and `pipeline/apply.ts` — so a spy on all
+    // three sees every path the run touched, whatever route it took.
+    it('sync writes nothing outside the repository, with a home directory in view', async () => {
+      const outside: string[] = [];
+      const watch = (name: 'writeFile' | 'copyFile' | 'deleteFile') =>
+        vi.spyOn(NodeFileSystem.prototype, name).mockImplementation(function (
+          this: NodeFileSystem,
+          ...args: string[]
+        ) {
+          for (const rel of args) {
+            const abs = path.resolve(repo, rel);
+            if (path.relative(repo, abs).startsWith('..')) outside.push(abs);
+          }
+          return Promise.resolve();
+        });
+
+      // The fixture is already in sync, so a plain `sync` writes nothing and the control
+      // below correctly refuses to accept the result. Move the canonical source first.
+      await writeFile(path.join(repo, '.driftgate/rules/99-extra.md'), '# Extra\n\nrule.\n');
+
+      const spies = [watch('writeFile'), watch('copyFile'), watch('deleteFile')];
+      let observed = 0;
+      try {
+        await runDoctor({ cwd: repo, quiet: true, homeRoot: home });
+        await runSync({ cwd: repo, quiet: true });
+        // Counted before the restore. `mockRestore` clears the call history as well as the
+        // implementation, so reading it afterwards reports zero — which is what the control
+        // is looking for, and it would have passed the control while proving nothing.
+        observed = spies.reduce((n, s) => n + s.mock.calls.length, 0);
+      } finally {
+        for (const spy of spies) spy.mockRestore();
+      }
+
+      expect(outside).toEqual([]);
+      // The paired control: the spies must actually have seen writes, or an empty `outside`
+      // proves only that nothing ran.
+      expect(observed).toBeGreaterThan(0);
+      // And the home directory is untouched on disk.
+      expect(await readdir(path.join(home, '.claude'))).toEqual(['CLAUDE.md']);
+    });
+
+    // The label must not be bought with the annotation that matters most. Copilot reads
+    // three files two other adapters generate, and `from codex` / `from claude-code` is
+    // how T078's duplicate load is visible at all. Adding the label to a global row that
+    // matched nothing widened the column past 80 and the degradation dropped the whole
+    // annotation column, silently.
+    it('does not cost Copilot its cross-adapter attribution at 80 columns', async () => {
+      await runDoctor({ cwd: repo, color: false, homeRoot: home });
+      const text = stdout.join('');
+      expect(text).toContain('from codex');
+      for (const line of text.split('\n')) expect(line.length).toBeLessThanOrEqual(80);
+    });
   });
 
   it('--no-global means nothing outside the repository is probed', async () => {

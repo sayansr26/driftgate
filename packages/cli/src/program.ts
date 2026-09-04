@@ -60,35 +60,49 @@ export function buildProgram(): Command {
     .option('--dry-run', 'report what would change without writing')
     .option(
       '--force',
-      'take ownership of files driftgate did not generate, backing each up to .driftgate/backup/ first',
+      'overwrite hand-edited and unowned files, backing each up to .driftgate/backup/ first',
     )
-    .action(async (opts: { dryRun?: boolean; force?: boolean }, cmd: Command) => {
-      const globals = cmd.optsWithGlobals<{ cwd?: string; quiet?: boolean; color?: boolean }>();
-      const { root, searched } = resolveGlobalCwd(globals.cwd);
-      const code = await runSync({
-        cwd: root,
-        ...(searched ? { announceRoot: true } : {}),
-        ...(opts.dryRun === undefined ? {} : { dryRun: opts.dryRun }),
-        ...(opts.force === undefined ? {} : { force: opts.force }),
-        ...(globals.quiet === undefined ? {} : { quiet: globals.quiet }),
-        ...(globals.color === undefined ? {} : { color: globals.color }),
-      });
-      process.exitCode = code;
-    });
+    // `--import` is the non-destructive half of the same problem: `--force` discards the
+    // edit (after a backup), this recovers it. Both exist so that meeting a hand-edited
+    // file is a choice rather than a dead end (T051, T075).
+    .option('--import', 'merge hand-edits on generated files back into .driftgate/')
+    .option('--yes', 'apply the merge --import printed')
+    .action(
+      async (
+        opts: { dryRun?: boolean; force?: boolean; import?: boolean; yes?: boolean },
+        cmd: Command,
+      ) => {
+        const globals = cmd.optsWithGlobals<{ cwd?: string; quiet?: boolean; color?: boolean }>();
+        const { root, searched } = resolveGlobalCwd(globals.cwd);
+        const code = await runSync({
+          cwd: root,
+          ...(searched ? { announceRoot: true } : {}),
+          ...(opts.dryRun === undefined ? {} : { dryRun: opts.dryRun }),
+          ...(opts.force === undefined ? {} : { force: opts.force }),
+          ...(opts.import === undefined ? {} : { import: opts.import }),
+          ...(opts.yes === undefined ? {} : { yes: opts.yes }),
+          ...(globals.quiet === undefined ? {} : { quiet: globals.quiet }),
+          ...(globals.color === undefined ? {} : { color: globals.color }),
+        });
+        process.exitCode = code;
+      },
+    );
 
   // Directly after `sync` because it is `sync`'s read-only twin: same plan, same
-  // vocabulary, and --help should show the pair together. No `--staged` yet — reading the
-  // git index means spawning `git`, and that lands with the pre-commit hook (T052) that
-  // needs it; an unregistered flag exits 2 here rather than silently doing nothing.
+  // vocabulary, and --help should show the pair together. `--staged` arrived with T052:
+  // it reads the git index, which is the one place in shipped source that spawns a
+  // process, and the pre-commit hook is its only consumer.
   program
     .command('check')
     .description('Verify generated tool configs match .driftgate/ (read-only; exits 1 on drift)')
-    .action(async (_opts: Record<string, never>, cmd: Command) => {
+    .option('--staged', 'check the git index instead of the working tree (for pre-commit hooks)')
+    .action(async (opts: { staged?: boolean }, cmd: Command) => {
       const globals = cmd.optsWithGlobals<{ cwd?: string; quiet?: boolean; color?: boolean }>();
       const { root, searched } = resolveGlobalCwd(globals.cwd);
       const code = await runCheck({
         cwd: root,
         ...(searched ? { announceRoot: true } : {}),
+        ...(opts.staged === undefined ? {} : { staged: opts.staged }),
         ...(globals.quiet === undefined ? {} : { quiet: globals.quiet }),
         ...(globals.color === undefined ? {} : { color: globals.color }),
       });

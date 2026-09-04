@@ -59,3 +59,6 @@ export {
   createHomeFileSystem,
   createReadOnlyFileSystem,
 } from './io/node.js';
+export { StagedFileSystem, gitTopLevel, GIT_SUBCOMMANDS } from './git/index.js';
+export { computeMergePlan } from './import/merge.js';
+export type { MergePlan, MergeRefusal, RuleMerge } from './import/merge.js';

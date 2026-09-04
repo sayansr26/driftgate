@@ -1,4 +1,5 @@
-import { DriftgateError } from '../model/errors.js';
+import { formatterWarnings } from './formatters.js';
+import type { DriftgateError } from '../model/errors.js';
 import {
   CANONICAL_SCHEMA_VERSION,
   DEFAULT_MANIFEST_OPTIONS,
@@ -94,7 +95,7 @@ export async function computeInitPlan(input: InitInput): Promise<InitPlan> {
   warnings.push(...plan.warnings);
 
   const canonicalFiles = await classify(serializeCanonical(canonical), fs);
-  warnings.push(...(await formatterWarnings(fs, plan)));
+  warnings.push(...(await formatterWarnings({ fs, generated: plan.artifacts.map((a) => a.path) })));
 
   return { adopted: false, detected, canonical, canonicalFiles, plan, conflicts, warnings, errors };
 }
@@ -138,53 +139,4 @@ async function classify(
     });
   }
   return out.sort((a, b) => compareCodepoint(a.path, b.path));
-}
-
-const FORMATTER_CONFIGS = [
-  '.prettierrc',
-  '.prettierrc.json',
-  '.prettierrc.yaml',
-  '.prettierrc.yml',
-  '.prettierrc.js',
-  'prettier.config.js',
-  'prettier.config.mjs',
-  '.prettierrc.mjs',
-];
-
-/**
- * T072, which is a first-run experience rather than a bug in either tool.
- *
- * A formatter and a generator cannot both own a file. Reformat a generated one and the
- * next `sync` correctly reports it as hand-edited and refuses to write it — a deadlock
- * that looks, from the outside, like Driftgate being broken. Every user with Prettier
- * hits it, so `init` says so at the one moment the information is useful.
- *
- * It warns rather than editing `.prettierignore` itself: that file is the user's, and a
- * tool whose pitch is that it never touches what it did not generate should not open its
- * first conversation by editing something it did not generate.
- */
-async function formatterWarnings(
-  fs: ReadOnlyFileSystem,
-  plan: Plan,
-): Promise<readonly DriftgateError[]> {
-  let configured = false;
-  for (const config of FORMATTER_CONFIGS) {
-    if (await fs.exists(config)) configured = true;
-  }
-  if (!configured || plan.artifacts.length === 0) return [];
-
-  const ignore = (await fs.tryReadFile('.prettierignore')) ?? '';
-  const unlisted = plan.artifacts
-    .map((a) => a.path)
-    .filter((p) => !ignore.split('\n').some((line) => line.trim() === p));
-  if (unlisted.length === 0) return [];
-
-  return [
-    new DriftgateError({
-      code: 'E_FORMATTER_CONFLICT',
-      message: `this repository uses Prettier, and ${String(unlisted.length)} generated file(s) are not in .prettierignore`,
-      source: { file: '.prettierignore' },
-      hint: `add these lines to .prettierignore, or the next \`pnpm format\` will rewrite them and sync will then refuse to: ${unlisted.join(', ')}`,
-    }),
-  ];
 }

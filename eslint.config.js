@@ -90,7 +90,14 @@ export default tseslint.config(
   {
     // No tool-specific logic in core, and no filesystem access outside the io boundary.
     files: ['packages/core/src/**/*.ts'],
-    ignores: ['packages/core/src/io/**', 'packages/core/src/**/*.test.ts'],
+    // `src/git/` is the one directory allowed to spawn a process (T052), and it is the
+    // *only* exemption — `invariants.test.ts` pins that allowlist to a single entry, so
+    // this ignore and that list have to be changed together to grow a second one.
+    ignores: [
+      'packages/core/src/io/**',
+      'packages/core/src/git/**',
+      'packages/core/src/**/*.test.ts',
+    ],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -103,10 +110,10 @@ export default tseslint.config(
               message: 'Filesystem access belongs in core/src/io only.',
             },
             {
-              // Nothing in shipped source spawns a process (invariants.test.ts scans for it
-              // repo-wide); this is the per-file message for the package most likely to try.
+              // Only `core/src/git/` spawns anything, and only three read-only git
+              // subcommands (T052). `invariants.test.ts` scans everywhere else.
               name: 'node:child_process',
-              message: 'Core spawns nothing. A git-backed filesystem for --staged is T052.',
+              message: 'Only core/src/git may spawn a process, and only read-only git.',
             },
           ],
         },

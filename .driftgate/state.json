@@ -20,7 +20,7 @@
     },
     {
       "adapter": "cursor",
-      "hash": "sha256:5e241c7f479cbe5d61e0a840bbe9110e214f72f09e14b12344ef2cc7a3edf1d6",
+      "hash": "sha256:dda0256e0ca6b54002e456b92a8b7f90d807630c0679737edbb019b0249a1971",
       "kind": "rules",
       "path": ".cursor/rules/40-commands.mdc"
     },
@@ -32,25 +32,25 @@
     },
     {
       "adapter": "copilot",
-      "hash": "sha256:9962cc6f96300633ba70555564e7d76128605667b9611a648f8f6dce476f0490",
+      "hash": "sha256:d66565a3a03c69780e845cd6be7257141343634e074763da5ce1068629da29ce",
       "kind": "rules",
       "path": ".github/copilot-instructions.md"
     },
     {
       "adapter": "codex",
-      "hash": "sha256:9962cc6f96300633ba70555564e7d76128605667b9611a648f8f6dce476f0490",
+      "hash": "sha256:d66565a3a03c69780e845cd6be7257141343634e074763da5ce1068629da29ce",
       "kind": "rules",
       "path": "AGENTS.md"
     },
     {
       "adapter": "claude-code",
-      "hash": "sha256:9962cc6f96300633ba70555564e7d76128605667b9611a648f8f6dce476f0490",
+      "hash": "sha256:d66565a3a03c69780e845cd6be7257141343634e074763da5ce1068629da29ce",
       "kind": "rules",
       "path": "CLAUDE.md"
     },
     {
       "adapter": "gemini",
-      "hash": "sha256:9962cc6f96300633ba70555564e7d76128605667b9611a648f8f6dce476f0490",
+      "hash": "sha256:d66565a3a03c69780e845cd6be7257141343634e074763da5ce1068629da29ce",
       "kind": "rules",
       "path": "GEMINI.md"
     }

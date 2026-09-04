@@ -34,6 +34,9 @@ async function tree(dir = repo, prefix = ''): Promise<string[]> {
 
 const read = (rel: string) => readFile(path.join(repo, rel), 'utf8');
 
+const plan = () =>
+  computeInitPlan({ repoRoot: repo, fs: new NodeFileSystem(repo), adapters: ADAPTERS });
+
 /** A repository as it looks before anyone has heard of Driftgate. */
 async function seedNativeConfigs(): Promise<void> {
   // Three shapes on purpose: a marker-bearing `CLAUDE.md` that imports structurally and
@@ -190,21 +193,92 @@ describe('driftgate init', () => {
     await seedNativeConfigs();
     await writeFile(path.join(repo, '.prettierrc'), '{}\n');
 
-    const planned = await computeInitPlan({
-      repoRoot: repo,
-      fs: new NodeFileSystem(repo),
-      adapters: ADAPTERS,
-    });
+    const planned = await plan();
     expect(planned.warnings.map((w) => w.code)).toContain('E_FORMATTER_CONFLICT');
 
     // The paired control: no formatter config, no warning. Without it the assertion above
     // passes against a warning that fires unconditionally.
     await rm(path.join(repo, '.prettierrc'));
-    const quiet = await computeInitPlan({
-      repoRoot: repo,
-      fs: new NodeFileSystem(repo),
-      adapters: ADAPTERS,
-    });
+    const quiet = await plan();
     expect(quiet.warnings.map((w) => w.code)).not.toContain('E_FORMATTER_CONFLICT');
+  });
+
+  // T072: Prettier was the only formatter the warning knew about, so a repository
+  // formatted by anything else walked into the same deadlock with nothing said.
+  it.each([
+    ['Biome', 'biome.json', 'files.includes'],
+    ['dprint', 'dprint.json', 'excludes'],
+    ['ESLint', 'eslint.config.js', '.eslintignore'],
+  ])('warns about %s too, naming where its exclusions live', async (name, config, where) => {
+    await seedNativeConfigs();
+    await writeFile(path.join(repo, config), '{}\n');
+
+    const warning = (await plan()).warnings.find((w) => w.message.includes(name));
+    expect(warning?.code).toBe('E_FORMATTER_CONFLICT');
+    // The hint has to name that formatter's own mechanism. Biome and dprint have no
+    // ignore file at all, so "add these lines to .prettierignore" is wrong advice, which
+    // is the same failure as no advice.
+    expect(warning?.hint).toContain(where);
+  });
+
+  it('detects Prettier from package.json when there is no config file', async () => {
+    await seedNativeConfigs();
+    await writeFile(
+      path.join(repo, 'package.json'),
+      JSON.stringify({ name: 'x', devDependencies: { prettier: '^3.0.0' } }, null, 2),
+    );
+
+    expect((await plan()).warnings.map((w) => w.code)).toContain('E_FORMATTER_CONFLICT');
+  });
+
+  // The false positive, and the reason exact-line matching had to go: this repository's
+  // own `.prettierignore` lists `.cursor/rules/` and `.github/instructions/`, which cover
+  // their contents without naming one of them. A warning that fires on a correctly
+  // configured repository is one people learn to ignore.
+  it('stays quiet when the ignore file covers the generated paths by directory or glob', async () => {
+    await seedNativeConfigs();
+    await writeFile(path.join(repo, '.prettierrc'), '{}\n');
+
+    const planned = await plan();
+    const generated = planned.plan.artifacts.map((a) => a.path);
+    expect(generated.length).toBeGreaterThan(0);
+    // Deliberately not the literal paths: directory entries and one `**` glob, which is
+    // what a real ignore file looks like and what the old matcher could not read.
+    await writeFile(
+      path.join(repo, '.prettierignore'),
+      ['# generated', '.cursor/', '.github/', '**/*.md', ''].join('\n'),
+    );
+
+    expect((await plan()).warnings.map((w) => w.code)).not.toContain('E_FORMATTER_CONFLICT');
+  });
+
+  // The other half of the same rule: a negation un-ignores, and the last matching line
+  // wins. Without it a user who deliberately re-included one generated file is told
+  // nothing about the only file that will actually be reformatted.
+  it('warns about exactly the path a negation re-includes', async () => {
+    await seedNativeConfigs();
+    await writeFile(path.join(repo, '.prettierrc'), '{}\n');
+    await writeFile(
+      path.join(repo, '.prettierignore'),
+      ['.cursor/', '.github/', '**/*.md', '!CLAUDE.md', ''].join('\n'),
+    );
+
+    const warning = (await plan()).warnings.find((w) => w.code === 'E_FORMATTER_CONFLICT');
+    expect(warning?.hint).toContain('CLAUDE.md');
+    expect(warning?.message).toContain('1 generated file(s)');
+  });
+
+  // T019's decision, made mechanical: `init` warns about the user's ignore file and never
+  // edits it. A tool whose pitch is that it never touches what it did not generate should
+  // not open its first conversation by editing something it did not generate.
+  it('never writes an ignore file, even under --yes', async () => {
+    await seedNativeConfigs();
+    await writeFile(path.join(repo, '.prettierrc'), '{}\n');
+    await writeFile(path.join(repo, '.prettierignore'), '# mine\n');
+
+    expect(await runInit({ cwd: repo, yes: true, quiet: true })).toBe(ExitCode.Ok);
+
+    expect(await read('.prettierignore')).toBe('# mine\n');
+    expect(await tree()).not.toContain('.eslintignore');
   });
 });

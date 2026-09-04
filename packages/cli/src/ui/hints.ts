@@ -20,7 +20,16 @@ export const HINT_SYNC = 'hint: run: driftgate sync';
  */
 export const HINT_HAND_EDITED =
   'hint: re-apply your edit in .driftgate/, then delete the generated file so sync' +
-  ' can rewrite it. There is no in-place merge yet.';
+  ' can rewrite it.';
+
+/**
+ * The escape hatch T075 spent four tasks without. It is a *second* line rather than part
+ * of `HINT_HAND_EDITED`, because the two say different things: the first is what to do
+ * with no further tooling, and this one is the shortcut, which not every user wants —
+ * importing rewrites their canonical source.
+ */
+export const HINT_IMPORT =
+  'hint: or run: driftgate sync --import  (prints the merge; writes nothing without --yes)';
 
 /**
  * A third case, and reusing either message above would be wrong. This file is ours —

@@ -1,10 +1,13 @@
 import {
+  StagedFileSystem,
   computePlan,
   createReadOnlyFileSystem,
   diffLines,
   formatHunks,
+  gitTopLevel,
   resolveRepoRoot,
   verifyPlan,
+  type ReadOnlyFileSystem,
   type VerifyEntry,
   type VerifyStatus,
 } from '@driftgate/core';
@@ -25,6 +28,16 @@ export interface CheckOptions {
   readonly announceRoot?: boolean;
   readonly quiet?: boolean;
   readonly color?: boolean;
+  /**
+   * Check the git **index** instead of the working tree — what a pre-commit hook needs
+   * (T052), and its only consumer.
+   *
+   * Both sides come from the index. The question being asked is "if this commit lands, is
+   * the repository in sync?", so canonical is read from the index too; rendering from the
+   * working tree and comparing against the index would block a commit over a rule edited
+   * but not staged, which is a correct answer to a question nobody asked.
+   */
+  readonly staged?: boolean;
 }
 
 /**
@@ -49,7 +62,22 @@ export async function runCheck(options: CheckOptions): Promise<ExitCodeValue> {
     ...(options.color === undefined ? {} : { color: options.color }),
   });
   const repoRoot = resolveRepoRoot(options.cwd);
-  const fs = createReadOnlyFileSystem(repoRoot);
+
+  let fs: ReadOnlyFileSystem;
+  if (options.staged === true) {
+    // Refused rather than quietly falling back to the working tree. A hook author who
+    // asked for the index must not be told the commit is clean on the strength of files
+    // that are not in it — the same reasoning that made `--staged` exit 2 rather than be
+    // accepted and ignored while it was unimplemented (T023).
+    if ((await gitTopLevel(repoRoot)) === undefined) {
+      out.error('--staged needs a git working tree, and this is not one.');
+      out.error('hint: run driftgate check without --staged to check the working tree');
+      return ExitCode.Failure;
+    }
+    fs = new StagedFileSystem(repoRoot);
+  } else {
+    fs = createReadOnlyFileSystem(repoRoot);
+  }
 
   if (options.announceRoot === true) out.log(`repo  ${repoRoot}`);
 
@@ -69,7 +97,8 @@ export async function runCheck(options: CheckOptions): Promise<ExitCodeValue> {
   for (const warning of report.warnings) out.error(warning.format());
 
   if (report.clean) {
-    out.log(`in sync (${pluralize(plan.artifacts.length, 'artifact')})`);
+    const what = options.staged === true ? ' staged' : '';
+    out.log(`in sync (${pluralize(plan.artifacts.length, 'artifact')}${what})`);
     return ExitCode.Ok;
   }
 

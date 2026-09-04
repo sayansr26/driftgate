@@ -2,6 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { GIT_SUBCOMMANDS, StagedFileSystem } from '../src/git/index.js';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
@@ -65,6 +66,12 @@ describe('dependency surface', () => {
   });
 });
 
+/**
+ * The only directory in shipped source that may spawn a process (T052). One entry, and
+ * the test above pins the length.
+ */
+const SPAWN_ALLOWLIST = ['packages/core/src/git'];
+
 describe('zero network calls', () => {
   const FORBIDDEN = [
     /from\s+['"]node:(https?|net|dgram|dns|tls)['"]/,
@@ -86,25 +93,45 @@ describe('zero network calls', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('spawns no process anywhere in shipped source', async () => {
-    // `check --staged` will need the git index one day (T052), and reading it means a
-    // subprocess. Until a directory is deliberately allowlisted here, the answer is
-    // that shipped code never spawns anything — which also keeps "zero network calls"
-    // honest, since `curl` is one `execFile` away.
+  it('spawns no process outside the one allowlisted directory', async () => {
+    // T023 banned `child_process` outright and said the ban would be narrowed when
+    // `check --staged` arrived, because reading the git index means a subprocess. T052 is
+    // that narrowing. The allowlist has **exactly one** entry and the assertion below
+    // pins its length: a ban that grows an entry per feature is not a ban, and `curl` is
+    // one `execFile` away from "zero network calls" being false.
+    expect(SPAWN_ALLOWLIST).toHaveLength(1);
+
     const FORBIDDEN_SPAWN = [
       /from\s+['"](node:)?child_process['"]/,
       /require\(\s*['"](node:)?child_process['"]\s*\)/,
     ];
     const offenders: string[] = [];
     for (const file of await sourceFiles()) {
+      const rel = path.relative(repoRoot, file).split(path.sep).join('/');
+      if (SPAWN_ALLOWLIST.some((dir) => rel.startsWith(dir))) continue;
       const text = await readFile(file, 'utf8');
       for (const pattern of FORBIDDEN_SPAWN) {
-        if (pattern.test(text)) {
-          offenders.push(`${path.relative(repoRoot, file)} matches ${String(pattern)}`);
-        }
+        if (pattern.test(text)) offenders.push(`${rel} matches ${String(pattern)}`);
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it('runs only read-only git subcommands, and only from the allowlisted directory', async () => {
+    // The allowlist is a hole, so the hole gets its own guard. `execFile('git', [...])`
+    // reaches `git fetch` and a submodule update as easily as `ls-files`, and either one
+    // makes "zero network calls" false while every file scan above stays green.
+    expect([...GIT_SUBCOMMANDS].sort()).toEqual(['cat-file', 'ls-files', 'rev-parse']);
+
+    const text = await readFile(path.join(repoRoot, SPAWN_ALLOWLIST[0]!, 'index.ts'), 'utf8');
+    // `exec` runs a shell; `execFile` does not. The difference is whether a filename
+    // containing `$(…)` is an argument or a command.
+    expect(text).not.toMatch(/\bexec\s*\(/);
+    expect(text).toMatch(/\bexecFile\s*\(/);
+    // Every literal subcommand in the file must be one the contract declares.
+    for (const [, sub] of text.matchAll(/run\(\s*\[\s*'([a-z-]+)'/g)) {
+      expect(GIT_SUBCOMMANDS).toContain(sub);
+    }
   });
 
   it('has no nondeterministic primitive in shipped source', async () => {
@@ -191,6 +218,22 @@ describe('the shared rendering path', () => {
     // `NodeFileSystem` typed as read-only is one cast away from a write.
     expect(text).not.toMatch(/new NodeFileSystem\(/);
     expect(text).toMatch(/createReadOnlyFileSystem\(/);
+  });
+
+  /**
+   * `--staged` gave `check` a second filesystem, so the guarantee above needs a second
+   * proof. A textual scan cannot make it: `StagedFileSystem` is a class `check` legitimately
+   * constructs, and the risk is not the call site but the class quietly gaining a writer.
+   * Asked of the object itself instead — there is nothing to cast to if the methods are not
+   * there, which is the same argument that shaped `createReadOnlyFileSystem` at T016.
+   */
+  it('gives the staged filesystem no write method to reach', () => {
+    const fs: object = new StagedFileSystem(repoRoot);
+    for (const method of ['writeFile', 'copyFile', 'deleteFile', 'mkdir', 'rm']) {
+      expect(method in fs, `StagedFileSystem must not expose ${method}`).toBe(false);
+    }
+    // The paired control: a method it *does* have, so the loop is not passing on a typo.
+    expect('readFile' in fs).toBe(true);
   });
 
   /**

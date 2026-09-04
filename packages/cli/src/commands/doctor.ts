@@ -15,6 +15,15 @@ export interface DoctorOptions {
   readonly cwd: string;
   /** Skip the user-level probe entirely; nothing outside the repository is read. */
   readonly noGlobal?: boolean;
+  /**
+   * Where the user-level probe is rooted. Not a CLI flag — it exists so the global half
+   * can be exercised against a fixture home rather than the machine's real one, which is
+   * both untestable and different on Windows.
+   *
+   * The seam is the T016 decision restated: the global filesystem is a parameter, not
+   * something the engine builds for itself.
+   */
+  readonly homeRoot?: string;
   /** Emit the report as JSON for scripting, instead of the table. */
   readonly json?: boolean;
   readonly announceRoot?: boolean;
@@ -42,7 +51,7 @@ export async function runDoctor(options: DoctorOptions): Promise<ExitCodeValue> 
   });
   const repoRoot = resolveRepoRoot(options.cwd);
   const fs = new NodeFileSystem(repoRoot);
-  const globalFs = options.noGlobal === true ? undefined : createHomeFileSystem();
+  const globalFs = options.noGlobal === true ? undefined : createHomeFileSystem(options.homeRoot);
 
   const report = await buildDoctorReport({
     repoRoot,
@@ -156,6 +165,18 @@ function describePath(f: FileDiagnosis): string {
 function annotate(f: FileDiagnosis, tool: ToolDiagnosis): string {
   const notes: string[] = [];
   if (f.role !== 'instructions') notes.push(f.role);
+  // T055. A global file's status reads `unmanaged`, which is the same word a project file
+  // somebody else wrote gets — and the two are nothing alike. One is a file standing where
+  // our output goes; the other is the user's own machine-wide context, outside the
+  // repository, which Driftgate reads to explain behaviour and will never write. Saying so
+  // on the row is the difference between "why is my agent behaving oddly" being answerable
+  // from this table and not.
+  //
+  // Only when something is actually there. A global pattern that matched nothing has no
+  // file to be read-only about, and annotating it anyway widened the column enough that
+  // the 80-column degradation dropped it — taking Copilot's `from codex` attribution with
+  // it, which is the single most load-bearing annotation in this table (T078).
+  if (f.scope === 'global' && f.paths.length > 0) notes.push('user-level, read-only');
   if (f.shadowed) notes.push('shadowed');
   if (f.managedBy !== undefined && f.managedBy !== tool.name) notes.push(`from ${f.managedBy}`);
   return notes.join(', ');

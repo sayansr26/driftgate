@@ -138,12 +138,39 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
     }
   });
 
-  it('check --staged exits 2 as an unregistered flag, rather than silently checking the tree', async () => {
-    // Deferred to T052 with the pre-commit hook. A flag that is accepted and ignored is
-    // worse than one that is refused: the hook author would believe the index was checked.
-    await expect(run(process.execPath, [binPath, 'check', '--staged'])).rejects.toMatchObject({
-      code: 2,
-    });
+  /**
+   * `--staged` is registered as of T052, and the built binary is the only place that can
+   * be proved: the source lane calls `runCheck` directly, so a flag missing from
+   * `program.ts` would still pass every test in `staged.test.ts`. This is the same gap the
+   * dist lane caught at T009, when a dropped `exitOverride` made usage errors exit 1.
+   */
+  it('check --staged is a registered flag on the built binary, and never exits 2', async () => {
+    const repo = await mkdtemp(path.join(tmpdir(), 'driftgate-staged-smoke-'));
+    const git = (...args: string[]) => run('git', args, { cwd: repo });
+    try {
+      await cp(path.join(fixtures, 'cursor/input'), repo, { recursive: true });
+      await run(process.execPath, [binPath, 'sync'], { cwd: repo });
+      await git('init', '--quiet');
+      await git('config', 'user.email', 'test@example.com');
+      await git('config', 'user.name', 'Driftgate Test');
+      await git('add', '-A');
+
+      // Resolving at all is exit 0: `execFile` rejects on any non-zero code, so a flag
+      // commander did not know would land here as the 2 this test is named for.
+      const clean = await run(process.execPath, [binPath, 'check', '--staged'], { cwd: repo });
+      expect(clean.stdout).toContain('in sync');
+      expect(clean.stdout).toContain('staged');
+
+      // And it exits 1, not 2, on real drift in the index — the distinction CI reads.
+      await writeFile(path.join(repo, 'CLAUDE.md'), 'edited by hand, and staged\n');
+      await git('add', '-A');
+      const drifted = await run(process.execPath, [binPath, 'check', '--staged'], {
+        cwd: repo,
+      }).catch((e: { code: number }) => e);
+      expect(drifted.code).toBe(1);
+    } finally {
+      await rm(repo, { recursive: true, force: true });
+    }
   });
 
   /**
