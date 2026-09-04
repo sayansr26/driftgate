@@ -21,25 +21,37 @@ do that much. What Rulegate adds is the half that makes it trustworthy:
 network primitive appears anywhere in shipped source, including every dependency.
 
 > **Status: pre-release.** The adapter API is frozen (`docs/adapter-api-v1.md`), ten
-> adapters ship, and this repository generates its own agent config with them. It is not
-> on npm yet; until it is, run it from a clone — the `npx` line below starts working at
-> the first release.
+> adapters ship, and this repository generates its own agent config with them. `rulegate` is
+> on npm and the commands below work — but `0.0.0` is an early placeholder, not an announced
+> release. Expect the docs and the CLI's rough edges to move before `0.1.0`.
 
 ## The problem
 
 Every tool reads a different file, in a different format, with different precedence rules.
 
-| Tool           | Reads                                                                                                 | Format                                |
-| -------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| Claude Code    | `CLAUDE.md`, `CLAUDE.local.md`, nested `CLAUDE.md`, `~/.claude/CLAUDE.md`                             | Markdown; nearest file wins           |
-| Codex          | `AGENTS.md`, nested `AGENTS.md`, `~/.codex/AGENTS.md`                                                 | Markdown; merged, 32 KiB cap          |
-| GitHub Copilot | `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, `AGENTS.md`, `CLAUDE.md` | Markdown + YAML frontmatter; additive |
-| Cursor         | `.cursor/rules/*.mdc`, legacy `.cursorrules`                                                          | MDC — looks like YAML, is not         |
-| Gemini CLI     | `GEMINI.md`, nested `GEMINI.md`, `~/.gemini/GEMINI.md`                                                | Markdown; everything concatenated     |
+| Tool           | Reads                                                                                                                                                            | Format                                        |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Claude Code    | `CLAUDE.md`, `CLAUDE.local.md`, nested `CLAUDE.md`, `~/.claude/CLAUDE.md`                                                                                        | Markdown; nearest file wins                   |
+| Codex          | `AGENTS.md`, nested `AGENTS.md`, `~/.codex/AGENTS.md`                                                                                                            | Markdown; merged, 32 KiB cap                  |
+| GitHub Copilot | `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, `AGENTS.md`, `CLAUDE.md`                                                            | Markdown + YAML frontmatter; additive         |
+| Cursor         | `.cursor/rules/*.mdc`, legacy `.cursorrules`                                                                                                                     | MDC — looks like YAML, is not                 |
+| Gemini CLI     | `GEMINI.md`, nested `GEMINI.md`, `~/.gemini/GEMINI.md`                                                                                                           | Markdown; everything concatenated             |
+| Aider          | `CONVENTIONS.md` — but only if `.aider.conf.yml` names it                                                                                                        | Markdown; loaded by config, not by convention |
+| Cline          | `.clinerules/*.md`, plus `.cursorrules`, `.windsurfrules`, `AGENTS.md`                                                                                           | Markdown; additive, not an override chain     |
+| Roo Code       | `.roo/rules/*.md`, `.roorules`, `.clinerules`, `AGENTS.md`                                                                                                       | Markdown; all merged                          |
+| Windsurf       | `.windsurf/rules/*.md`, `.windsurfrules`, `AGENTS.md`, `.devin/rules/*.md`                                                                                       | Markdown; Devin's rules win                   |
+| Zed            | the **first** of `.rules`, `.cursorrules`, `.windsurfrules`, `.clinerules`, `.github/copilot-instructions.md`, `AGENT.md`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` | Markdown; first match wins, rest never opened |
 
-Keeping five copies in step by hand is a chore. Not noticing they have diverged is the
-actual failure: your agents keep answering from a rule you deleted three weeks ago, and
-nothing tells you.
+Ten copies in step by hand is a chore. Not noticing they have diverged is the actual
+failure: your agents keep answering from a rule you deleted three weeks ago, and nothing
+tells you.
+
+And the divergence is not always yours to see. Copilot reads
+`.github/copilot-instructions.md`, `AGENTS.md` and `CLAUDE.md` _additively_, not as an
+override chain — so enabling the `copilot`, `codex` and `claude-code` adapters together sends
+Copilot the same rules three times. Zed goes the other way: it opens whichever of nine files
+it finds first and never looks at the rest, so a generated `CLAUDE.md` can be dead weight
+because a stale `.cursorrules` outranks it. `rulegate doctor` reports both.
 
 ## Quickstart
 
