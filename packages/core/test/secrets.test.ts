@@ -71,6 +71,49 @@ describe('isLiteralSecret', () => {
     // This repository's own generated files are full of them.
     expect(isLiteralSecret('hash', 'd77bd461e691')).toBe(false);
   });
+
+  it('reads a key that names an environment variable as a name, not a value (T047)', () => {
+    // Codex has no variable substitution, so an `env:NAME` reference maps to a key that
+    // holds the *name*: `bearer_token_env_var`. That key flattens to `bearertokenenvvar`,
+    // which contains both `bearer` and `token`, so every other rule here condemns it — and
+    // a variable name long enough is disordered enough to pass `looksGenerated`. Without
+    // this, `sync` fails on a config containing no credential at all.
+    expect(isLiteralSecret('bearer_token_env_var', 'DOCS_API_KEY_PRODUCTION')).toBe(false);
+    expect(isLiteralSecret('bearerTokenEnvVar', 'DOCS_API_KEY_PRODUCTION')).toBe(false);
+    expect(isLiteralSecret('token_env_variable', 'DOCS_API_KEY_PRODUCTION')).toBe(false);
+  });
+
+  it('still catches a credential under a key that only mentions the environment', () => {
+    // The control. `namesEnvVar` matches a suffix, so it must not become a blanket
+    // amnesty for any key with `env` in it — and a vendor-prefixed token is caught
+    // regardless of the key, which is the half that must survive untouched.
+    expect(isLiteralSecret('env_var_auth_token', 'ghp_0123456789abcdefghij')).toBe(true);
+    expect(isLiteralSecret('bearer_token_env_var', 'ghp_0123456789abcdefghij')).toBe(true);
+  });
+
+  it('catches a credential in TOML, the form it claimed to handle and had never seen', () => {
+    // `scanTextForSecrets` is line-oriented "so it works on JSON, on TOML and on whatever
+    // the next MCP format turns out to be" — written at T044, and until T047 every input
+    // it had ever been given was JSON. A preserved unknown key is the path a literal takes
+    // into generated output, and in TOML that key is unquoted, which is a different shape
+    // for the pair regex than the `"key": "value"` it was tuned on.
+    expect(scanTextForSecrets('vendorAuth = "ghp_0123456789abcdefghij"')).toEqual(['line 1']);
+    expect(scanTextForSecrets('auth_token = "Zx8Qv2Lm9Tp4Rw7Ns1Kd6Hf3Bj5Yc0Ae"')).toEqual([
+      'line 1',
+    ]);
+    // The control: the same file's correct lines are not reported.
+    expect(scanTextForSecrets('[mcp_servers.x]\ncommand = "npx"\nurl = "https://x/mcp"')).toEqual(
+      [],
+    );
+  });
+
+  it('is what stops the whole scan reporting a correct Codex config', () => {
+    // The same line as it reaches `scanTextForSecrets`, which is the enforcement point
+    // that actually runs over a rendered `.codex/config.toml`. A unit test on
+    // `isLiteralSecret` alone would pass against a fix applied in the wrong layer.
+    expect(scanTextForSecrets('bearer_token_env_var = "DOCS_API_KEY_PRODUCTION"')).toEqual([]);
+    expect(scanTextForSecrets('env_vars = ["DOCS_API_KEY_PRODUCTION"]')).toEqual([]);
+  });
 });
 
 describe('findLiteralSecrets', () => {

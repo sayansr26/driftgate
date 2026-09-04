@@ -36,7 +36,17 @@ export type DriftgateErrorCode =
   | 'E_MCP_INVALID'
   // A value that should be an `env:` reference is a literal (T044). Its own code because
   // it is the one parse failure whose *message must not quote the offending value*.
-  | 'E_LITERAL_SECRET';
+  | 'E_LITERAL_SECRET'
+  // A canonical MCP server is valid, and the target format has no way to say it (T047).
+  //
+  // Distinct from `E_MCP_INVALID`, which means the *author* wrote something wrong. Here
+  // the canonical file is correct and one destination cannot express it — Codex has no
+  // variable substitution at all, so an `env:` reference under a key it cannot map is
+  // inexpressible there and expressible everywhere else. Raised only where the loss would
+  // be silent and wrong (a credential that never arrives); a loss that is merely lossy and
+  // still functional, such as `transport: sse` on a target with no discriminator, is a
+  // `warn` note in the adapter's `docs` instead.
+  | 'E_MCP_UNREPRESENTABLE';
 
 export interface DriftgateErrorInit {
   readonly code: DriftgateErrorCode;

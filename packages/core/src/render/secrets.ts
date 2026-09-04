@@ -40,6 +40,28 @@ const SECRET_WORDS: readonly string[] = [
 ];
 
 /**
+ * Keys that name an environment variable rather than hold a value.
+ *
+ * Codex's `bearer_token_env_var = "LINEAR_API_KEY"` is a correct, secret-free line that
+ * every other rule here condemns: the key flattens to `bearertokenenvvar`, which contains
+ * both `bearer` and `token`, and an environment variable name long enough is disordered
+ * enough to look generated. `bearer_token_env_var = "DOCS_API_KEY_PRODUCTION"` was
+ * reported as a literal credential and failed `sync` on a config that contained no
+ * credential at all — and a check that fires on a correct repository is one people mute
+ * (the T072 lesson, reached from a different direction).
+ *
+ * This is not a per-tool exception. `env_var`, `env_variable` and `envvar` all mean the
+ * same thing wherever they appear, and the value under one of them is a *name*, which is
+ * exactly what an `env:NAME` reference is. Matched as a suffix rather than a substring so
+ * that a key which merely mentions the environment somewhere in the middle is untouched.
+ */
+const ENV_VAR_NAME_SUFFIXES: readonly string[] = ['envvar', 'envvariable', 'envvarname'];
+
+function namesEnvVar(flatKey: string): boolean {
+  return ENV_VAR_NAME_SUFFIXES.some((suffix) => flatKey.endsWith(suffix));
+}
+
+/**
  * Match on the key with its separators removed, so one list covers `authToken`,
  * `auth_token`, `AUTH-TOKEN` and `auth.token` without three spellings of each word.
  * Written this way after `authToken` slipped through a word-boundary regex: `auth` is
@@ -47,6 +69,7 @@ const SECRET_WORDS: readonly string[] = [
  */
 function keySuggestsSecret(key: string): boolean {
   const flat = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (namesEnvVar(flat)) return false;
   return SECRET_WORDS.some((word) => flat.includes(word));
 }
 

@@ -4,7 +4,7 @@ Every adapter owns a real mini-repository here, and its output is asserted **byt
 Adapter regressions are P0 (NFR5): tool formats change without notice, and fixtures are how
 we find out before users do.
 
-## Four layouts, because there are four questions
+## Five layouts, because there are five questions
 
 ```
 fixtures/<tool>/input/          a repo with a .driftgate/
@@ -15,6 +15,9 @@ fixtures/<tool>-detect/negative/   a repo where it must not
 
 fixtures/<tool>-import/input/      a repo with the tool's native files and no .driftgate/
 fixtures/<tool>-import/expected/   the canonical rules read() must produce, as init writes them
+
+fixtures/<tool>-mcp/input/         a repo with .driftgate/mcp/servers.yaml and NO rules
+fixtures/<tool>-mcp/expected/      the tool's own MCP config, in the tool's own format
 
 fixtures/detect-engine/<case>/     a repo the *whole adapter set* is run against (T016)
 ```
@@ -32,12 +35,26 @@ nothing, a `.mdc` description containing `:` and `#`, a doubled quote inside Cop
 single-quoted YAML, and a legacy `.cursorrules` carrying a rule that exists nowhere else.
 Each is a way a plausible importer loses somebody's content silently.
 
+An **mcp** fixture (T046, T047) is a second `write()` fixture in the same shape as the
+first, kept separate for one reason: its `input/` has **no rules at all**. That is what it
+is for. Both T046 writers opened `write()` with `if (rules.length === 0) return []`, so a
+repository whose only canonical content was MCP servers generated nothing — parsed,
+validated and silently unreachable — and the T047 adapters had the same return, Codex's in
+the sharper form where using `AGENTS.md` as canonical suppressed the config too. A fixture
+with rules in it cannot catch that.
+
+The four goldens share one `servers.yaml` wherever they can, so they can be read side by
+side: what differs between them is the whole reason there are four adapters. `codex-mcp` is
+the exception and its README says why — Codex has no variable substitution, so two servers
+had to change to stay expressible there at all.
+
 Never build the subpath by hand. `@driftgate/adapter-kit/testing` resolves all three shapes:
 
 ```ts
 import { detectFixture, expectFixtureMatch, expectIdempotent } from '@driftgate/adapter-kit/testing';
 
 await expectFixtureMatch('cursor', cursor);                  // input/ vs expected/
+await expectFixtureMatch('cursor-mcp', cursor);              // the same two, mcp layout
 await expectIdempotent('cursor', cursor);                    // 10 renders, identical bytes
 await contextFor(detectFixture('cursor', 'positive'), cursor);
 detectEngineFixture('all');                                  // detect-engine/all

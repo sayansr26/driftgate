@@ -10699,6 +10699,11 @@ function withHtmlMarker(body, enabled = true) {
 
 ${body}` : body;
 }
+function withHashMarker(body, enabled = true) {
+  return enabled ? `${HASH_MARKER}
+
+${body}` : body;
+}
 var JSON_MARKER_KEY = "//";
 function withJsonMarker(value, enabled = true) {
   return enabled ? { [JSON_MARKER_KEY]: MARKER_TEXT, ...value } : value;
@@ -11032,8 +11037,14 @@ var SECRET_WORDS = [
   "credential",
   "bearer"
 ];
+var ENV_VAR_NAME_SUFFIXES = ["envvar", "envvariable", "envvarname"];
+function namesEnvVar(flatKey) {
+  return ENV_VAR_NAME_SUFFIXES.some((suffix) => flatKey.endsWith(suffix));
+}
 function keySuggestsSecret(key) {
   const flat = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (namesEnvVar(flat))
+    return false;
   return SECRET_WORDS.some((word) => flat.includes(word));
 }
 var TOKEN_PATTERNS = [
@@ -12660,11 +12671,137 @@ var claudeCode = {
   docs
 };
 
+// ../packages/adapters/codex/dist/toml.js
+var BARE_KEY = /^[A-Za-z0-9_-]+$/;
+function unrepresentable(what, where) {
+  return new DriftgateError({
+    code: "E_MCP_UNREPRESENTABLE",
+    message: `${where} cannot be written to Codex's config.toml: ${what}`,
+    hint: "remove the value, or exclude this server from codex with a `tools:` selector in .driftgate/mcp/servers.yaml"
+  });
+}
+function tomlString(value) {
+  let out = '"';
+  for (const ch of value) {
+    const code = ch.codePointAt(0);
+    if (ch === '"')
+      out += '\\"';
+    else if (ch === "\\")
+      out += "\\\\";
+    else if (ch === "\n")
+      out += "\\n";
+    else if (ch === "\r")
+      out += "\\r";
+    else if (ch === "	")
+      out += "\\t";
+    else if (ch === "\b")
+      out += "\\b";
+    else if (ch === "\f")
+      out += "\\f";
+    else if (code < 32 || code === 127)
+      out += `\\u${code.toString(16).padStart(4, "0")}`;
+    else
+      out += ch;
+  }
+  return `${out}"`;
+}
+function tomlKey(key) {
+  return BARE_KEY.test(key) ? key : tomlString(key);
+}
+function tomlValue(value, where) {
+  if (value === null)
+    throw unrepresentable("TOML has no null; omit the key instead", where);
+  if (typeof value === "string")
+    return tomlString(value);
+  if (typeof value === "boolean")
+    return value ? "true" : "false";
+  if (typeof value === "number") {
+    if (!Number.isFinite(value))
+      throw unrepresentable("a non-finite number", where);
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    const items = value.map((item, i) => {
+      if (item !== null && typeof item === "object") {
+        throw unrepresentable("an array holding a table or another array", `${where}[${String(i)}]`);
+      }
+      return tomlValue(item, `${where}[${String(i)}]`);
+    });
+    return `[${items.join(", ")}]`;
+  }
+  throw unrepresentable("a nested table under a key Driftgate does not interpret", where);
+}
+function tomlTable(header, entries) {
+  const path4 = header.map((part) => tomlKey(part)).join(".");
+  const lines = [`[${path4}]`];
+  for (const key of Object.keys(entries).sort(compareCodepoint)) {
+    lines.push(`${tomlKey(key)} = ${tomlValue(entries[key], `${path4}.${key}`)}`);
+  }
+  return lines.join("\n");
+}
+
+// ../packages/adapters/codex/dist/mcp.js
+var MCP_FILE2 = ".codex/config.toml";
+var TABLE = "mcp_servers";
+function unrepresentable2(server, what, hint) {
+  return new DriftgateError({
+    code: "E_MCP_UNREPRESENTABLE",
+    message: `server \`${server.id}\` cannot be written to Codex's config.toml: ${what}`,
+    source: server.source,
+    hint
+  });
+}
+function serverTable(server) {
+  const body = { ...server.unknown };
+  const { transport } = server;
+  if (transport.kind === "stdio") {
+    body["command"] = transport.command;
+    if (transport.args.length > 0)
+      body["args"] = [...transport.args];
+    const forwarded = [];
+    for (const key of Object.keys(server.env)) {
+      const ref = server.env[key];
+      if (ref.name !== key) {
+        throw unrepresentable2(server, `\`env.${key}\` reads a differently-named variable, and Codex has no variable substitution`, `rename the variable to ${key}, or exclude codex from this server with a \`tools:\` selector`);
+      }
+      forwarded.push(key);
+    }
+    if (forwarded.length > 0)
+      body["env_vars"] = forwarded.sort();
+  } else {
+    body["url"] = transport.url;
+    for (const key of Object.keys(server.headers)) {
+      if (key.toLowerCase() !== "authorization") {
+        throw unrepresentable2(server, `header \`${key}\` cannot hold an environment reference; Codex resolves only \`Authorization\`, as \`bearer_token_env_var\``, "move the credential to the Authorization header, or exclude codex from this server with a `tools:` selector");
+      }
+      body["bearer_token_env_var"] = server.headers[key].name;
+    }
+  }
+  return body;
+}
+function renderConfigToml(servers, marker) {
+  const selected = selectMcpServers(servers, "codex");
+  if (selected.length === 0)
+    return "";
+  const tables = selected.map((server) => tomlTable([TABLE, server.id], serverTable(server)));
+  return withHashMarker(tables.join("\n\n"), marker);
+}
+
 // ../packages/adapters/codex/dist/docs.js
 var CODEX_AGENTS_DOCS = {
   url: "https://developers.openai.com/codex/guides/agents-md",
   title: "Codex \u2014 Custom instructions with AGENTS.md",
   retrieved: "2026-09-02"
+};
+var CODEX_MCP_DOCS = {
+  url: "https://learn.chatgpt.com/docs/extend/mcp",
+  title: "Codex \u2014 Extend with MCP servers",
+  retrieved: "2026-09-04"
+};
+var CODEX_CONFIG_REFERENCE = {
+  url: "https://learn.chatgpt.com/docs/config-file/config-reference",
+  title: "Codex \u2014 Config reference",
+  retrieved: "2026-09-04"
 };
 var AGENTS_MD_SPEC = {
   url: "https://agents.md/",
@@ -12705,6 +12842,14 @@ var docs2 = {
       source: CODEX_AGENTS_DOCS
     },
     {
+      pattern: ".codex/config.toml",
+      scope: "project",
+      role: "mcp",
+      managed: true,
+      description: "Project-level Codex settings, loaded only for a project the user has trusted. Driftgate generates this file from `.driftgate/mcp/servers.yaml` and owns it in full \u2014 unlike the other MCP targets, it is not an MCP-only file.",
+      source: CODEX_CONFIG_REFERENCE
+    },
+    {
       pattern: "~/.codex/config.toml",
       scope: "global",
       role: "settings",
@@ -12718,6 +12863,21 @@ var docs2 = {
     note: "Codex stops adding instruction files once the concatenated text reaches `project_doc_max_bytes`, 32 KiB by default. Files are added root-first, so it is the nearest \u2014 most specific \u2014 file that gets dropped when the budget runs out."
   },
   notes: [
+    {
+      level: "warn",
+      message: "Driftgate owns the whole of `.codex/config.toml`, not just its `[mcp_servers.*]` tables \u2014 it is where every Codex setting lives, and there is no way to write part of a file. A pre-existing one is somebody else\u2019s and is refused until `--force` backs it up; a setting added by hand afterwards is reported as a hand-edit that `sync --import` can recover.",
+      source: CODEX_CONFIG_REFERENCE
+    },
+    {
+      level: "warn",
+      message: 'Codex has no variable substitution anywhere in config.toml, so an `env:NAME` reference cannot be written as a value the way `${NAME}` and `${env:NAME}` are elsewhere \u2014 it has to become a different key. `env: { NAME: env:NAME }` becomes `env_vars = ["NAME"]`, and an Authorization header becomes `bearer_token_env_var`. A reference those two keys cannot express \u2014 a renamed variable, or any other header \u2014 is refused rather than dropped: a credential that never arrives is a server that starts and fails to authenticate.',
+      source: CODEX_MCP_DOCS
+    },
+    {
+      level: "warn",
+      message: "Codex documents streamable HTTP only, with no discriminator for SSE, so a canonical `transport: sse` renders as a bare `url` and the distinction is lost. Lossy but still a working server \u2014 the same treatment Cursor\u2019s missing `type` key gets, and the reason it is recorded here rather than left for a user to find.",
+      source: CODEX_MCP_DOCS
+    },
     {
       level: "warn",
       message: "AGENTS.md is both a canonical *input* Driftgate accepts and this adapter\u2019s *output*. When a repository has no `.driftgate/` and is using AGENTS.md as its canonical source, this adapter emits nothing rather than generating the file from itself.",
@@ -12763,21 +12923,25 @@ async function read2(ctx) {
 }
 async function write2(ctx) {
   const { canonical } = ctx;
-  if (isCanonicalSource(canonical.manifest, AGENTS_MD2))
-    return [];
-  const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, "codex")));
-  if (rules.length === 0)
-    return [];
-  const body = renderConcatenated(rules, { headingLevel: 2, showGlobs: true });
-  return Promise.resolve([
-    finalizeArtifact({
-      path: AGENTS_MD2,
-      contents: withHtmlMarker(body, canonical.manifest.options.marker),
-      adapter: "codex",
-      kind: "rules",
-      provenance: { ruleIds: rules.map((r) => r.id) }
-    })
-  ]);
+  const marker = canonical.manifest.options.marker;
+  const artifacts = [];
+  if (!isCanonicalSource(canonical.manifest, AGENTS_MD2)) {
+    const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, "codex")));
+    if (rules.length > 0) {
+      artifacts.push(finalizeArtifact({
+        path: AGENTS_MD2,
+        contents: withHtmlMarker(renderConcatenated(rules, { headingLevel: 2, showGlobs: true }), marker),
+        adapter: "codex",
+        kind: "rules",
+        provenance: { ruleIds: rules.map((r) => r.id) }
+      }));
+    }
+  }
+  const config = renderConfigToml(canonical.mcpServers, marker);
+  if (config !== "" && !isCanonicalSource(canonical.manifest, MCP_FILE2)) {
+    artifacts.push(finalizeArtifact({ path: MCP_FILE2, contents: config, adapter: "codex", kind: "mcp" }));
+  }
+  return Promise.resolve(artifacts);
 }
 var codex = {
   name: "codex",
@@ -12871,11 +13035,60 @@ function joinBody2(lines) {
 `;
 }
 
+// ../packages/adapters/copilot/dist/mcp.js
+var MCP_FILE3 = ".vscode/mcp.json";
+var SERVERS_KEY = "servers";
+function reference2(value) {
+  return `\${env:${value.name}}`;
+}
+function secretMap2(map) {
+  const out = {};
+  for (const key of Object.keys(map))
+    out[key] = reference2(map[key]);
+  return out;
+}
+function serverJson2(server) {
+  const body = { ...server.unknown };
+  const { transport } = server;
+  body["type"] = transport.kind;
+  if (transport.kind === "stdio") {
+    body["command"] = transport.command;
+    if (transport.args.length > 0)
+      body["args"] = [...transport.args];
+    if (Object.keys(server.env).length > 0)
+      body["env"] = secretMap2(server.env);
+  } else {
+    body["url"] = transport.url;
+    if (Object.keys(server.headers).length > 0)
+      body["headers"] = secretMap2(server.headers);
+  }
+  return body;
+}
+function renderMcpJson2(servers, marker) {
+  const selected = selectMcpServers(servers, "copilot");
+  if (selected.length === 0)
+    return "";
+  const servers_ = {};
+  for (const server of selected)
+    servers_[server.id] = serverJson2(server);
+  return stableJsonStringify(withJsonMarker({ [SERVERS_KEY]: servers_ }, marker));
+}
+
 // ../packages/adapters/copilot/dist/docs.js
 var GITHUB_REPO_INSTRUCTIONS = {
   url: "https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions",
   title: "GitHub Docs \u2014 Adding repository custom instructions for GitHub Copilot",
   retrieved: "2026-09-02"
+};
+var VSCODE_MCP_CONFIGURATION = {
+  url: "https://code.visualstudio.com/docs/agents/reference/mcp-configuration",
+  title: "Visual Studio Code \u2014 MCP configuration reference",
+  retrieved: "2026-09-04"
+};
+var VSCODE_VARIABLES_REFERENCE = {
+  url: "https://code.visualstudio.com/docs/reference/variables-reference",
+  title: "Visual Studio Code \u2014 Variables reference",
+  retrieved: "2026-09-04"
 };
 var VSCODE_CUSTOM_INSTRUCTIONS = {
   url: "https://code.visualstudio.com/docs/copilot/customization/custom-instructions",
@@ -12892,6 +13105,14 @@ var docs3 = {
   // GitHub's documentation is explicit that a matching path-specific file is applied *in addition to* the repository-wide one, and VS Code reads AGENTS.md and CLAUDE.md on top of both.
   resolution: "additive",
   files: [
+    {
+      pattern: ".vscode/mcp.json",
+      scope: "project",
+      role: "mcp",
+      managed: true,
+      description: "Workspace MCP servers. Generated by Driftgate from `.driftgate/mcp/servers.yaml`. The top-level key is `servers` \u2014 not `mcpServers`, which is what Claude Code and Cursor write \u2014 so the three files are not interchangeable however similar they look.",
+      source: VSCODE_MCP_CONFIGURATION
+    },
     {
       pattern: ".github/instructions/*.instructions.md",
       scope: "project",
@@ -12938,6 +13159,16 @@ var docs3 = {
     note: "No byte cap is documented in the GitHub or VS Code instruction documentation cited above. The relevant cost is not a cap but the additive loading described in the notes below: the repository-wide file, any matching path-specific file, and AGENTS.md are all sent together."
   },
   notes: [
+    {
+      level: "warn",
+      message: "The MCP file\u2019s top-level key is `servers`, not the `mcpServers` Claude Code and Cursor use. A `.mcp.json` copied to `.vscode/mcp.json` is valid JSON, loads without complaint and supplies no servers at all \u2014 a config that looks right and does nothing. Driftgate generates each from canonical rather than copying one to the other.",
+      source: VSCODE_MCP_CONFIGURATION
+    },
+    {
+      level: "info",
+      message: "An `env:NAME` reference renders as `${env:NAME}` \u2014 the same spelling Cursor uses, and one character from Claude Code\u2019s `${NAME}`. VS Code\u2019s own recommendation for a credential is `${input:id}` with an `inputs` array, which Driftgate deliberately does not generate: an input prompts the user interactively, which is not what an environment reference means.",
+      source: VSCODE_VARIABLES_REFERENCE
+    },
     {
       level: "warn",
       message: "The three mechanisms are additive, not exclusive. Enabling the copilot, codex and claude-code adapters together means Copilot loads the same canonical rules from .github/copilot-instructions.md, AGENTS.md and CLAUDE.md at once \u2014 correct output from three adapters, and roughly three times the tokens. This is the case `doctor` exists to make visible.",
@@ -13028,8 +13259,6 @@ async function write3(ctx) {
   const { canonical } = ctx;
   const marker = canonical.manifest.options.marker;
   const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, "copilot")));
-  if (rules.length === 0)
-    return [];
   const artifacts = [];
   const repoWide = rules.filter((r) => appliesRepoWide(r));
   if (repoWide.length > 0 && !isCanonicalSource(canonical.manifest, REPO_INSTRUCTIONS)) {
@@ -13065,6 +13294,10 @@ async function write3(ctx) {
       kind: "rules",
       provenance: { ruleIds: [rule.id] }
     }));
+  }
+  const mcp = renderMcpJson2(canonical.mcpServers, marker);
+  if (mcp !== "" && !isCanonicalSource(canonical.manifest, MCP_FILE3)) {
+    artifacts.push(finalizeArtifact({ path: MCP_FILE3, contents: mcp, adapter: "copilot", kind: "mcp" }));
   }
   return Promise.resolve(artifacts);
 }
@@ -13162,17 +13395,17 @@ function joinBody3(lines) {
 }
 
 // ../packages/adapters/cursor/dist/mcp.js
-var MCP_FILE2 = ".cursor/mcp.json";
-function reference2(value) {
+var MCP_FILE4 = ".cursor/mcp.json";
+function reference3(value) {
   return `\${env:${value.name}}`;
 }
-function secretMap2(map) {
+function secretMap3(map) {
   const out = {};
   for (const key of Object.keys(map))
-    out[key] = reference2(map[key]);
+    out[key] = reference3(map[key]);
   return out;
 }
-function serverJson2(server) {
+function serverJson3(server) {
   const body = { ...server.unknown };
   const { transport } = server;
   if (transport.kind === "stdio") {
@@ -13180,21 +13413,21 @@ function serverJson2(server) {
     if (transport.args.length > 0)
       body["args"] = [...transport.args];
     if (Object.keys(server.env).length > 0)
-      body["env"] = secretMap2(server.env);
+      body["env"] = secretMap3(server.env);
   } else {
     body["url"] = transport.url;
     if (Object.keys(server.headers).length > 0)
-      body["headers"] = secretMap2(server.headers);
+      body["headers"] = secretMap3(server.headers);
   }
   return body;
 }
-function renderMcpJson2(servers, marker) {
+function renderMcpJson3(servers, marker) {
   const selected = selectMcpServers(servers, "cursor");
   if (selected.length === 0)
     return "";
   const mcpServers = {};
   for (const server of selected)
-    mcpServers[server.id] = serverJson2(server);
+    mcpServers[server.id] = serverJson3(server);
   return stableJsonStringify(withJsonMarker({ mcpServers }, marker));
 }
 
@@ -13387,10 +13620,10 @@ async function write4(ctx) {
       provenance: { ruleIds: rules.map((r) => r.id) }
     }));
   }
-  const mcp = renderMcpJson2(canonical.mcpServers, marker);
-  if (mcp !== "" && !isCanonicalSource(canonical.manifest, MCP_FILE2)) {
+  const mcp = renderMcpJson3(canonical.mcpServers, marker);
+  if (mcp !== "" && !isCanonicalSource(canonical.manifest, MCP_FILE4)) {
     artifacts.push(finalizeArtifact({
-      path: MCP_FILE2,
+      path: MCP_FILE4,
       contents: mcp,
       adapter: "cursor",
       kind: "mcp"

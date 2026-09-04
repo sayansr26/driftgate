@@ -6,6 +6,18 @@ const CODEX_AGENTS_DOCS: SourceLink = {
   retrieved: '2026-09-02',
 };
 
+const CODEX_MCP_DOCS: SourceLink = {
+  url: 'https://learn.chatgpt.com/docs/extend/mcp',
+  title: 'Codex — Extend with MCP servers',
+  retrieved: '2026-09-04',
+};
+
+const CODEX_CONFIG_REFERENCE: SourceLink = {
+  url: 'https://learn.chatgpt.com/docs/config-file/config-reference',
+  title: 'Codex — Config reference',
+  retrieved: '2026-09-04',
+};
+
 const AGENTS_MD_SPEC: SourceLink = {
   url: 'https://agents.md/',
   title: 'AGENTS.md — a simple, open format for guiding coding agents',
@@ -57,6 +69,15 @@ export const docs: AdapterDocs = {
       source: CODEX_AGENTS_DOCS,
     },
     {
+      pattern: '.codex/config.toml',
+      scope: 'project',
+      role: 'mcp',
+      managed: true,
+      description:
+        'Project-level Codex settings, loaded only for a project the user has trusted. Driftgate generates this file from `.driftgate/mcp/servers.yaml` and owns it in full — unlike the other MCP targets, it is not an MCP-only file.',
+      source: CODEX_CONFIG_REFERENCE,
+    },
+    {
       pattern: '~/.codex/config.toml',
       scope: 'global',
       role: 'settings',
@@ -71,6 +92,24 @@ export const docs: AdapterDocs = {
     note: 'Codex stops adding instruction files once the concatenated text reaches `project_doc_max_bytes`, 32 KiB by default. Files are added root-first, so it is the nearest — most specific — file that gets dropped when the budget runs out.',
   },
   notes: [
+    {
+      level: 'warn',
+      message:
+        'Driftgate owns the whole of `.codex/config.toml`, not just its `[mcp_servers.*]` tables — it is where every Codex setting lives, and there is no way to write part of a file. A pre-existing one is somebody else’s and is refused until `--force` backs it up; a setting added by hand afterwards is reported as a hand-edit that `sync --import` can recover.',
+      source: CODEX_CONFIG_REFERENCE,
+    },
+    {
+      level: 'warn',
+      message:
+        'Codex has no variable substitution anywhere in config.toml, so an `env:NAME` reference cannot be written as a value the way `${NAME}` and `${env:NAME}` are elsewhere — it has to become a different key. `env: { NAME: env:NAME }` becomes `env_vars = ["NAME"]`, and an Authorization header becomes `bearer_token_env_var`. A reference those two keys cannot express — a renamed variable, or any other header — is refused rather than dropped: a credential that never arrives is a server that starts and fails to authenticate.',
+      source: CODEX_MCP_DOCS,
+    },
+    {
+      level: 'warn',
+      message:
+        'Codex documents streamable HTTP only, with no discriminator for SSE, so a canonical `transport: sse` renders as a bare `url` and the distinction is lost. Lossy but still a working server — the same treatment Cursor’s missing `type` key gets, and the reason it is recorded here rather than left for a user to find.',
+      source: CODEX_MCP_DOCS,
+    },
     {
       level: 'warn',
       message:

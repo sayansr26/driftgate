@@ -28,6 +28,7 @@ import {
   parseInstructions,
   renderInstructionsFrontmatter,
 } from './instructions.js';
+import { MCP_FILE, renderMcpJson } from './mcp.js';
 import { docs } from './docs.js';
 
 export const REPO_INSTRUCTIONS = '.github/copilot-instructions.md';
@@ -120,10 +121,14 @@ async function write(ctx: AdapterContext): Promise<readonly Artifact[]> {
   const { canonical } = ctx;
   const marker = canonical.manifest.options.marker;
   const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, 'copilot')));
-  if (rules.length === 0) return [];
 
   const artifacts: Artifact[] = [];
 
+  // Each artifact carries its own guards. This used to be one `rules.length === 0` early
+  // return covering the whole adapter, which was right while rules were the only output
+  // and became wrong the moment MCP arrived (T046 found the same hole in the other two):
+  // a repository whose only canonical content is `.driftgate/mcp/servers.yaml` still has
+  // a `.vscode/mcp.json` to generate.
   const repoWide = rules.filter((r) => appliesRepoWide(r));
   if (repoWide.length > 0 && !isCanonicalSource(canonical.manifest, REPO_INSTRUCTIONS)) {
     artifacts.push(
@@ -171,6 +176,15 @@ async function write(ctx: AdapterContext): Promise<readonly Artifact[]> {
     );
   }
 
+  // No `provenance`: no canonical rule contributed to this file, and claiming one would
+  // mislead `doctor` and T051's merge, both of which read `ruleIds` as a real mapping.
+  const mcp = renderMcpJson(canonical.mcpServers, marker);
+  if (mcp !== '' && !isCanonicalSource(canonical.manifest, MCP_FILE)) {
+    artifacts.push(
+      finalizeArtifact({ path: MCP_FILE, contents: mcp, adapter: 'copilot', kind: 'mcp' }),
+    );
+  }
+
   return Promise.resolve(artifacts);
 }
 
@@ -184,4 +198,4 @@ export const copilot: Adapter = {
 };
 
 export default copilot;
-export { docs, frontmatterFor, renderInstructionsFrontmatter };
+export { docs, frontmatterFor, renderInstructionsFrontmatter, MCP_FILE, renderMcpJson };

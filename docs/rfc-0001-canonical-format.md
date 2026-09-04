@@ -323,7 +323,7 @@ path.
 ## 11. `mcp/servers.yaml` (v0.2)
 
 Canonical MCP server definitions, generated into Claude Code's `.mcp.json`, Cursor's
-`.cursor/mcp.json`, VS Code/Copilot's `mcp.json`, and Codex's `config.toml`.
+`.cursor/mcp.json`, VS Code/Copilot's `.vscode/mcp.json`, and Codex's `.codex/config.toml`.
 
 The file is optional. A repository with no `.driftgate/mcp/servers.yaml` has no MCP
 servers, which is not an error.
@@ -411,10 +411,15 @@ strings and are re-emitted verbatim.
 The canonical file is one description of a set of servers; each adapter renders it into the
 shape its own tool documents. Two of those differences are not cosmetic.
 
-| tool        | generated path     | environment reference | remote transport                 |
-| ----------- | ------------------ | --------------------- | -------------------------------- |
-| Claude Code | `.mcp.json`        | `${NAME}`             | `type: "http"` / `type: "sse"`   |
-| Cursor      | `.cursor/mcp.json` | `${env:NAME}`         | bare `url`; no `type` key exists |
+| tool            | generated path       | environment reference                       | remote transport                    |
+| --------------- | -------------------- | ------------------------------------------- | ----------------------------------- |
+| Claude Code     | `.mcp.json`          | `${NAME}`                                   | `type: "http"` / `type: "sse"`      |
+| Cursor          | `.cursor/mcp.json`   | `${env:NAME}`                               | bare `url`; no `type` key exists    |
+| VS Code/Copilot | `.vscode/mcp.json`   | `${env:NAME}`                               | `type: "http"` / `type: "sse"`      |
+| Codex           | `.codex/config.toml` | `env_vars` / `bearer_token_env_var` (a key) | bare `url`; no discriminator exists |
+
+The servers are written under `mcpServers` by Claude Code and Cursor, under **`servers`**
+by VS Code, and as `[mcp_servers.<id>]` tables by Codex.
 
 **An `env:NAME` reference is rewritten into the destination's own substitution syntax.**
 Driftgate's `env:` prefix is a canonical spelling, not a wire format — no tool expands it —
@@ -429,10 +434,35 @@ while Claude Code keeps the distinction. This is a lossy mapping of the same kin
 prose `**Applies to:**` line: recorded in the adapter's `docs`, and visible in `doctor`,
 rather than left for a user to find.
 
+**Codex has no variable substitution at all**, and that makes it the one target where an
+`env:` reference is not a re-spelling. There is no value it can be written as, so it has to
+become a _different key_: `env: { NAME: env:NAME }` renders as `env_vars = ["NAME"]`, which
+whitelists the variable for forwarding, and an `Authorization` header renders as
+`bearer_token_env_var`. Those are the only two keys Codex resolves from the environment, so
+a reference neither can express — a variable named differently from the key that reads it,
+or a credential in any other header — is **`E_MCP_UNREPRESENTABLE`** and fails the run.
+
+That is the difference between the two kinds of loss in this section, stated once. A
+mapping that is lossy and still _works_ is degraded and recorded in the adapter's `docs`:
+`transport: sse` on Cursor and on Codex renders as a bare `url`, and the server runs. A
+mapping that would silently produce a **wrong** answer is refused: a credential that never
+arrives is a server that starts and fails to authenticate, which is a bug report filed
+against the wrong tool.
+
+**Driftgate owns the whole of `.codex/config.toml`.** Unlike the other three, it is not an
+MCP-only file — it is where every Codex setting lives — and there is no way to generate part
+of a file. The ordinary ownership rules make that safe rather than special: `state.json` is
+the only record of authorship (§10), so a `.codex/config.toml` Driftgate did not write is
+somebody else's and is refused until `--force` backs it up, and a setting added by hand
+afterwards is a hand-edit `sync --import` can recover.
+
 Generated MCP files carry the marker as a top-level `"//"` key (§5), since JSON has no
-comments. Keys Driftgate does not interpret are re-emitted verbatim, which is the path a
-literal secret could take into generated output — the reason for the third enforcement
-point in §11.4.
+comments. TOML does have comments, so `.codex/config.toml` carries the ordinary `#` form.
+Keys Driftgate does not interpret are re-emitted verbatim, which is the path a literal
+secret could take into generated output — the reason for the third enforcement point in
+§11.4. TOML narrows what can be re-emitted at all: it has no `null`, and a nested table
+under an uninterpreted key would have to move to a different place in the file, so both are
+refused rather than guessed at.
 
 ## 12. Reserved: `skills/` (v1)
 

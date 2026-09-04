@@ -24,6 +24,8 @@ import { ADAPTERS } from '../src/registry.js';
  */
 const EXTRA_FIXTURES: Readonly<Record<string, readonly string[]>> = {
   'claude-code': ['claude-code-mcp'],
+  codex: ['codex-mcp'],
+  copilot: ['copilot-mcp'],
   cursor: ['cursor-legacy', 'cursor-mcp'],
 };
 
