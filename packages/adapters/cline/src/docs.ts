@@ -38,7 +38,7 @@ export const docs: AdapterDocs = {
       role: 'instructions',
       managed: true,
       description:
-        "Workspace rules. Cline processes all .md and .txt files inside .clinerules/ and combines them. This is what Driftgate generates; it writes .md only, and imports both extensions.",
+        'Workspace rules. Cline processes all .md and .txt files inside .clinerules/ and combines them. This is what Driftgate generates; it writes .md only, and imports both extensions.',
       source: RULES_DOCS,
     },
     {

@@ -121,7 +121,10 @@ function write(ctx: AdapterContext): Promise<readonly Artifact[]> {
     artifacts.push(
       finalizeArtifact({
         path,
-        contents: withHtmlMarker(renderRuleSection(rule, { headingLevel: 2, showGlobs: true }), marker),
+        contents: withHtmlMarker(
+          renderRuleSection(rule, { headingLevel: 2, showGlobs: true }),
+          marker,
+        ),
         adapter: 'cline',
         kind: 'rules',
         provenance: { ruleIds: [rule.id] },

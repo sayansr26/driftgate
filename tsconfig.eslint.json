@@ -11,6 +11,13 @@
     // which is what a published consumer sees.
     "baseUrl": ".",
     "paths": {
+      // The CLI is the one workspace package with an unscoped name, which is how it came
+      // to be missed here while every `@driftgate/*` package was mapped. `action/`
+      // imports it by that published name, so without this line the Action's source is
+      // the only shipped code eslint type-checks against a `dist/` a clean clone does not
+      // have — and every symbol reached through it, down to `Hunk.oldStart`, lints as
+      // `any`.
+      "driftgate": ["packages/cli/src/index.ts"],
       "@driftgate/core": ["packages/core/src/index.ts"],
       "@driftgate/adapter-kit": ["packages/adapter-kit/src/index.ts"],
       "@driftgate/adapter-kit/testing": ["packages/adapter-kit/src/testing/index.ts"],

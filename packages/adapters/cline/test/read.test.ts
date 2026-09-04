@@ -10,10 +10,7 @@ describe('cline read()', () => {
   it('loses no user content, from either documented extension', async () => {
     // `.txt` is not decoration: the vendor says Cline processes both extensions, so an
     // importer that read only `.md` would silently drop half a user's rules.
-    await expectContentCovered('cline', cline, [
-      '.clinerules/style.md',
-      '.clinerules/notes.txt',
-    ]);
+    await expectContentCovered('cline', cline, ['.clinerules/style.md', '.clinerules/notes.txt']);
   });
 });
 

@@ -1,7 +1,8 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import vitestConfig from '../../../vitest.config.js';
 import { GIT_SUBCOMMANDS, StagedFileSystem } from '../src/git/index.js';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
@@ -377,3 +378,76 @@ async function adapterFiles(): Promise<string[]> {
   await Promise.all(dirs.map((d) => walk(path.join(repoRoot, d))));
   return out.sort();
 }
+
+/**
+ * Two hand-maintained copies of one package -> source map: `tsconfig.eslint.json` for the
+ * linter and `vitest.config.ts` for the runner. Both exist because `pnpm verify` runs
+ * `lint` and `test` *before* `build`, so neither may resolve a workspace package through
+ * its `exports` map into a `dist/` that a clean clone does not have.
+ *
+ * They drifted. The CLI is the one package whose name is unscoped — `driftgate`, not
+ * `@driftgate/cli` — and it was registered in the runner and missed in the linter, so
+ * `action/`'s imports fell back to an absent `dist/index.d.ts` and every symbol behind
+ * them, down to `Hunk.oldStart`, linted as `any`. Green on a machine with a built `dist/`,
+ * fifty-four errors on CI. Two copies of a list stay equal because something checks, so
+ * this pins both to the workspace itself rather than to each other alone.
+ */
+describe('workspace source maps', () => {
+  // `action` is private and nothing imports it, so it needs no entry in either map.
+  const UNIMPORTED = new Set(['@driftgate/action']);
+
+  /** `@driftgate/adapter-kit/testing` is a subpath of `@driftgate/adapter-kit`. */
+  function basePackage(key: string): string {
+    const segments = key.split('/');
+    return key.startsWith('@') ? segments.slice(0, 2).join('/') : (segments[0] ?? key);
+  }
+
+  async function eslintPaths(): Promise<Record<string, string[]>> {
+    const text = await readFile(path.join(repoRoot, 'tsconfig.eslint.json'), 'utf8');
+    // The file is JSONC. Its comments are all whole-line, which is the only form this
+    // strips; a trailing one would make `JSON.parse` throw here rather than pass quietly.
+    const parsed = JSON.parse(text.replace(/^\s*\/\/.*$/gm, '')) as {
+      compilerOptions?: { paths?: Record<string, string[]> };
+    };
+    const paths = parsed.compilerOptions?.paths;
+    if (paths === undefined) throw new Error('tsconfig.eslint.json has no compilerOptions.paths');
+    return paths;
+  }
+
+  async function expectedNames(): Promise<string[]> {
+    return (await packageManifests())
+      .map(({ name }) => name)
+      .filter((name) => !UNIMPORTED.has(name))
+      .sort();
+  }
+
+  it("covers every workspace package in eslint's path map", async () => {
+    const mapped = [...new Set(Object.keys(await eslintPaths()).map(basePackage))].sort();
+    expect(mapped).toEqual(await expectedNames());
+  });
+
+  it("covers every workspace package in vitest's alias map", async () => {
+    const alias = vitestConfig.resolve?.alias;
+    if (alias === undefined || Array.isArray(alias)) {
+      throw new Error('vitest.config.ts resolve.alias must be a record of package names');
+    }
+    const mapped = [...new Set(Object.keys(alias).map(basePackage))].sort();
+    expect(mapped).toEqual(await expectedNames());
+  });
+
+  it('points every eslint path entry at a file that exists', async () => {
+    const missing: string[] = [];
+    for (const [key, targets] of Object.entries(await eslintPaths())) {
+      for (const target of targets) {
+        // A map entry left behind by a rename resolves to nothing, which reads exactly
+        // like the bug above: the linter silently falls back to the `exports` map.
+        const exists = await stat(path.join(repoRoot, target)).then(
+          () => true,
+          () => false,
+        );
+        if (!exists) missing.push(`${key} -> ${target}`);
+      }
+    }
+    expect(missing).toEqual([]);
+  });
+});

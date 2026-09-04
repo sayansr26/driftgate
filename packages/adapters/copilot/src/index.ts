@@ -121,7 +121,6 @@ async function readMcp(ctx: AdapterContext): Promise<ImportResult> {
   };
 }
 
-
 function instructionsPath(rule: RuleDocument): string {
   return `${INSTRUCTIONS_DIR}/${slugForId(rule.id)}.instructions.md`;
 }

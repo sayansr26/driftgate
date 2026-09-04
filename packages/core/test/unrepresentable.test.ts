@@ -34,7 +34,10 @@ const SERVERS = [
   ].join('\n'),
 ] as const;
 
-const RULE = ['.driftgate/rules/10-style.md', '---\ndescription: Style\n---\n\nTwo spaces.\n'] as const;
+const RULE = [
+  '.driftgate/rules/10-style.md',
+  '---\ndescription: Style\n---\n\nTwo spaces.\n',
+] as const;
 
 async function plan(files: readonly (readonly [string, string])[]) {
   return computePlan({

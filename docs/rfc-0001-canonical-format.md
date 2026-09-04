@@ -500,7 +500,7 @@ and what happens in each.
 
 **Deduplication is keyed by server id, not by content**, which is the opposite of the rules
 pass (§9). A rule's id does not survive rendering, so rules are grouped by content and a
-shared heading is only a hint. A server's id *is* the key every target format writes it
+shared heading is only a hint. A server's id _is_ the key every target format writes it
 under, so two `github` entries are two definitions of one server whatever their bodies say —
 and `servers:` is a mapping, so they cannot both survive. One definition is taken and the
 divergence is **reported**; importing neither would let the first `sync` remove the server
@@ -514,13 +514,13 @@ server away from `all` for a reason about Driftgate's roster rather than the use
 **Refused rather than half-imported.** A server is dropped whole, with a message naming the
 file and the key, when it holds any of:
 
-| Input | Why canonical cannot hold it |
-|---|---|
-| `env: { NODE_ENV: "production" }` | `env` is `Record<string, EnvRef>`. Converting would silently repoint the server at the user's shell; dropping the key would lose content. |
-| `"Authorization": "Bearer ${TOKEN}"` | A header value is a *bare* reference. The surrounding text has nowhere to live, and importing the token without its scheme sends a credential that will not authenticate. |
-| `${NAME:-default}` | The default has no canonical form, and a variable that may resolve to nothing is a server that starts and fails. |
-| `${input:id}` | An input **prompts the user**; `env:NAME` names a variable. Different behaviour, not a different spelling. |
-| `type: "ws"` | There is no WebSocket transport arm. Importing it as `http` would point a streamable-HTTP client at a WebSocket endpoint. |
+| Input                                | Why canonical cannot hold it                                                                                                                                              |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `env: { NODE_ENV: "production" }`    | `env` is `Record<string, EnvRef>`. Converting would silently repoint the server at the user's shell; dropping the key would lose content.                                 |
+| `"Authorization": "Bearer ${TOKEN}"` | A header value is a _bare_ reference. The surrounding text has nowhere to live, and importing the token without its scheme sends a credential that will not authenticate. |
+| `${NAME:-default}`                   | The default has no canonical form, and a variable that may resolve to nothing is a server that starts and fails.                                                          |
+| `${input:id}`                        | An input **prompts the user**; `env:NAME` names a variable. Different behaviour, not a different spelling.                                                                |
+| `type: "ws"`                         | There is no WebSocket transport arm. Importing it as `http` would point a streamable-HTTP client at a WebSocket endpoint.                                                 |
 
 Every one of these follows §11.5's split: a loss that still works is a note, a loss that
 silently produces a wrong answer is a refusal. All of them are **warnings**, never errors —

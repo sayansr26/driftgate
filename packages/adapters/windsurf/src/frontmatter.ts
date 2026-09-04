@@ -116,7 +116,12 @@ export function parseRule(contents: string): ParsedRule {
     const [, key, raw] = pair;
     const value = raw!.trim().replace(/^["']|["']$/g, '');
     if (key === 'globs' && value !== '') {
-      globs.push(...value.split(',').map((g) => g.trim()).filter((g) => g !== ''));
+      globs.push(
+        ...value
+          .split(',')
+          .map((g) => g.trim())
+          .filter((g) => g !== ''),
+      );
     } else if (key === 'description' && value !== '') {
       description = value;
     }

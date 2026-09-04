@@ -91,7 +91,5 @@ export async function collectImports(options: CollectOptions): Promise<CollectRe
  * true the moment somebody writes a sixth adapter.
  */
 function carriesMcp(adapter: Adapter): boolean {
-  return adapter.docs.files.some(
-    (f) => f.managed && f.role === 'mcp' && f.scope !== 'global',
-  );
+  return adapter.docs.files.some((f) => f.managed && f.role === 'mcp' && f.scope !== 'global');
 }

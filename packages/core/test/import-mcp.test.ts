@@ -25,7 +25,11 @@ describe('importMcpJson — T048', () => {
     );
     expect(warnings).toEqual([]);
     expect(servers.map((s) => s.id)).toEqual(['github', 'memory']);
-    expect(servers[1]!.transport).toEqual({ kind: 'stdio', command: 'npx', args: ['-y', 'server-memory'] });
+    expect(servers[1]!.transport).toEqual({
+      kind: 'stdio',
+      command: 'npx',
+      args: ['-y', 'server-memory'],
+    });
     expect(servers[0]!.transport).toEqual({ kind: 'sse', url: 'https://x.test/mcp' });
     expect(servers[0]!.headers['Auth']).toEqual({ kind: 'env', name: 'TOKEN' });
   });
@@ -62,7 +66,9 @@ describe('importMcpJson — T048', () => {
     // canonical header value is a bare reference — the prefix has nowhere to live.
     const { servers, warnings } = importJson(
       JSON.stringify({
-        mcpServers: { gh: { url: 'https://x.test', headers: { Authorization: 'Bearer ${TOKEN}' } } },
+        mcpServers: {
+          gh: { url: 'https://x.test', headers: { Authorization: 'Bearer ${TOKEN}' } },
+        },
       }),
     );
     expect(servers).toEqual([]);

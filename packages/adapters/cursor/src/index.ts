@@ -110,7 +110,6 @@ async function readMcp(ctx: AdapterContext): Promise<ImportResult> {
   };
 }
 
-
 function mdcPath(rule: RuleDocument): string {
   return `${RULES_DIR}/${slugForId(rule.id)}.mdc`;
 }

@@ -71,11 +71,9 @@ describe('importConfigToml — T048', () => {
     // The strongest available check that reader and writer agree, and the one that would
     // catch either drifting from the other.
     const { servers } = importConfigToml(
-      [
-        '[mcp_servers.gh]',
-        'url = "https://x.test/mcp"',
-        'bearer_token_env_var = "TOKEN"',
-      ].join('\n'),
+      ['[mcp_servers.gh]', 'url = "https://x.test/mcp"', 'bearer_token_env_var = "TOKEN"'].join(
+        '\n',
+      ),
       FILE,
     );
     const rendered = renderConfigToml(servers, false);
@@ -85,7 +83,10 @@ describe('importConfigToml — T048', () => {
   it('warns that non-MCP tables will not survive the first sync', () => {
     // Driftgate owns this whole file once it writes it. Saying so during `init` is the
     // difference between a warning and a surprise.
-    const { warnings } = importConfigToml('[tui]\ntheme = "dark"\n\n[mcp_servers.s]\ncommand = "x"\n', FILE);
+    const { warnings } = importConfigToml(
+      '[tui]\ntheme = "dark"\n\n[mcp_servers.s]\ncommand = "x"\n',
+      FILE,
+    );
     expect(warnings.join('\n')).toContain('tui');
     expect(warnings.join('\n')).toContain('will not survive');
   });

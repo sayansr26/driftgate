@@ -55,7 +55,9 @@ async function detect(ctx: AdapterContext): Promise<boolean> {
  * did not write it — and a file ruler did not write must not be masked from the adapters,
  * or a hand-written `CLAUDE.md` would vanish from the import.
  */
-export function splitRulerOutput(contents: string): readonly { file: string; body: string }[] | undefined {
+export function splitRulerOutput(
+  contents: string,
+): readonly { file: string; body: string }[] | undefined {
   const lines = contents.split('\n');
   const sections: { file: string; body: string[] }[] = [];
 

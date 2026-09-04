@@ -14,12 +14,12 @@ driftgate init --yes    # applies it, backing up every file it takes ownership o
 
 ## What comes across
 
-| From | Becomes | Notes |
-|---|---|---|
-| `.ruler/*.md` | one canonical rule per file | The sources you edit, not the files ruler generated from them. |
-| `.rulesync/rules/*.md` | one canonical rule per file | `description` and `globs` map straight across. |
-| `targets:` (rulesync) | `tools:` | `["*"]` becomes every tool; a named list becomes a `tools:` selector. |
-| Per-tool frontmatter (rulesync) | preserved in `unknown` | Not interpreted, not lost. |
+| From                            | Becomes                     | Notes                                                                 |
+| ------------------------------- | --------------------------- | --------------------------------------------------------------------- |
+| `.ruler/*.md`                   | one canonical rule per file | The sources you edit, not the files ruler generated from them.        |
+| `.rulesync/rules/*.md`          | one canonical rule per file | `description` and `globs` map straight across.                        |
+| `targets:` (rulesync)           | `tools:`                    | `["*"]` becomes every tool; a named list becomes a `tools:` selector. |
+| Per-tool frontmatter (rulesync) | preserved in `unknown`      | Not interpreted, not lost.                                            |
 
 ## The part worth understanding: your generated files are not imported twice
 
@@ -35,7 +35,7 @@ So `init` hides each tool's observed output from the adapter pass. Two details m
 - **rulesync is detected less precisely,** and this is stated rather than hidden: rulesync
   writes no marker of its own, so the only available signal is that the repository is a
   rulesync repository and the file is one of rulesync's known outputs. In a repository that
-  uses rulesync *and* keeps a hand-written `CLAUDE.md` at a path rulesync also targets, that
+  uses rulesync _and_ keeps a hand-written `CLAUDE.md` at a path rulesync also targets, that
   file will not be imported. Check the plan `init` prints before applying it.
 
 ## What does not come across
@@ -63,7 +63,7 @@ directory and its tool is a separate, reversible decision.
 
 ---
 
-*Formats verified 2026-09-04 against `intellectronica/ruler`
+_Formats verified 2026-09-04 against `intellectronica/ruler`
 (`src/constants.ts`, `src/core/RuleProcessor.ts`, `src/core/FileSystemUtils.ts`) and
 `dyoshikawa/rulesync` (`src/constants/rulesync-paths.ts`,
-`src/features/rules/rulesync-rule.ts`), read from source rather than from documentation.*
+`src/features/rules/rulesync-rule.ts`), read from source rather than from documentation._

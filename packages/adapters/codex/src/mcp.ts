@@ -165,9 +165,7 @@ export function renderConfigToml(servers: readonly McpServer[], marker: boolean)
   // wonder about; the omission is still reported, by `doctor`, from the same canonical.
   if (tables.length === 0) return '';
 
-  const notes = skipped.map(
-    (s) => `# omitted: \`${s.id}\` — ${s.why}.\n#   ${s.hint}`,
-  );
+  const notes = skipped.map((s) => `# omitted: \`${s.id}\` — ${s.why}.\n#   ${s.hint}`);
   const body = [...notes, ...tables].join('\n\n');
   return withHashMarker(body, marker);
 }
@@ -274,9 +272,7 @@ export function importConfigToml(contents: string, file = MCP_FILE): ImportedMcp
       if (!INTERPRETED.has(key)) unknown[key] = entries[key]!;
     }
 
-    servers.push(
-      importedServer({ id, transport, env, headers, unknown, source: { file } }),
-    );
+    servers.push(importedServer({ id, transport, env, headers, unknown, source: { file } }));
   }
 
   if (foreign.size > 0) {

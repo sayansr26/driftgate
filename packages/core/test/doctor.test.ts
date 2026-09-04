@@ -224,7 +224,9 @@ describe('buildDoctorReport — warnings', () => {
           name: 'writer',
           files: [entry('ALL.md', { managed: true })],
           detect: false,
-          writes: [['ALL.md', 'style rules and testing rules, concatenated — different bytes entirely']],
+          writes: [
+            ['ALL.md', 'style rules and testing rules, concatenated — different bytes entirely'],
+          ],
           provenance: { 'ALL.md': ['10-style', '20-testing'] },
         }),
       ],
@@ -409,9 +411,7 @@ describe('buildDoctorReport — warnings', () => {
       ['AGENTS.md', 'third, never opened'],
     ] as const;
 
-    const first = await report(disk, [
-      stub({ name: 'alpha', files, resolution: 'first-match' }),
-    ]);
+    const first = await report(disk, [stub({ name: 'alpha', files, resolution: 'first-match' })]);
     const rows = first.tools[0]!.files;
     expect(rows.map((f) => f.loaded)).toEqual([true, false, false]);
 

@@ -40,7 +40,10 @@ import type { DoctorWarning, ToolDiagnosis } from './types.js';
  * generate) is keyed by its content hash instead, which is the only signal available for it
  * and is still correct for the identical-concatenation case.
  */
-function unitsOf(m: Measured, provenance: ReadonlyMap<string, readonly string[]>): readonly string[] {
+function unitsOf(
+  m: Measured,
+  provenance: ReadonlyMap<string, readonly string[]>,
+): readonly string[] {
   const rules = provenance.get(m.path);
   if (rules !== undefined && rules.length > 0) return rules.map((id) => `rule:${id}`);
   return m.hash === undefined ? [] : [`hash:${m.hash}`];

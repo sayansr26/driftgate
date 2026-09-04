@@ -143,7 +143,10 @@ async function read(ctx: AdapterContext): Promise<InteropResult> {
     const body = (match === null ? contents : contents.slice(match[0].length)).trim();
     if (body === '' && meta.description === undefined) continue;
 
-    const base = path.slice(RULES_DIR.length + 1).replace(/\.md$/i, '').replace(/\//g, '-');
+    const base = path
+      .slice(RULES_DIR.length + 1)
+      .replace(/\.md$/i, '')
+      .replace(/\//g, '-');
     const rule = importedRule({
       id: claimRuleId(importRuleId(base, 'rulesync'), taken),
       ...(meta.description === undefined ? {} : { description: meta.description }),

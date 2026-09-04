@@ -15332,7 +15332,18 @@ var zed = {
 };
 
 // ../packages/cli/dist/registry.js
-var ADAPTERS = [aider, claudeCode, cline, codex, copilot, cursor, gemini, rooCode, windsurf, zed];
+var ADAPTERS = [
+  aider,
+  claudeCode,
+  cline,
+  codex,
+  copilot,
+  cursor,
+  gemini,
+  rooCode,
+  windsurf,
+  zed
+];
 var ADAPTER_NAMES = ADAPTERS.map((a) => a.name);
 
 // ../packages/cli/dist/ui/report.js
