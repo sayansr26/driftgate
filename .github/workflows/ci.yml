@@ -68,6 +68,14 @@ jobs:
       - name: driftgate check (dogfood)
         run: node packages/cli/dist/bin.js check
 
+      # The Action's bundle is committed (a runner does no `npm install` before running
+      # it), so it can go stale the moment somebody edits action/src and forgets to
+      # rebuild — and a stale bundle keeps working while reporting an older commit's
+      # behaviour. This also proves the bundle is byte-identical across platforms and Node
+      # versions, which a committed build has to be.
+      - name: action bundle is current
+        run: node action/build.mjs --check
+
   smoke:
     name: install and run end to end
     runs-on: ${{ matrix.os }}
@@ -89,6 +97,26 @@ jobs:
       # init -> sync -> check on a throwaway repository — including the drift case, which
       # must exit 1 with a diff. See scripts/smoke.mjs for why this is not literally npx.
       - run: node scripts/smoke.mjs
+
+  action:
+    name: run the action as an action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # `uses: ./action` is the only thing that exercises action.yml itself — its inputs,
+      # its `node20` runtime, and the committed bundle as the runner resolves it. Nothing
+      # else in this workflow does: the dist lane spawns `node action/dist/main.js`
+      # directly, which proves the code and not the packaging.
+      #
+      # This repository is in sync, so the Action must pass. The failing direction is
+      # covered by the dist lane, which asserts exit 1 and the annotations on a drifted
+      # fixture — a job cannot assert its own failure without `continue-on-error`, which
+      # would also hide a real one.
+      - name: driftgate check via the action
+        uses: ./action
+        with:
+          annotations: 'true'
 
   format:
     name: prettier

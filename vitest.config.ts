@@ -20,6 +20,10 @@ export default defineConfig({
       '@driftgate/adapter-copilot': src('./packages/adapters/copilot/src/index.ts'),
       '@driftgate/adapter-cursor': src('./packages/adapters/cursor/src/index.ts'),
       '@driftgate/adapter-gemini': src('./packages/adapters/gemini/src/index.ts'),
+      // `action/` imports the CLI by its published name. Without this the Action's tests
+      // would be the only ones running against `dist/`, so they would pass or fail on
+      // whatever was last built rather than on the source in the diff.
+      driftgate: src('./packages/cli/src/index.ts'),
     },
   },
   test: {

@@ -5,11 +5,20 @@ import {
   type Canonical,
   type DriftgateManifest,
 } from '../model/canonical.js';
-import { AGENTS_MD, MANIFEST_PATH, RULES_DIR, RULES_GLOB, deriveRuleId } from '../model/paths.js';
+import {
+  AGENTS_MD,
+  MANIFEST_PATH,
+  MCP_SERVERS_PATH,
+  RULES_DIR,
+  RULES_GLOB,
+  deriveRuleId,
+} from '../model/paths.js';
 import { compareCodepoint } from '../render/order.js';
 import { parseManifest } from './manifest.js';
+import { parseMcpServers } from './mcp.js';
 import { parseRuleFile } from './rules.js';
 import { suggest } from './suggest.js';
+import type { McpServer } from '../model/mcp.js';
 import type { RuleDocument } from '../model/rule.js';
 import type { ReadOnlyFileSystem } from '../fs/types.js';
 
@@ -109,6 +118,19 @@ export async function parse(input: ParseInput): Promise<ParseResult> {
     errors.push(...detectIdConflicts(ruleFiles));
   }
 
+  // MCP lives beside the rules, so it is read in every mode that has a `.driftgate/`.
+  // A bare `AGENTS.md` repository has nowhere to put it and is not searched.
+  const mcpServers: McpServer[] = [];
+  if (mode !== 'bare-agents-md') {
+    const mcpRaw = await fs.tryReadFile(MCP_SERVERS_PATH);
+    if (mcpRaw !== undefined) {
+      sourceFiles.push(MCP_SERVERS_PATH);
+      const parsed = parseMcpServers(mcpRaw);
+      mcpServers.push(...parsed.servers);
+      errors.push(...parsed.errors);
+    }
+  }
+
   sourceFiles.sort(compareCodepoint);
 
   return {
@@ -116,7 +138,7 @@ export async function parse(input: ParseInput): Promise<ParseResult> {
       schemaVersion: CANONICAL_SCHEMA_VERSION,
       manifest,
       rules,
-      mcpServers: [],
+      mcpServers,
       skills: [],
     },
     errors,

@@ -20,6 +20,11 @@ import type {
   AdapterContext,
   Artifact,
   ArtifactKind,
+  EnvRef,
+  McpScope,
+  McpServer,
+  McpTransport,
+  SecretValue,
   Canonical,
   DetectResult,
   JsonValue,
@@ -63,6 +68,26 @@ pin<Exact<AdapterContext, PinnedAdapterContext>>();
 pin<Exact<keyof AdapterContext, 'repoRoot' | 'canonical' | 'fs' | 'options' | 'apiVersion'>>();
 
 pin<Exact<ArtifactKind, 'rules' | 'mcp' | 'skill' | 'command' | 'subagent' | 'other'>>();
+
+// MCP (T043/T045). `McpServer` came off the forbidden list once T043 settled its shape,
+// so from here it is frozen like everything else and its fields are pinned key-for-key.
+//
+// `SecretValue` is the load-bearing one: it is `EnvRef` and never `string`, which is what
+// makes "never write a literal secret" something an adapter cannot do rather than
+// something it must remember not to do. Widening it to `string | EnvRef` would compile
+// everywhere and fail here.
+pin<Exact<SecretValue, EnvRef>>();
+pin<Exact<keyof EnvRef, 'kind' | 'name'>>();
+pin<Exact<McpScope, 'project' | 'global'>>();
+pin<Exact<McpTransport['kind'], 'stdio' | 'http' | 'sse'>>();
+pin<
+  Exact<
+    keyof McpServer,
+    'id' | 'transport' | 'env' | 'headers' | 'tools' | 'scope' | 'enabled' | 'unknown' | 'source'
+  >
+>();
+pin<Exact<McpServer['env'], Readonly<Record<string, SecretValue>>>>();
+pin<Exact<McpServer['headers'], Readonly<Record<string, SecretValue>>>>();
 
 // The four members of the contract, and their exact signatures. `write` returning a
 // value rather than writing is what makes `check` and `sync` structurally unable to

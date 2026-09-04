@@ -113,6 +113,32 @@ rather than guessing, when the canonical source has changed too — `state.json`
 hash, not the old text, so in that case the version you edited cannot be reconstructed from
 anything and both sides are shown instead.
 
+## Gate drift on a pull request
+
+The GitHub Action runs `driftgate check` and marks every drifted region **inline on the
+pull request diff**, so a reviewer sees which lines are wrong without opening the log.
+
+```yaml
+# .github/workflows/driftgate.yml
+name: driftgate
+on: [pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: driftgate-dev/driftgate/action@v1
+```
+
+| input               | default           |                                             |
+| ------------------- | ----------------- | ------------------------------------------- |
+| `working-directory` | the checkout root | where to check, for a monorepo subdirectory |
+| `annotations`       | `true`            | set `false` for the log output only         |
+
+It is the same `check` the CLI runs — one rendering pass, one verdict — so the annotations
+on the diff and the log beneath them cannot disagree. Like every other form of `check` it
+is read-only and needs no permissions beyond the default `contents: read`.
+
 ## Catch drift before it is committed
 
 `driftgate check --staged` verifies the **git index** instead of the working tree, which is

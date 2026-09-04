@@ -84,14 +84,45 @@ removal was still free: it is the type someone would reach for to write
 
 ### Reserved
 
-`Canonical.mcpServers` and `Canonical.skills` are stubs for MCP (T043) and skills (T057).
-Their **element types are not part of the frozen surface** and may change without a major
-bump until those land; `McpServer` and `Skill` are deliberately not exported, so an adapter
-cannot declare against a shape that is not settled. The fields themselves — present, and
-arrays — are frozen. Reading them is allowed and unsupported.
+`Canonical.skills` is a stub for skills (T057). Its **element type is not part of the
+frozen surface** and may change without a major bump until that lands; `Skill` is
+deliberately not exported, so an adapter cannot declare against a shape that is not
+settled. The field itself — present, and an array — is frozen. Reading it is allowed and
+unsupported.
+
+`Canonical.mcpServers` **is no longer reserved.** T043 settled the shape and T045 exported
+it, so `McpServer`, `McpTransport`, `EnvRef`, `SecretValue` and `McpScope` are part of the
+frozen surface and are pinned key-for-key in `test/shape/pins.ts`.
 
 `RuleFrontmatter.unknown` is the forward-compatibility channel for rule metadata: any
 frontmatter key Driftgate does not recognize is preserved there verbatim.
+
+### Writing MCP servers (added at T045)
+
+**No signature changed and `ADAPTER_API_VERSION` did not move.** An MCP-capable adapter is
+an ordinary adapter: `read()` already returns `Partial<Canonical>`, so it returns
+`{ mcpServers }`; `write()` already returns `readonly Artifact[]`, so it returns one with
+`kind: 'mcp'`. **A rules-only adapter needs no edit at all** — that is not a courtesy, it
+is the tested property.
+
+Three rules an MCP writer must follow:
+
+- **Render JSON with `stableJsonStringify`.** It is the only JSON writer in the codebase.
+  `JSON.stringify` emits keys in insertion order, and an object assembled from a
+  filesystem walk inherits that walk's order — nondeterminism hashed straight into
+  `state.json`.
+- **Carry the marker with `withJsonMarker`.** JSON has no comments, so a generated MCP file
+  declares itself with a top-level `"//"` key (`JSON_MARKER_KEY`). It sorts first under
+  `compareCodepoint`, so it stays at the top with no special case, and marker presence
+  stays a property every generated artifact has.
+- **Skip `scope: 'global'` servers.** There is no lawful path for one: `escapesRoot`
+  refuses anything outside the repository and `AdapterContext` has no home directory.
+  `doctor` reports them; adapters do not write them.
+
+Secrets need no care at all, which is the point: `SecretValue` is `EnvRef`, so an adapter
+is never handed a literal. `computePlan` also scans every `kind: 'mcp'` artifact's rendered
+bytes and fails the run rather than writing a credential (T044), so an adapter that
+constructs one out of `unknown` is caught rather than trusted.
 
 ## Compatibility policy
 

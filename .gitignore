@@ -1,6 +1,13 @@
 node_modules/
 dist/
 coverage/
+
+# The one exception. A published GitHub Action gets no `npm install` — the runner checks
+# the repository out and runs `dist/main.js` as it stands — so the Action's bundle is a
+# committed artifact. `node action/build.mjs --check` is the CI gate that keeps it from
+# going stale, since a stale bundle keeps working while reporting an older commit's
+# behaviour. Everything else under `dist/` stays ignored.
+!action/dist/
 *.tsbuildinfo
 .eslintcache
 .vitest/

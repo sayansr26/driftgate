@@ -34,8 +34,9 @@ export type {
 
 export { ADAPTER_API_VERSION, detected, NOT_DETECTED } from '@driftgate/core';
 
-// The model an adapter reads. `Canonical.mcpServers` and `.skills` are T043/T057 stubs:
-// the freeze covers their presence as arrays, not their element shapes. See README.
+// The model an adapter reads. `Canonical.skills` is still a T057 stub: the freeze covers
+// its presence as an array, not its element shape. `Canonical.mcpServers` is no longer one
+// — T043 settled `McpServer` and it is exported below. See README.
 export type {
   Canonical,
   DriftgateManifest,
@@ -49,6 +50,17 @@ export type {
   ToolId,
   ToolSelector,
 } from '@driftgate/core';
+
+// MCP (T043/T045). No `Adapter` signature changed and `ADAPTER_API_VERSION` did not move:
+// `read()` already returns `Partial<Canonical>` and `write()` already returns artifacts,
+// so an MCP-capable adapter returns `{ mcpServers }` from one and an `Artifact` with
+// `kind: 'mcp'` from the other. A rules-only adapter needs no edit at all, which is T045's
+// stated validation.
+//
+// `SecretValue` is `EnvRef` and nothing else, which is what makes "never write a literal
+// secret" a property an adapter cannot violate rather than a rule it has to remember.
+export type { EnvRef, McpScope, McpServer, McpTransport, SecretValue } from '@driftgate/core';
+export { DEFAULT_MCP_SCOPE, envRef, formatEnvRef, parseEnvRef } from '@driftgate/core';
 
 // Rendering. These exist so that every adapter produces byte-identical output for the
 // same input without reimplementing normalization, ordering, or the generated-file
@@ -65,6 +77,13 @@ export {
   sortRules,
   withHashMarker,
   withHtmlMarker,
+  // JSON output, for MCP artifacts. `stableJsonStringify` is the only JSON writer in the
+  // codebase and adapters cannot import core, so without it here an adapter reaching for
+  // bare `JSON.stringify` inherits whatever order its object was built in — a filesystem
+  // walk's order, hashed straight into `state.json`.
+  JSON_MARKER_KEY,
+  stableJsonStringify,
+  withJsonMarker,
 } from '@driftgate/core';
 
 // Determinism primitives, exported because the alternative is illegal rather than merely

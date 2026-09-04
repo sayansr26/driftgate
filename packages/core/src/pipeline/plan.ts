@@ -3,6 +3,7 @@ import { escapesRoot, normalizeRelative } from '../fs/paths.js';
 import { isCanonicalSource } from '../model/canonical.js';
 import { STATE_PATH } from '../model/paths.js';
 import { finalizeArtifact } from '../render/finalize.js';
+import { scanTextForSecrets } from '../render/secrets.js';
 import { sortArtifacts } from '../render/order.js';
 import { buildState, type StateFile } from '../state/state.js';
 import { parse } from '../parse/index.js';
@@ -123,6 +124,30 @@ export async function computePlan(input: PlanInput): Promise<Plan> {
           }),
         );
         continue;
+      }
+
+      // The last gate in front of a git-committed credential (T044). The parser refuses
+      // a literal in `env`, `headers` and preserved unknown keys, and `SecretValue` keeps
+      // an adapter from being handed one — but an adapter renders its own text, and this
+      // is the only place that sees what it actually produced. Scoped to `mcp` artifacts
+      // because that is where credentials belong: a generic entropy scan over rendered
+      // *instructions* fires on git hashes and code samples, and a check people learn to
+      // override is not a check.
+      if (artifact.kind === 'mcp') {
+        const found = scanTextForSecrets(artifact.contents);
+        if (found.length > 0) {
+          errors.push(
+            new DriftgateError({
+              code: 'E_LITERAL_SECRET',
+              // Locations, never the values. A message that quoted what it found would
+              // print the secret into CI logs.
+              message: `adapter \`${adapter.name}\` would write a literal credential to ${path} (${found.join(', ')})`,
+              source: { file: path },
+              hint: 'use an `env:NAME` reference in .driftgate/mcp/servers.yaml; driftgate never writes a literal secret',
+            }),
+          );
+          continue;
+        }
       }
 
       if (isCanonicalSource(canonical.manifest, path)) {

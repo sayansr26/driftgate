@@ -178,22 +178,52 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
    * `node dist/main.js` exited 0 without looking. Only a spawned process proves the fix:
    * an in-process import of the module would run the top-level call and pass either way.
    */
-  it('the Action exits 1 on drift and 0 in sync', async () => {
+  it('the Action exits 1 on drift and 0 in sync, and annotates the drift', async () => {
     const actionMain = fileURLToPath(new URL('../../../action/dist/main.js', import.meta.url));
     const repo = await mkdtemp(path.join(tmpdir(), 'driftgate-action-smoke-'));
     const env = { ...process.env };
     delete env['GITHUB_WORKSPACE'];
+    delete env['INPUT_ANNOTATIONS'];
     try {
       await cp(path.join(fixtures, 'cursor/input'), repo, { recursive: true });
-      await expect(run(process.execPath, [actionMain], { cwd: repo, env })).rejects.toMatchObject({
-        code: 1,
-      });
+      const drifted = await run(process.execPath, [actionMain], { cwd: repo, env }).catch(
+        (e: { code: number; stdout: string }) => e,
+      );
+      expect(drifted.code).toBe(1);
+      // Annotations are on by default, and they name a real file. `check`'s own output
+      // says nothing GitHub can place on a diff, so this is the only assertion that the
+      // Action does more than the CLI.
+      expect(drifted.stdout).toContain('::error file=CLAUDE.md,');
+      expect(drifted.stdout).toContain('title=driftgate%3A');
+
       await run(process.execPath, [binPath, 'sync'], { cwd: repo });
       const { stdout } = await run(process.execPath, [actionMain], { cwd: repo, env });
       expect(stdout).toContain('in sync');
+      // A clean repository must annotate nothing: an annotation on a PR that is in sync
+      // is a false failure report, and people stop reading them.
+      expect(stdout).not.toContain('::error');
     } finally {
       await rm(repo, { recursive: true, force: true });
     }
+  });
+
+  /**
+   * The bundle is committed, so it is the only shipped artifact that can silently
+   * describe an older commit. This is `node action/build.mjs --check` reaching the test
+   * suite as well as CI, since a contributor who never runs the workflow still runs
+   * `pnpm test`.
+   *
+   * It bundles the CLI through its `exports` map, so it embeds `packages/cli/dist` rather
+   * than `src` — which is why this test lives in the dist lane, where a build has
+   * necessarily happened. A change anywhere in core or the CLI moves the bundle, and the
+   * bundle has to be rebuilt and committed with it.
+   */
+  it('the committed Action bundle matches a fresh build', async () => {
+    const buildScript = fileURLToPath(new URL('../../../action/build.mjs', import.meta.url));
+    const { stdout } = await run(process.execPath, [buildScript, '--check'], {
+      cwd: fileURLToPath(new URL('../../../', import.meta.url)),
+    });
+    expect(stdout).toContain('up to date');
   });
 
   /**

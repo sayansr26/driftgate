@@ -152,7 +152,7 @@ export default tseslint.config(
     // honest; adding casts to satisfy them would not be. Everything that guards the
     // product — the dependency allowlist, the write allowlist, the network and
     // determinism scans — is a test over `packages/` and is unaffected.
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.mjs', 'action/build.mjs'],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: {
       globals: { URL: 'readonly', console: 'readonly', process: 'readonly' },

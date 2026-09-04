@@ -44,7 +44,7 @@ format makes.
 .driftgate/
   driftgate.yaml      manifest: enabled tools and options        v0
   rules/*.md          instructions, Markdown + YAML frontmatter  v0
-  mcp/servers.yaml    MCP server definitions                     reserved (v0.2)
+  mcp/servers.yaml    MCP server definitions                     v0.2
   skills/             skill definitions                          reserved (v1)
   state.json          generated-artifact hashes                  generated
   backup/             pre-overwrite copies                       generated
@@ -320,20 +320,91 @@ path.
   a file nobody has any record of, and it stays on disk being loaded by the tool it was
   written for. `driftgate doctor` still finds it by shape; `sync` cannot.
 
-## 11. Reserved: `mcp/servers.yaml` (v0.2)
+## 11. `mcp/servers.yaml` (v0.2)
 
-Canonical MCP server definitions — command/args/transport, environment references,
-per-tool enable/disable, and project versus global scope — generated into Claude Code's
-`.mcp.json`, Cursor's `.cursor/mcp.json`, VS Code/Copilot's `mcp.json`, and Codex's
-`config.toml`.
+Canonical MCP server definitions, generated into Claude Code's `.mcp.json`, Cursor's
+`.cursor/mcp.json`, VS Code/Copilot's `mcp.json`, and Codex's `config.toml`.
 
-**Secrets are references only.** The syntax is `env:GITHUB_TOKEN`. Driftgate refuses to
-write a literal secret under any flag, and warns when one is found during import,
-converting it to a reference. Generated configs are git-committed; a literal token in
-one is the worst failure this tool could produce. This is enforced in the type system:
-the model's secret type is an environment reference, not a string.
+The file is optional. A repository with no `.driftgate/mcp/servers.yaml` has no MCP
+servers, which is not an error.
 
-Specified fully when T043 lands. This section will be extended, not replaced.
+```yaml
+schemaVersion: 1
+servers:
+  github:
+    command: npx
+    args: ['-y', '@modelcontextprotocol/server-github']
+    env:
+      GITHUB_TOKEN: env:GITHUB_TOKEN
+  linear:
+    url: https://mcp.linear.app/sse
+    transport: sse
+    headers:
+      Authorization: env:LINEAR_API_KEY
+    tools: [claude-code, cursor]
+  local-notes:
+    command: ./scripts/notes-server
+    scope: global
+    enabled: false
+```
+
+### 11.1 `servers`
+
+A **mapping**, not a list. The key is the server id, and it is the name every target
+format writes the server under, so a mapping makes a duplicate id impossible in the file
+itself rather than something Driftgate has to detect. Servers are rendered in codepoint
+order of their ids regardless of the order they appear in.
+
+| key         | type                       | default    | meaning                                            |
+| ----------- | -------------------------- | ---------- | -------------------------------------------------- |
+| `command`   | string                     | —          | executable for a local (stdio) server              |
+| `args`      | list of strings            | `[]`       | arguments to `command`                             |
+| `url`       | string                     | —          | endpoint for a remote server                       |
+| `transport` | `stdio` \| `http` \| `sse` | inferred   | only needed to say `sse`                           |
+| `env`       | mapping of references      | `{}`       | process environment for a stdio server             |
+| `headers`   | mapping of references      | `{}`       | HTTP headers for a remote server                   |
+| `tools`     | selector (§7)              | every tool | which tools get this server                        |
+| `scope`     | `project` \| `global`      | `project`  | see §11.3                                          |
+| `enabled`   | boolean                    | `true`     | `false` keeps the definition and generates nothing |
+
+Every other key is preserved verbatim, exactly as unknown rule frontmatter is (§6).
+
+### 11.2 Transport is inferred from the shape
+
+`command` means stdio; `url` means http. `transport` is only required to distinguish
+`sse` from `http`, since both are a bare `url`.
+
+Declaring both `command` and `url` is **`E_MCP_INVALID`**. They describe different
+servers, and choosing one by precedence would silently generate a config that connects
+somewhere the author did not ask for. A `transport` that contradicts the shape — `stdio`
+beside a `url` — is refused for the same reason.
+
+### 11.3 Scope: `global` is read, never written
+
+`scope: global` describes a server the user has configured for themselves, machine-wide.
+Driftgate **reports** those and never generates them: `sync` writes nothing outside the
+repository (§9), and there is no lawful path for a user-level file to be written to.
+`doctor` shows them so that "why can my agent see that server" has an answer; `sync`
+skips them.
+
+### 11.4 Secrets are references only
+
+The syntax is `env:GITHUB_TOKEN`: the literal prefix `env:` followed by an environment
+variable name. It is the **only** accepted value in `env` and `headers`. Anything else is
+`E_LITERAL_SECRET`, and the error names the key and never the value — a message that
+quoted the offending string would print the secret into CI logs, which is the failure
+this rule exists to prevent, committed to a different file.
+
+Driftgate refuses to write a literal secret under any flag, and warns when one is found
+during import, converting it to a reference. Generated configs are git-committed; a
+literal token in one is the worst failure this tool could produce.
+
+This is enforced in three places, not one, because the type system alone is not enough:
+the model's secret type is an environment reference rather than a string, so an adapter
+cannot be handed a literal; the parser refuses one, so it cannot enter the model; and a
+scan over generated output refuses to write one, so it cannot arrive through a key
+Driftgate does not interpret. The third exists because preserved unknown keys carry
+strings and are re-emitted verbatim.
 
 ## 12. Reserved: `skills/` (v1)
 

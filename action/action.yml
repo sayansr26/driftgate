@@ -1,5 +1,18 @@
 name: 'Driftgate check'
 description: 'Fail the build when generated agent configs have drifted from .driftgate/.'
+author: 'Driftgate contributors'
+branding:
+  icon: 'git-pull-request'
+  color: 'purple'
+inputs:
+  working-directory:
+    description: 'Directory to check, relative to the checkout. Defaults to the checkout root.'
+    required: false
+    default: ''
+  annotations:
+    description: 'Mark each drifted region inline on the pull request diff.'
+    required: false
+    default: 'true'
 runs:
   using: 'node20'
   main: 'dist/main.js'

@@ -22,6 +22,21 @@ import { createKitProgram } from './program.js';
  * required field. That is `contract-shape.test.ts`, and it is why the two exist.
  */
 const FROZEN_V1 = [
+  // Added at T045 (MCP). Additions cost one line each and no `ADAPTER_API_VERSION` bump,
+  // which is the compatibility policy in `docs/adapter-api-v1.md` being exercised for the
+  // second time after `slugForId`.
+  'DEFAULT_MCP_SCOPE (value)',
+  'EnvRef (type)',
+  'JSON_MARKER_KEY (value)',
+  'McpScope (type)',
+  'McpServer (type)',
+  'McpTransport (type)',
+  'SecretValue (type)',
+  'envRef (value)',
+  'formatEnvRef (value)',
+  'parseEnvRef (value)',
+  'stableJsonStringify (value)',
+  'withJsonMarker (value)',
   'ADAPTER_API_VERSION (value)',
   'ALL_TOOLS (value)',
   'Adapter (type)',
@@ -149,7 +164,8 @@ describe('the frozen adapter API (T011)', () => {
       'resolveRepoRoot',
       // T043/T057 stubs: `Canonical` carries these fields, but naming their element types
       // would let an adapter declare against a shape that is not frozen yet.
-      'McpServer',
+      // `McpServer` came off this list at T045: T043 settled its shape, so it is exported
+      // and frozen. `Skill` stays until T057 does the same.
       'Skill',
     ];
     const names = publicSurface(entry).map((entryName) => entryName.split(' ')[0]);

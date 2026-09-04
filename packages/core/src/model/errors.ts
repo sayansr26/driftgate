@@ -31,7 +31,12 @@ export type DriftgateErrorCode =
   | 'E_GIT_NOT_STAGED'
   | 'E_GIT_FAILED'
   | 'E_ADAPTER_FAILED'
-  | 'E_ADAPTER_API_VERSION';
+  | 'E_ADAPTER_API_VERSION'
+  // `.driftgate/mcp/servers.yaml` does not describe a server Driftgate can render (T043).
+  | 'E_MCP_INVALID'
+  // A value that should be an `env:` reference is a literal (T044). Its own code because
+  // it is the one parse failure whose *message must not quote the offending value*.
+  | 'E_LITERAL_SECRET';
 
 export interface DriftgateErrorInit {
   readonly code: DriftgateErrorCode;
