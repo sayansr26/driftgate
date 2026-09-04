@@ -15,12 +15,23 @@ export interface ManifestOptions {
   readonly eol: 'lf';
   /** Copy originals into `.driftgate/backup/` before overwriting (T020). */
   readonly backup: boolean;
+  /**
+   * Repo-relative POSIX globs `doctor` will not treat as instruction files (T081).
+   *
+   * Narrow on purpose: it suppresses nothing Driftgate generates and nothing `state.json`
+   * records — those are ours, and hiding them is how a tool comes to forget a file it
+   * owns. It exists for the directories that hold instruction *files as data*, a golden
+   * fixture tree above all, where `CLAUDE.md` is test input rather than a rule anything
+   * loads. `sync` and `check` ignore this key entirely.
+   */
+  readonly ignore: readonly string[];
 }
 
 export const DEFAULT_MANIFEST_OPTIONS: ManifestOptions = {
   marker: true,
   eol: 'lf',
   backup: true,
+  ignore: [],
 };
 
 export interface ToolConfig {

@@ -126,8 +126,10 @@ What is left is the part only you can write: the file path the tool really reads
 precedence rules in `src/docs.ts`, and a golden hand-written from the tool's documentation.
 
 Adapters are pure modules — `{ detect, read, write, docs }` — that return artifacts and
-never touch the disk. That is what makes `check` and `sync` incapable of diverging. See
-`docs/adapter-api-v1.md`.
+never touch the disk. That is what makes `check` and `sync` incapable of diverging.
+[`docs/writing-an-adapter.md`](docs/writing-an-adapter.md) is the full walkthrough, and
+[`docs/adapter-api-v1.md`](docs/adapter-api-v1.md) is the frozen contract. Ten tools are
+seeded as `good first adapter` issues, each naming the files that tool really reads.
 
 ## Generated output is not formatter territory
 
@@ -156,8 +158,10 @@ and 22:
 
 ## Documentation
 
+- `CONTRIBUTING.md` — setup, the commands, the invariants a PR must not break
+- `docs/writing-an-adapter.md` — the adapter walkthrough, start to finish
 - `docs/rfc-0001-canonical-format.md` — the canonical format
-- `docs/adapter-api-v1.md` — the frozen adapter contract, and how to write one
+- `docs/adapter-api-v1.md` — the frozen adapter contract
 - `docs/determinism.md` — the rules that keep output byte-identical
 - `fixtures/README.md` — how the golden fixtures work
 

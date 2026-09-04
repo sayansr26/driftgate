@@ -1,0 +1,57 @@
+name: Adapter request — a tool Driftgate does not support
+description: Ask for an adapter for an AI coding tool, or claim one to write yourself.
+title: 'adapter: <tool name>'
+labels: [adapter, tool-not-supported]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Adapters are the contribution this project wants most, and
+        [`docs/writing-an-adapter.md`](https://github.com/driftgate-dev/driftgate/blob/master/docs/writing-an-adapter.md)
+        plus `driftgate adapter new <tool>` make one an afternoon's work. Filling this in
+        well is most of that afternoon, whoever ends up writing the code.
+  - type: input
+    id: tool
+    attributes:
+      label: Tool
+      placeholder: Windsurf
+    validations:
+      required: true
+  - type: textarea
+    id: files
+    attributes:
+      label: Which files does it read?
+      description: |
+        All of them — project-level, nested, and user-level. One per line, as paths
+        relative to the repository root (or with `~/` for user-level).
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: resolution
+    attributes:
+      label: When two of those files apply, what happens?
+      options:
+        - The nearest one wins and replaces the others (override)
+        - They are all sent to the model together (additive)
+        - I do not know
+    validations:
+      required: true
+  - type: input
+    id: docs
+    attributes:
+      label: Link to the vendor's documentation for those files
+      description: |
+        Required. Every precedence claim Driftgate makes carries a source URL and the
+        version it was verified against; a claim without one cannot ship.
+    validations:
+      required: true
+  - type: dropdown
+    id: writing
+    attributes:
+      label: Do you want to write this adapter?
+      options:
+        - 'Yes — assign it to me'
+        - 'No, requesting only'
+    validations:
+      required: true

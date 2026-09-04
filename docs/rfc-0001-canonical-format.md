@@ -72,6 +72,7 @@ tools:
 options:
   marker: true
   backup: true
+  ignore: []
 
 canonicalSources: []
 ```
@@ -82,7 +83,16 @@ canonicalSources: []
 | `tools`            | list     | no       | `[]`    | Tools to generate for. See below.                                                     | `E_MANIFEST_INVALID` |
 | `options.marker`   | boolean  | no       | `true`  | Inject the generated-by marker where the format allows comments.                      | `E_MANIFEST_INVALID` |
 | `options.backup`   | boolean  | no       | `true`  | Copy originals to `.driftgate/backup/` before overwriting or deleting.                | `E_MANIFEST_INVALID` |
+| `options.ignore`   | string[] | no       | `[]`    | Repo-relative globs `doctor` does not treat as instruction files. See below.          | `E_MANIFEST_INVALID` |
 | `canonicalSources` | string[] | no       | `[]`    | Repo-relative paths that are canonical _input_. No adapter may write to them. See §8. | `E_MANIFEST_INVALID` |
+
+`options.ignore` is narrower than its name suggests, and deliberately so. It suppresses one
+thing: `doctor`'s scan for files that have the _shape_ of a tool instruction file and sit
+where no detected tool looks. That scan cannot tell a rule from test data, and a golden
+fixture tree full of `CLAUDE.md` files is data. It does **not** suppress a file recorded in
+`state.json`, and `sync` and `check` ignore the key entirely — a path Driftgate generated is
+Driftgate's whether or not the manifest mentions it, and a key that could hide one is a key
+that can make the tool forget what it owns.
 
 A `tools` entry is either a **bare string** (the tool id, enabled, no options) or a
 **mapping**:

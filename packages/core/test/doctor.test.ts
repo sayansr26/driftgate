@@ -3,6 +3,7 @@ import { ADAPTER_API_VERSION } from '../src/adapter/context.js';
 import { MemoryFileSystem } from '../src/io/memory.js';
 import { buildDoctorReport } from '../src/doctor/report.js';
 import { detected } from '../src/adapter/adapter.js';
+import { hashContents } from '../src/state/state.js';
 import type { Adapter, DetectResult } from '../src/adapter/adapter.js';
 import type { AdapterDocs, DocNote, PrecedenceEntry } from '../src/adapter/docs.js';
 import type { DoctorReport } from '../src/doctor/types.js';
@@ -322,6 +323,72 @@ describe('buildDoctorReport — warnings', () => {
     expect(codes(r)).not.toContain('W_ORPHAN_FILE');
   });
 
+  it('options.ignore suppresses the shape sense only, and never the record sense', async () => {
+    // T081. A golden fixture tree holds instruction files as *data*: nothing loads
+    // `fixtures/x/RULES.md`, and nothing is wrong with it being there.
+    const adapters = [stub({ name: 'alpha', files: [entry('RULES.md')] })];
+    const disk = [
+      ['RULES.md', 'root'],
+      ['fixtures/x/RULES.md', 'a golden, not a rule'],
+    ] as const;
+
+    // Control first: without the option the file is reported, so the assertion below is
+    // about `ignore` doing something rather than about the scan finding nothing.
+    const noisy = await buildDoctorReport({
+      repoRoot: '/repo',
+      fs: new MemoryFileSystem([manifestEnabling('alpha'), ...disk]),
+      adapters,
+    });
+    expect(noisy.warnings.find((w) => w.code === 'W_ORPHAN_FILE')?.paths).toEqual([
+      'fixtures/x/RULES.md',
+    ]);
+
+    const quiet = await buildDoctorReport({
+      repoRoot: '/repo',
+      fs: new MemoryFileSystem([
+        [
+          '.driftgate/driftgate.yaml',
+          'schemaVersion: 1\ntools:\n  - alpha\noptions:\n  ignore:\n    - fixtures/**\n',
+        ],
+        ...disk,
+      ]),
+      adapters,
+    });
+    expect(codes(quiet)).not.toContain('W_ORPHAN_FILE');
+
+    // The record sense is not narrowed by it. `state.json` says Driftgate wrote this file,
+    // and a config key that could make the tool stop mentioning a file it owns is one line
+    // away from forgetting it owns it.
+    const recorded = await buildDoctorReport({
+      repoRoot: '/repo',
+      fs: new MemoryFileSystem([
+        [
+          '.driftgate/driftgate.yaml',
+          'schemaVersion: 1\ntools:\n  - alpha\noptions:\n  ignore:\n    - fixtures/**\n',
+        ],
+        ['fixtures/x/RULES.md', 'ours, and abandoned'],
+        [
+          '.driftgate/state.json',
+          JSON.stringify({
+            schemaVersion: 1,
+            artifacts: [
+              {
+                adapter: 'alpha',
+                kind: 'rules',
+                path: 'fixtures/x/RULES.md',
+                hash: hashContents('ours, and abandoned'),
+              },
+            ],
+          }),
+        ],
+      ]),
+      adapters,
+    });
+    expect(recorded.warnings.find((w) => w.code === 'W_ORPHAN_FILE')?.paths).toEqual([
+      'fixtures/x/RULES.md',
+    ]);
+  });
+
   it('warnings are sorted deterministically', async () => {
     const r = await report(
       [
@@ -393,6 +460,69 @@ describe('buildDoctorReport — contract', () => {
       adapters: [reader, writer],
     });
     expect(absent.tools.find((t) => t.name === 'reader')?.files[0]?.status).toBe('absent');
+  });
+
+  it('calls a file stale when the rules moved on, the same word `check` uses', async () => {
+    // T079. `compareToDisk` answers disk-vs-record, and an artifact whose rule was edited
+    // without a `sync` still matches its record — so classifying from it alone reported a
+    // stale file as `generated` while `check` called it `stale`. One repository, two
+    // commands, opposite verdicts.
+    const writer = stub({
+      name: 'writer',
+      files: [entry('shared.md', { managed: true })],
+      writes: [['shared.md', 'new render\n']],
+    });
+    const onDisk = 'what sync wrote last time\n';
+
+    const stale = await buildDoctorReport({
+      repoRoot: '/repo',
+      fs: new MemoryFileSystem([
+        manifestEnabling('writer'),
+        ['shared.md', onDisk],
+        [
+          '.driftgate/state.json',
+          JSON.stringify({
+            schemaVersion: 1,
+            artifacts: [
+              {
+                adapter: 'writer',
+                kind: 'rules',
+                path: 'shared.md',
+                hash: hashContents(onDisk),
+              },
+            ],
+          }),
+        ],
+      ]),
+      adapters: [writer],
+    });
+    expect(stale.tools[0]?.files[0]?.status).toBe('stale');
+
+    // The control: same repository, same state record, bytes that match the render. A
+    // `statusOf` that returned `stale` unconditionally would pass the assertion above.
+    const clean = await buildDoctorReport({
+      repoRoot: '/repo',
+      fs: new MemoryFileSystem([
+        manifestEnabling('writer'),
+        ['shared.md', 'new render\n'],
+        [
+          '.driftgate/state.json',
+          JSON.stringify({
+            schemaVersion: 1,
+            artifacts: [
+              {
+                adapter: 'writer',
+                kind: 'rules',
+                path: 'shared.md',
+                hash: hashContents('new render\n'),
+              },
+            ],
+          }),
+        ],
+      ]),
+      adapters: [writer],
+    });
+    expect(clean.tools[0]?.files[0]?.status).toBe('generated');
   });
 
   it('puts no absolute path anywhere but repoRoot', async () => {

@@ -6,6 +6,7 @@ import type { AdapterDocs, FileResolution, PrecedenceEntry } from '../adapter/do
 import type { DiskComparison } from '../state/compare.js';
 import type { ReadOnlyFileSystem } from '../fs/types.js';
 import type { ToolDetection } from '../detect/types.js';
+import type { VerifyStatus } from '../pipeline/verify.js';
 import type { ToolId } from '../model/ids.js';
 import type { FileDiagnosis, FileSyncStatus } from './types.js';
 
@@ -25,6 +26,12 @@ export interface ResolveContext {
   readonly globalFs?: ReadOnlyFileSystem;
   readonly detection: ToolDetection;
   readonly comparison: DiskComparison;
+  /**
+   * `verifyPlan`'s verdict per planned path: disk against the *render*. `comparison`
+   * answers a different question — disk against the *record* — and only the two together
+   * can tell a stale artifact from a clean one (T079).
+   */
+  readonly verdicts: ReadonlyMap<string, VerifyStatus>;
   readonly managedBy: ReadonlyMap<string, ToolId>;
   readonly symlinks: SymlinkProbe;
 }
@@ -229,6 +236,13 @@ function statusOf(path: string, entry: PrecedenceEntry, ctx: ResolveContext): Fi
   // most here — a file another adapter generates, which is exactly what a tool reading
   // AGENTS.md or CLAUDE.md is doing.
   if (!entry.managed && !ctx.managedBy.has(entry.pattern)) return 'unmanaged';
+
+  // `check`'s answer wins wherever it has one, so the two commands cannot describe one
+  // file two ways. It has one for every planned path; a nested copy or a global file is
+  // not planned, and falls through to the ownership answer below.
+  const verdict = ctx.verdicts.get(path);
+  if (verdict !== undefined) return VERDICT_STATUS[verdict];
+
   if (ctx.comparison.changed.includes(path)) return 'drifted';
   if (ctx.comparison.unmanaged.includes(path)) return 'unmanaged';
   if (ctx.comparison.missing.includes(path)) return 'missing';
@@ -236,14 +250,29 @@ function statusOf(path: string, entry: PrecedenceEntry, ctx: ResolveContext): Fi
   return 'unmanaged';
 }
 
+/**
+ * `check`'s vocabulary in `doctor`'s. Only the four statuses a *planned* path can carry
+ * appear here: an orphan has no `PrecedenceEntry` to be a row of, and is reported by
+ * `W_ORPHAN_FILE` instead.
+ */
+const VERDICT_STATUS: Record<VerifyStatus, FileSyncStatus> = {
+  stale: 'stale',
+  'hand-edited': 'drifted',
+  unmanaged: 'unmanaged',
+  missing: 'missing',
+  orphaned: 'unmanaged',
+  'orphan-hand-edited': 'unmanaged',
+};
+
 /** Worst first, so one drifted file inside a glob is never hidden behind four clean ones. */
 const STATUS_RANK: Record<FileSyncStatus, number> = {
   drifted: 0,
   missing: 1,
-  unmanaged: 2,
-  generated: 3,
-  'not-probed': 4,
-  absent: 5,
+  stale: 2,
+  unmanaged: 3,
+  generated: 4,
+  'not-probed': 5,
+  absent: 6,
 };
 
 function aggregateStatus(

@@ -9,3 +9,11 @@ tools:
   - copilot
   - cursor
   - gemini
+
+options:
+  # doctor only. `fixtures/` holds instruction files as *test data* — every golden
+  # CLAUDE.md, AGENTS.md and GEMINI.md under it is input to a byte-exact comparison, not a
+  # rule any tool loads — so the orphan scan would otherwise report ~30 of them. Nothing
+  # Driftgate generates is affected: `sync` and `check` do not read this key.
+  ignore:
+    - fixtures/**

@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { cp, mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -167,6 +167,33 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
     } finally {
       await rm(repo, { recursive: true, force: true });
     }
+  });
+
+  /**
+   * T080. Piping into a reader that closes early — `driftgate check | head` — used to end
+   * in a Node stack trace for `EPIPE`, which is not an error: a C program in the same
+   * position gets SIGPIPE and dies quietly. Only a real process with a real pipe can show
+   * it, because the failure is an asynchronous stream event, not a thrown value.
+   */
+  it('says nothing when the reader closes the pipe early', async () => {
+    const stderr = await new Promise<string>((resolve, reject) => {
+      const child = spawn(process.execPath, [binPath, 'doctor', '--no-global'], {
+        cwd: fileURLToPath(new URL('../../../', import.meta.url)),
+      });
+      let err = '';
+      child.stderr.setEncoding('utf8');
+      child.stderr.on('data', (chunk: string) => (err += chunk));
+      // Destroy the read end before the child writes anything. Waiting for the first
+      // chunk looks more like `head` and proves nothing: `doctor` fits its whole report
+      // into the pipe buffer in one go, so by then every write has already succeeded and
+      // the unfixed binary passes. The failure needs a write that meets a closed pipe.
+      child.stdout.destroy();
+      child.on('error', reject);
+      child.on('close', () => resolve(err));
+    });
+
+    expect(stderr).not.toContain('EPIPE');
+    expect(stderr).not.toMatch(/^\s+at /m);
   });
 
   it('resolves both adapter-kit entry points from the built output', async () => {

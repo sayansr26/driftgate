@@ -38,6 +38,47 @@ describe('valid input', () => {
     ]);
   });
 
+  it('parses options.ignore, and rejects a non-string entry by file and line', async () => {
+    const ok = await parse({
+      fs: new MemoryFileSystem([
+        [
+          '.driftgate/driftgate.yaml',
+          'schemaVersion: 1\ntools: [cursor]\noptions:\n  ignore:\n    - fixtures/**\n',
+        ],
+        ['.driftgate/rules/a.md', 'Body.\n'],
+      ]),
+      knownTools: KNOWN_TOOLS,
+    });
+    expect(ok.errors).toEqual([]);
+    expect(ok.canonical.manifest.options.ignore).toEqual(['fixtures/**']);
+
+    // The default has to stay empty: `ignore` suppresses a warning, and a default that
+    // suppressed anything would hide the finding from every repo that never set it.
+    const bare = await parse({
+      fs: new MemoryFileSystem([
+        ['.driftgate/driftgate.yaml', 'schemaVersion: 1\ntools: [cursor]\n'],
+        ['.driftgate/rules/a.md', 'Body.\n'],
+      ]),
+      knownTools: KNOWN_TOOLS,
+    });
+    expect(bare.canonical.manifest.options.ignore).toEqual([]);
+
+    const bad = await parse({
+      fs: new MemoryFileSystem([
+        [
+          '.driftgate/driftgate.yaml',
+          'schemaVersion: 1\ntools: [cursor]\noptions:\n  ignore:\n    - 7\n',
+        ],
+        ['.driftgate/rules/a.md', 'Body.\n'],
+      ]),
+      knownTools: KNOWN_TOOLS,
+    });
+    expect(bad.errors).toHaveLength(1);
+    expect(bad.errors[0]?.message).toContain('options.ignore[0]');
+    expect(bad.errors[0]?.source?.file).toBe('.driftgate/driftgate.yaml');
+    expect(bad.errors[0]?.source?.line).toBe(5);
+  });
+
   it('accepts a rule with no frontmatter at all', async () => {
     const result = await parse({
       fs: new MemoryFileSystem([

@@ -150,12 +150,19 @@ export function toolNoteWarnings(tool: ToolDiagnosis, docs: AdapterDocs): Doctor
  * data rather than a hardcoded list of interesting filenames, and a sixth adapter widens it
  * automatically. A file is an orphan when it has the shape of an instruction file and sits
  * where no detected tool's expanded pattern would ever look.
+ *
+ * `options.ignore` narrows the *shape* sense only (T081). Some directories hold instruction
+ * files as data — a golden fixture tree above all, where a `CLAUDE.md` is test input rather
+ * than a rule anything loads — and there is no way to tell that from the file. The record
+ * sense is never narrowed: `state.json` says Driftgate wrote those, and a tool that can be
+ * configured to stop mentioning a file it owns is one config line from forgetting it.
  */
 export async function orphanWarnings(
   fs: ReadOnlyFileSystem,
   comparison: DiskComparison,
   adapters: readonly Adapter[],
   tools: readonly ToolDiagnosis[],
+  ignore: readonly string[] = [],
 ): Promise<DoctorWarning[]> {
   const out: DoctorWarning[] = [];
 
@@ -193,6 +200,7 @@ export async function orphanWarnings(
 
   const unread = [...candidates]
     .filter((p) => !readable.some((pattern) => p === pattern || matchesGlob(p, pattern)))
+    .filter((p) => !ignore.some((pattern) => p === pattern || matchesGlob(p, pattern)))
     .sort(compareCodepoint);
 
   if (unread.length > 0) {

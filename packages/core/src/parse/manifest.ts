@@ -106,6 +106,7 @@ function parseOptions(v: Validator, node: Node | undefined): ManifestOptions {
     marker: v.boolean(v.get(map, 'marker'), 'options.marker', DEFAULT_MANIFEST_OPTIONS.marker),
     eol: 'lf',
     backup: v.boolean(v.get(map, 'backup'), 'options.backup', DEFAULT_MANIFEST_OPTIONS.backup),
+    ignore: v.stringArray(v.get(map, 'ignore'), 'options.ignore'),
   };
 }
 

@@ -1,0 +1,49 @@
+name: Format changed — an adapter is now wrong
+description: A tool changed its config format and Driftgate generates something it no longer reads.
+title: 'format-changed: <tool>'
+labels: [format-changed, P0]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This jumps the queue.** An adapter that generates a file the tool silently ignores
+        is worse than no adapter: `driftgate check` reports the repository as in sync while
+        the rules reach nothing.
+  - type: input
+    id: adapter
+    attributes:
+      label: Which adapter
+      placeholder: cursor
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: What changed
+      description: The old shape and the new one. Paste both if you have them.
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Vendor documentation or changelog for the change
+    validations:
+      required: true
+  - type: input
+    id: retrieved
+    attributes:
+      label: Date you read that page
+      placeholder: 2026-09-04
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Tool version the new format appears in
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: How you know the tool no longer reads the old file
+      description: What you observed, not what you inferred from the docs.

@@ -141,6 +141,8 @@ one minor after v2 ships.
 
 ## Writing an adapter
 
+The full walkthrough is [`writing-an-adapter.md`](writing-an-adapter.md). The short version:
+
 Start with the scaffold, from a checkout of this repository:
 
 ```

@@ -1,0 +1,57 @@
+name: Bug report
+description: Driftgate did something wrong, crashed, or reported the wrong exit code.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If a tool's config **format** changed and an adapter now generates the wrong thing,
+        use the `format-changed` template instead — those are P0 and triaged first.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: The command, its output, and its exit code
+      description: |
+        Paste the full command and output. Add the exit code — `echo $?` right after, or
+        `$LASTEXITCODE` in PowerShell. Exit codes are part of Driftgate's contract:
+        0 ok, 1 drift or failure, 2 usage.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: driftgate doctor --json
+      description: |
+        Run `driftgate doctor --no-global --json` in the affected repository and paste the
+        output. It is read-only, makes no network call, and contains no absolute path
+        except the repository root.
+      render: json
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Driftgate version
+      description: '`driftgate --version`, or the commit if you are running from a clone.'
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: OS and Node version
+      placeholder: macOS 15.1 · Node 22.11.0
+    validations:
+      required: true
+  - type: textarea
+    id: repo
+    attributes:
+      label: Smallest repository that reproduces it
+      description: A link, or the `.driftgate/` contents. Redact anything private.

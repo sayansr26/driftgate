@@ -16,6 +16,16 @@ export type FileSyncStatus =
   | 'generated'
   /** Driftgate generates it, it is on disk, and the bytes differ: hand-edited. */
   | 'drifted'
+  /**
+   * Driftgate generates it, the bytes are still the ones we wrote, and the canonical
+   * source has moved on: `sync` would rewrite it. Distinct from `drifted` because the
+   * recovery differs — nothing of the user's is at stake, they just have not run `sync`.
+   *
+   * It exists because `doctor` used to answer this case from `compareToDisk` alone, which
+   * asks whether the bytes match the *record*, and so reported a stale artifact as
+   * `generated` while `check` called it `stale` (T079).
+   */
+  | 'stale'
   /** Driftgate would generate it and it is not on disk. */
   | 'missing'
   /** The tool reads it, Driftgate does not generate it, and it exists. */

@@ -1,4 +1,5 @@
 import { computePlan } from '../pipeline/plan.js';
+import { verifyPlan } from '../pipeline/verify.js';
 import { detectTools } from '../detect/engine.js';
 import { compareToDisk } from '../state/compare.js';
 import { EMPTY_STATE, parseState } from '../state/state.js';
@@ -70,6 +71,12 @@ export async function buildDoctorReport(input: DoctorInput): Promise<DoctorRepor
     fs,
   );
 
+  // The verdict `check` would give, per planned path. `compareToDisk` above answers the
+  // ownership question and cannot answer this one: an artifact whose rule was edited
+  // without a `sync` still matches its recorded hash (T079).
+  const verify = await verifyPlan(plan, fs);
+  const verdicts = new Map(verify.entries.map((e) => [e.path, e.status]));
+
   const managedBy = buildManagedByIndex(adapters);
   const byName = new Map(adapters.map((a) => [a.name, a]));
   const symlinks = new SymlinkProbe(fs);
@@ -91,6 +98,7 @@ export async function buildDoctorReport(input: DoctorInput): Promise<DoctorRepor
       ...(globalFs === undefined ? {} : { globalFs }),
       detection: detected,
       comparison,
+      verdicts,
       managedBy,
       symlinks,
     });
@@ -116,7 +124,15 @@ export async function buildDoctorReport(input: DoctorInput): Promise<DoctorRepor
   }
 
   warnings.push(...symlinkWarnings(symlinks.found()));
-  warnings.push(...(await orphanWarnings(fs, comparison, adapters, tools)));
+  warnings.push(
+    ...(await orphanWarnings(
+      fs,
+      comparison,
+      adapters,
+      tools,
+      plan.canonical.manifest.options.ignore,
+    )),
+  );
 
   return {
     repoRoot,
