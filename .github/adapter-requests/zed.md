@@ -42,7 +42,7 @@ actually read it in `retrieved`.)_
 **This is the most interesting `docs.ts` on the list, and the reason to take this issue.**
 Zed's list is a true override chain over files five other adapters already generate. A
 repository with `.cursorrules`, `AGENTS.md` and `CLAUDE.md` sends Zed only the _first_ of
-them — a fact no other tool in Driftgate's roster has, and precisely what `driftgate doctor`
+them — a fact no other tool in Rulegate's roster has, and precisely what `rulegate doctor`
 exists to print.
 
 So `docs.files` must list all nine patterns in order, with `managed: true` only for
@@ -53,8 +53,8 @@ else in the codebase.
 ## Steps
 
 ```bash
-driftgate adapter new zed          # prints the plan
-driftgate adapter new zed --yes    # applies it
+rulegate adapter new zed          # prints the plan
+rulegate adapter new zed --yes    # applies it
 pnpm install && pnpm test           # green as generated
 ```
 
@@ -66,7 +66,7 @@ pnpm install && pnpm test           # green as generated
    dated `1970-01-01` so an unverified claim cannot be mistaken for a verified one.
 4. Run Zed against the generated config and confirm it actually loads. Say so in the PR,
    with the version you tested.
-5. Add `zed` to `.driftgate/driftgate.yaml` and run `driftgate sync` — this repository
+5. Add `zed` to `.rulegate/rulegate.yaml` and run `rulegate sync` — this repository
    dogfoods every adapter it ships. Commit the generated file with your change.
 
 ## Done when

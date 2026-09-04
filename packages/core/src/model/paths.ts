@@ -1,15 +1,15 @@
-export const DRIFTGATE_DIR = '.driftgate';
-export const MANIFEST_PATH = `${DRIFTGATE_DIR}/driftgate.yaml`;
-export const RULES_DIR = `${DRIFTGATE_DIR}/rules`;
+export const RULEGATE_DIR = '.rulegate';
+export const MANIFEST_PATH = `${RULEGATE_DIR}/rulegate.yaml`;
+export const RULES_DIR = `${RULEGATE_DIR}/rules`;
 export const RULES_GLOB = `${RULES_DIR}/**/*.md`;
-export const MCP_DIR = `${DRIFTGATE_DIR}/mcp`;
+export const MCP_DIR = `${RULEGATE_DIR}/mcp`;
 export const MCP_SERVERS_PATH = `${MCP_DIR}/servers.yaml`;
-export const STATE_PATH = `${DRIFTGATE_DIR}/state.json`;
-export const BACKUP_DIR = `${DRIFTGATE_DIR}/backup`;
+export const STATE_PATH = `${RULEGATE_DIR}/state.json`;
+export const BACKUP_DIR = `${RULEGATE_DIR}/backup`;
 export const AGENTS_MD = 'AGENTS.md';
 
 /**
- * `.driftgate/rules/frontend/react.md` -> `frontend/react`.
+ * `.rulegate/rules/frontend/react.md` -> `frontend/react`.
  *
  * NFC normalization is not cosmetic. macOS returns decomposed (NFD) filenames while
  * Linux returns composed (NFC), so a rule named `café.md` would otherwise carry a

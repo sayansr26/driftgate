@@ -55,7 +55,7 @@ const fiveServers: readonly McpServer[] = [
     id: 'retired',
     transport: { kind: 'stdio', command: 'old-server', args: [] },
     enabled: false,
-    // A key Driftgate has never heard of. It must survive the round trip.
+    // A key Rulegate has never heard of. It must survive the round trip.
     unknown: { experimentalTimeout: 30, note: 'kept for the migration' },
   }),
 ];

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { StagedFileSystem } from '@driftgate/core';
+import { StagedFileSystem } from '@rulegate/core';
 import { runCheck } from '../src/commands/check.js';
 import { runSync } from '../src/commands/sync.js';
 import { ExitCode } from '../src/ui/exit.js';
@@ -20,14 +20,14 @@ let repo: string;
 const git = (...args: string[]) => runFile('git', args, { cwd: repo });
 
 beforeEach(async () => {
-  repo = await mkdtemp(path.join(tmpdir(), 'driftgate-staged-'));
+  repo = await mkdtemp(path.join(tmpdir(), 'rulegate-staged-'));
   await cp(path.join(fixtures, 'doctor/adopted'), repo, { recursive: true });
 
   await git('init', '--quiet');
   // Set locally so the suite does not depend on the machine's git identity, and does not
   // change it either.
   await git('config', 'user.email', 'test@example.com');
-  await git('config', 'user.name', 'Driftgate Test');
+  await git('config', 'user.name', 'Rulegate Test');
   await git('add', '-A');
   await git('commit', '--quiet', '-m', 'initial');
 
@@ -55,14 +55,14 @@ async function keepCrlfInBlobs(): Promise<void> {
   await git('add', '.gitattributes');
 }
 
-const rule = (name: string) => path.join(repo, '.driftgate/rules', name);
+const rule = (name: string) => path.join(repo, '.rulegate/rules', name);
 
 /**
  * T052. The two commands must be able to disagree, and each direction has to be reachable
  * on its own — a test where the index and the working tree always agree passes against a
  * `--staged` that silently reads the working tree, which is the whole failure mode.
  */
-describe('driftgate check --staged', () => {
+describe('rulegate check --staged', () => {
   it('fails on an index that is out of sync while the working tree is clean', async () => {
     // A new rule, synced, so the *working tree* is fully in sync…
     await writeFile(rule('30-extra.md'), '# Extra\n\nan extra rule.\n');
@@ -70,7 +70,7 @@ describe('driftgate check --staged', () => {
     // …and only the rule is staged, so the index holds the new rule with the old
     // artifacts. That is precisely the commit a hook has to stop: it would land a
     // repository whose generated files do not match its canonical source.
-    await git('add', '.driftgate/rules/30-extra.md');
+    await git('add', '.rulegate/rules/30-extra.md');
 
     expect(await runCheck({ cwd: repo, quiet: true })).toBe(ExitCode.Ok);
     expect(await runCheck({ cwd: repo, quiet: true, staged: true })).toBe(ExitCode.Failure);
@@ -98,7 +98,7 @@ describe('driftgate check --staged', () => {
   });
 
   it('refuses rather than falling back to the working tree outside a git repository', async () => {
-    const bare = await mkdtemp(path.join(tmpdir(), 'driftgate-nogit-'));
+    const bare = await mkdtemp(path.join(tmpdir(), 'rulegate-nogit-'));
     try {
       await cp(path.join(fixtures, 'doctor/adopted'), bare, { recursive: true });
       // Without `--staged` this repository is perfectly checkable, so a fallback would
@@ -154,12 +154,12 @@ describe('driftgate check --staged', () => {
       await writeFile(rule('40-untracked.md'), '# Untracked\n\nnever staged.\n');
       const staged = new StagedFileSystem(repo);
 
-      expect(await staged.exists('.driftgate/rules/40-untracked.md')).toBe(false);
-      expect(await staged.glob('.driftgate/rules/*.md')).not.toContain(
-        '.driftgate/rules/40-untracked.md',
+      expect(await staged.exists('.rulegate/rules/40-untracked.md')).toBe(false);
+      expect(await staged.glob('.rulegate/rules/*.md')).not.toContain(
+        '.rulegate/rules/40-untracked.md',
       );
       // The control: the tracked rules beside it *are* there, so this is not an empty view.
-      expect(await staged.glob('.driftgate/rules/*.md')).toContain('.driftgate/rules/10-style.md');
+      expect(await staged.glob('.rulegate/rules/*.md')).toContain('.rulegate/rules/10-style.md');
       // And the whole point of the distinction — an unstaged rule does not fail the commit.
       expect(await runCheck({ cwd: repo, quiet: true, staged: true })).toBe(ExitCode.Ok);
       expect(await runCheck({ cwd: repo, quiet: true })).toBe(ExitCode.Failure);

@@ -4,7 +4,7 @@ import { MemoryFileSystem } from '../src/io/memory.js';
 import { hashContents, serializeState, STATE_SCHEMA_VERSION } from '../src/state/state.js';
 import { STATE_PATH } from '../src/model/paths.js';
 import { DEFAULT_MANIFEST_OPTIONS } from '../src/model/canonical.js';
-import { isDriftgateError } from '../src/model/errors.js';
+import { isRulegateError } from '../src/model/errors.js';
 import { buildState } from '../src/state/state.js';
 import type { Artifact } from '../src/adapter/artifact.js';
 import type { Canonical } from '../src/model/canonical.js';
@@ -56,7 +56,7 @@ function canonicalFor(): Canonical {
       tools: [],
       options: DEFAULT_MANIFEST_OPTIONS,
       canonicalSources: [],
-      source: { file: '.driftgate/driftgate.yaml' },
+      source: { file: '.rulegate/rulegate.yaml' },
     },
     rules: [],
     mcpServers: [],
@@ -65,7 +65,7 @@ function canonicalFor(): Canonical {
 }
 
 /**
- * A repository in a random but *reachable* state: some files Driftgate generated and
+ * A repository in a random but *reachable* state: some files Rulegate generated and
  * still generates, some it generated and no longer does (orphans), some it generated and
  * somebody has since edited, and some it never touched at all.
  */
@@ -207,14 +207,14 @@ describe('non-destruction over random repository states (T020)', () => {
     expect(totalDeleted).toBeGreaterThan(100);
   });
 
-  it('every deleted file is recoverable from .driftgate/backup/, over 200 seeds', async () => {
+  it('every deleted file is recoverable from .rulegate/backup/, over 200 seeds', async () => {
     for (let seed = 1; seed <= 200; seed += 1) {
       const repo = makeRepo(seed);
       const report = await applyPlan(repo.plan, repo.fs);
 
       for (const path of report.deleted) {
         expect(
-          repo.fs.files.get(`.driftgate/backup/${path}`),
+          repo.fs.files.get(`.rulegate/backup/${path}`),
           `seed ${String(seed)}: no backup for ${path}`,
         ).toBe(repo.before.get(path));
       }
@@ -258,11 +258,11 @@ describe('E_DELETE_UNRECORDED (T020)', () => {
     } catch (e) {
       thrown = e;
     }
-    expect(isDriftgateError(thrown)).toBe(true);
-    expect(isDriftgateError(thrown) && thrown.code).toBe('E_DELETE_UNRECORDED');
+    expect(isRulegateError(thrown)).toBe(true);
+    expect(isRulegateError(thrown) && thrown.code).toBe('E_DELETE_UNRECORDED');
     // A refusal nobody can act on is a stack trace with better manners.
-    expect(isDriftgateError(thrown) && thrown.message).toContain('CLAUDE.md');
-    expect(isDriftgateError(thrown) && thrown.hint).toBeDefined();
+    expect(isRulegateError(thrown) && thrown.message).toContain('CLAUDE.md');
+    expect(isRulegateError(thrown) && thrown.hint).toBeDefined();
   });
 
   it('is what stands between the delete loop and an unrecorded path', () => {

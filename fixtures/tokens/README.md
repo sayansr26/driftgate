@@ -5,14 +5,8 @@ Five frozen documents and their true `cl100k_base` token counts, used to hold
 
 ## Provenance of `reference.json`
 
-Counts were produced on **2026-09-02** with **`gpt-tokenizer` 4.0.0**, encoding
+Counts were produced on **2026-09-04** with **`gpt-tokenizer` 4.0.0**, encoding
 **`cl100k_base`**, over the byte-exact files in `documents/`.
-
-`gpt-tokenizer` is a **devDependency of the repository root only**. It is deliberately not
-a dependency of any published package: `packages/core/test/invariants.test.ts` allows
-exactly `yaml`, `commander` and `picocolors` at runtime, and Driftgate's whole pitch is
-that it ships no tokenizer, makes no network call, and downloads no model. The reference
-tokenizer exists to check the approximation in CI and never at runtime.
 
 ## Why the counts are re-derived rather than trusted
 
@@ -30,7 +24,7 @@ meant to be inconvenient to change.
 | File | What it stresses |
 |---|---|
 | `01-claude-md.md` | this repository's own generated `CLAUDE.md` — the population `doctor` actually measures |
-| `02-canonical-rule.md` | a canonical `.driftgate/rules/*.md` source: prose, dense inline code |
+| `02-canonical-rule.md` | a canonical `.rulegate/rules/*.md` source: prose, dense inline code |
 | `03-cursor-rule.mdc` | the `.mdc` dialect — frontmatter, bare globs |
 | `04-prose-and-tables.md` | long prose with Markdown tables and headings |
 | `05-adversarial.md` | long paths and globs, fenced TS and JSON, dense CJK/Hangul/Kana, Cyrillic, Greek, many ZWJ emoji sequences, a punctuation run, a very long line, and a CRLF section |
@@ -52,7 +46,7 @@ generalization result rather than a fit.
 
 ## These are frozen copies, not live reads
 
-Documents 01–04 are copies of files that `driftgate sync` regenerates. A test that read
+Documents 01–04 are copies of files that `rulegate sync` regenerates. A test that read
 them from their real locations would have its input change under it whenever a rule was
 edited — and a test whose input drifts is a test whose failure means nothing.
 

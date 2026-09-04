@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import { expectContentCovered, expectImportMatch } from '@driftgate/adapter-kit/testing';
+import { expectContentCovered, expectImportMatch } from '@rulegate/adapter-kit/testing';
 import { gemini } from '../src/index.js';
 
 describe('gemini read() (T017)', () => {

@@ -1,9 +1,9 @@
 import {
-  DriftgateError,
+  RulegateError,
   stripMarker,
   type JsonValue,
   type RuleDocument,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 
 /**
  * The frontmatter of a `.instructions.md` file.
@@ -59,7 +59,7 @@ export function renderInstructionsFrontmatter(fm: InstructionsFrontmatter): stri
 export function assertRenderable(rule: RuleDocument): void {
   for (const glob of rule.frontmatter.globs) {
     if (glob.includes(',')) {
-      throw new DriftgateError({
+      throw new RulegateError({
         code: 'E_FRONTMATTER_INVALID',
         message: `glob \`${glob}\` in rule \`${rule.id}\` contains a comma, which separates patterns in Copilot's applyTo field`,
         source: rule.source,

@@ -3,12 +3,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NodeFileSystem, buildDoctorReport, hashContents } from '@driftgate/core';
+import { NodeFileSystem, buildDoctorReport, hashContents } from '@rulegate/core';
 import { ADAPTERS } from '../src/registry.js';
 import { runDoctor } from '../src/commands/doctor.js';
 import { runSync } from '../src/commands/sync.js';
 import { ExitCode } from '../src/ui/exit.js';
-import type { DoctorReport } from '@driftgate/core';
+import type { DoctorReport } from '@rulegate/core';
 
 const fixtures = fileURLToPath(new URL('../../../fixtures/', import.meta.url));
 
@@ -25,7 +25,7 @@ let stdout: string[];
 let stderr: string[];
 
 beforeEach(async () => {
-  repo = await mkdtemp(path.join(tmpdir(), 'driftgate-doctor-'));
+  repo = await mkdtemp(path.join(tmpdir(), 'rulegate-doctor-'));
   stdout = [];
   stderr = [];
   // Doctor reports warnings on stderr by design, so an uncaptured run floods the test log
@@ -79,7 +79,7 @@ async function seedFaults(): Promise<{ symlinked: boolean }> {
   }
 }
 
-describe('driftgate doctor — T026 warnings', () => {
+describe('rulegate doctor — T026 warnings', () => {
   beforeEach(async () => {
     await cp(path.join(fixtures, 'doctor/adopted'), repo, { recursive: true });
   });
@@ -124,7 +124,7 @@ describe('driftgate doctor — T026 warnings', () => {
   });
 });
 
-describe('driftgate doctor — T078 duplicate loading', () => {
+describe('rulegate doctor — T078 duplicate loading', () => {
   it('names the tool, the count and the tokens paid twice', async () => {
     await cp(path.join(fixtures, 'doctor/adopted'), repo, { recursive: true });
     const r = await inspect();
@@ -149,8 +149,8 @@ describe('driftgate doctor — T078 duplicate loading', () => {
   });
 });
 
-describe('driftgate doctor — contract', () => {
-  it('reports a repository that has never adopted driftgate, and exits 0', async () => {
+describe('rulegate doctor — contract', () => {
+  it('reports a repository that has never adopted rulegate, and exits 0', async () => {
     await cp(path.join(fixtures, 'doctor/unadopted'), repo, { recursive: true });
     const r = await inspect();
     expect(r.adopted).toBe(false);
@@ -192,7 +192,7 @@ describe('driftgate doctor — contract', () => {
     let home: string;
 
     beforeEach(async () => {
-      home = await mkdtemp(path.join(tmpdir(), 'driftgate-home-'));
+      home = await mkdtemp(path.join(tmpdir(), 'rulegate-home-'));
       await mkdir(path.join(home, '.claude'), { recursive: true });
       await writeFile(path.join(home, '.claude/CLAUDE.md'), HOME_RULES);
       await cp(path.join(fixtures, 'doctor/adopted'), repo, { recursive: true });
@@ -266,7 +266,7 @@ describe('driftgate doctor — contract', () => {
 
       // The fixture is already in sync, so a plain `sync` writes nothing and the control
       // below correctly refuses to accept the result. Move the canonical source first.
-      await writeFile(path.join(repo, '.driftgate/rules/99-extra.md'), '# Extra\n\nrule.\n');
+      await writeFile(path.join(repo, '.rulegate/rules/99-extra.md'), '# Extra\n\nrule.\n');
 
       const spies = [watch('writeFile'), watch('copyFile'), watch('deleteFile')];
       let observed = 0;
@@ -314,7 +314,7 @@ describe('driftgate doctor — contract', () => {
   });
 });
 
-describe('driftgate doctor — presentation (T027)', () => {
+describe('rulegate doctor — presentation (T027)', () => {
   beforeEach(async () => {
     await cp(path.join(fixtures, 'doctor/adopted'), repo, { recursive: true });
   });

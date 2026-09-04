@@ -2,9 +2,9 @@
 # supply later and impossible to guess: the exit code, the vendor page, the tool version.
 blank_issues_enabled: false
 contact_links:
-  - name: Adapter requests — which tool should Driftgate support next?
-    url: https://github.com/driftgate-dev/driftgate/discussions/categories/adapter-requests
+  - name: Adapter requests — which tool should Rulegate support next?
+    url: https://github.com/sayansr26/rulegate/discussions/categories/adapter-requests
     about: Name a tool and link its config documentation. This category is the roadmap.
   - name: Questions and ideas
-    url: https://github.com/driftgate-dev/driftgate/discussions
+    url: https://github.com/sayansr26/rulegate/discussions
     about: Anything open-ended. Bugs and adapter breakages belong in an issue instead.

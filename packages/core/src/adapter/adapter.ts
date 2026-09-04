@@ -39,7 +39,7 @@ export interface DetectResult {
  * a literal that is not a credential, a `${NAME:-default}` reference, a `${input:}` — and
  * an adapter that silently returned fewer servers than the file contains would be exactly
  * the quiet loss this project refuses everywhere else. Strings rather than
- * `DriftgateError`s because these are not failures: `init` prints them and continues.
+ * `RulegateError`s because these are not failures: `init` prints them and continues.
  *
  * **Never quote a value in one.** A message naming the secret would print it into a CI
  * log — T044's failure, committed to a different file.
@@ -57,7 +57,7 @@ export interface Adapter {
   detect(ctx: AdapterContext): Promise<DetectResult>;
 
   /**
-   * Native config -> canonical. Must be lossless: content Driftgate does not
+   * Native config -> canonical. Must be lossless: content Rulegate does not
    * understand is preserved verbatim rather than dropped, because a first-run import
    * that quietly discards someone's rules is trust-fatal (PRD §11).
    */

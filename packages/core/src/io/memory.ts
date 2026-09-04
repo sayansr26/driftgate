@@ -1,4 +1,4 @@
-import { DriftgateError } from '../model/errors.js';
+import { RulegateError } from '../model/errors.js';
 import { escapesRoot, normalizeRelative } from '../fs/paths.js';
 import { matchesGlob } from '../fs/glob.js';
 import { compareCodepoint } from '../render/order.js';
@@ -18,7 +18,7 @@ export class MemoryFileSystem implements WritableFileSystem {
 
   private guard(relPath: string): string {
     if (escapesRoot(relPath)) {
-      throw new DriftgateError({
+      throw new RulegateError({
         code: 'E_PATH_ESCAPE',
         message: `path escapes the repository root: ${relPath}`,
       });
@@ -33,7 +33,7 @@ export class MemoryFileSystem implements WritableFileSystem {
   async readFile(relPath: string): Promise<string> {
     const contents = await this.tryReadFile(relPath);
     if (contents === undefined) {
-      throw new DriftgateError({
+      throw new RulegateError({
         code: 'E_PATH_ESCAPE',
         message: `no such file: ${relPath}`,
       });
@@ -49,7 +49,7 @@ export class MemoryFileSystem implements WritableFileSystem {
   async readFileRaw(relPath: string): Promise<Uint8Array> {
     const raw = this.files.get(this.guard(relPath));
     if (raw === undefined) {
-      throw new DriftgateError({ code: 'E_PATH_ESCAPE', message: `no such file: ${relPath}` });
+      throw new RulegateError({ code: 'E_PATH_ESCAPE', message: `no such file: ${relPath}` });
     }
     return Promise.resolve(new TextEncoder().encode(raw));
   }
@@ -95,7 +95,7 @@ export class MemoryFileSystem implements WritableFileSystem {
   async copyFile(fromRelPath: string, toRelPath: string): Promise<void> {
     const raw = this.files.get(this.guard(fromRelPath));
     if (raw === undefined) {
-      throw new DriftgateError({ code: 'E_PATH_ESCAPE', message: `no such file: ${fromRelPath}` });
+      throw new RulegateError({ code: 'E_PATH_ESCAPE', message: `no such file: ${fromRelPath}` });
     }
     this.files.set(this.guard(toRelPath), raw);
     return await Promise.resolve();

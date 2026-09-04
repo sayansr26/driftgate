@@ -1,10 +1,10 @@
 import {
-  DriftgateError,
+  RulegateError,
   appliesRepoWide,
   stripMarker,
   type JsonValue,
   type RuleDocument,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 
 /**
  * Cursor's `.mdc` frontmatter is *not* strict YAML as an emitter would produce it, and
@@ -52,7 +52,7 @@ export function renderMdcFrontmatter(fm: MdcFrontmatter): string {
 export function assertRenderable(rule: RuleDocument): void {
   const description = rule.frontmatter.description;
   if (description !== undefined && /[\r\n]/.test(description)) {
-    throw new DriftgateError({
+    throw new RulegateError({
       code: 'E_FRONTMATTER_INVALID',
       message: `rule \`${rule.id}\` has a multi-line description, which Cursor's .mdc frontmatter cannot represent`,
       source: rule.source,
@@ -61,7 +61,7 @@ export function assertRenderable(rule: RuleDocument): void {
   }
   for (const glob of rule.frontmatter.globs) {
     if (glob.includes(',')) {
-      throw new DriftgateError({
+      throw new RulegateError({
         code: 'E_FRONTMATTER_INVALID',
         message: `glob \`${glob}\` in rule \`${rule.id}\` contains a comma, which separates globs in Cursor's .mdc format`,
         source: rule.source,

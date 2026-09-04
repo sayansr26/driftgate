@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyPlan, computePlan, NodeFileSystem, STATE_PATH } from '@driftgate/core';
+import { applyPlan, computePlan, NodeFileSystem, STATE_PATH } from '@rulegate/core';
 import { ADAPTERS } from '../src/registry.js';
 import { runCheck } from '../src/commands/check.js';
 import { runSync } from '../src/commands/sync.js';
@@ -24,7 +24,7 @@ let stdout: string[];
 let stderr: string[];
 
 beforeEach(async () => {
-  repo = await mkdtemp(path.join(tmpdir(), 'driftgate-check-'));
+  repo = await mkdtemp(path.join(tmpdir(), 'rulegate-check-'));
   await cp(path.join(fixtures, 'cursor/input'), repo, { recursive: true });
   stdout = [];
   stderr = [];
@@ -47,10 +47,10 @@ const check = () => runCheck({ cwd: repo, color: false });
 const sync = () => runSync({ cwd: repo, quiet: true });
 const out = () => stdout.join('');
 const err = () => stderr.join('');
-const rule = (id: string) => path.join(repo, '.driftgate/rules', `${id}.md`);
+const rule = (id: string) => path.join(repo, '.rulegate/rules', `${id}.md`);
 const read = (rel: string) => readFile(path.join(repo, rel), 'utf8');
 
-describe('driftgate check', () => {
+describe('rulegate check', () => {
   it('reports every planned artifact as missing before the first sync', async () => {
     expect(await check()).toBe(ExitCode.Failure);
     expect(out()).toContain('missing  CLAUDE.md');
@@ -85,7 +85,7 @@ describe('driftgate check', () => {
     expect(err()).not.toContain(HINT_HAND_EDITED);
   });
 
-  it('reports a hand-edited artifact with sync’s recovery hint, not "run: driftgate sync"', async () => {
+  it('reports a hand-edited artifact with sync’s recovery hint, not "run: rulegate sync"', async () => {
     await sync();
     await writeFile(path.join(repo, 'CLAUDE.md'), 'I edited this myself.\n');
 
@@ -256,10 +256,10 @@ describe('driftgate check', () => {
 
   it('runs well under a second on a repository of a hundred rules across five adapters', async () => {
     await writeFile(
-      path.join(repo, '.driftgate/driftgate.yaml'),
+      path.join(repo, '.rulegate/rulegate.yaml'),
       'schemaVersion: 1\ntools:\n  - claude-code\n  - codex\n  - copilot\n  - cursor\n  - gemini\n',
     );
-    await mkdir(path.join(repo, '.driftgate/rules'), { recursive: true });
+    await mkdir(path.join(repo, '.rulegate/rules'), { recursive: true });
     for (let i = 0; i < 100; i += 1) {
       const body = Array.from({ length: 20 }, (_, l) => `Line ${l} of rule ${i}.`).join('\n');
       await writeFile(

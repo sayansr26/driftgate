@@ -1,4 +1,4 @@
-import { DriftgateError } from '../model/errors.js';
+import { RulegateError } from '../model/errors.js';
 import { normalizeText } from '../render/eol.js';
 
 export interface FrontmatterSplit {
@@ -19,7 +19,7 @@ export interface FrontmatterSplit {
 export function splitFrontmatter(
   raw: string,
   file: string,
-): { ok: true; value: FrontmatterSplit } | { ok: false; error: DriftgateError } {
+): { ok: true; value: FrontmatterSplit } | { ok: false; error: RulegateError } {
   const text = normalizeText(raw);
   const lines = text.split('\n');
 
@@ -46,7 +46,7 @@ export function splitFrontmatter(
 
   return {
     ok: false,
-    error: new DriftgateError({
+    error: new RulegateError({
       code: 'E_FRONTMATTER_UNTERMINATED',
       message: 'frontmatter opened with `---` but was never closed',
       source: { file, line: 1, column: 1 },

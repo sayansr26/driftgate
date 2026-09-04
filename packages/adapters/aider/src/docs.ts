@@ -1,4 +1,4 @@
-import type { AdapterDocs, SourceLink } from '@driftgate/adapter-kit';
+import type { AdapterDocs, SourceLink } from '@rulegate/adapter-kit';
 
 const CONVENTIONS_DOCS: SourceLink = {
   url: 'https://aider.chat/docs/usage/conventions.html',
@@ -12,7 +12,7 @@ const CONVENTIONS_DOCS: SourceLink = {
  * Aider is the odd one in the roster and that is what makes it a good `doctor` case. It has
  * no automatic instruction file at all: it reads whatever `.aider.conf.yml`'s `read:` key
  * names, or whatever `--read` / `/read` is given. So a generated `CONVENTIONS.md` that the
- * config never mentions is loaded by nothing — and Driftgate would otherwise report the
+ * config never mentions is loaded by nothing — and Rulegate would otherwise report the
  * repository as perfectly in sync while Aider reads none of it.
  *
  * That hazard is carried here as **data**, not as code: a `warn`-level note `doctor` already
@@ -36,7 +36,7 @@ export const docs: AdapterDocs = {
       role: 'instructions',
       managed: true,
       description:
-        'The conventional filename, and what Driftgate generates. Aider loads it only when .aider.conf.yml names it under `read:`, or when it is passed with --read / /read. The name is a convention, not a requirement.',
+        'The conventional filename, and what Rulegate generates. Aider loads it only when .aider.conf.yml names it under `read:`, or when it is passed with --read / /read. The name is a convention, not a requirement.',
       source: CONVENTIONS_DOCS,
     },
     {
@@ -45,7 +45,7 @@ export const docs: AdapterDocs = {
       role: 'settings',
       managed: false,
       description:
-        'Aider’s configuration, and the only thing that decides whether CONVENTIONS.md is read at all. Driftgate never writes it: it is the user’s file and it can hold literal API keys.',
+        'Aider’s configuration, and the only thing that decides whether CONVENTIONS.md is read at all. Rulegate never writes it: it is the user’s file and it can hold literal API keys.',
       source: CONVENTIONS_DOCS,
     },
   ],
@@ -60,7 +60,7 @@ export const docs: AdapterDocs = {
     {
       level: 'info',
       message:
-        'Driftgate never writes .aider.conf.yml, under any flag. It is the user’s file, it can hold literal API keys, and owning it would mean owning every Aider setting — the trade-off the codex adapter makes for config.toml and this one deliberately does not.',
+        'Rulegate never writes .aider.conf.yml, under any flag. It is the user’s file, it can hold literal API keys, and owning it would mean owning every Aider setting — the trade-off the codex adapter makes for config.toml and this one deliberately does not.',
       source: CONVENTIONS_DOCS,
     },
     {

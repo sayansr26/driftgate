@@ -18,7 +18,7 @@ import {
   type DetectResult,
   type ImportResult,
   type RuleDocument,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 import { MCP_FILE, importMcpConfig, renderMcpJson } from './mcp.js';
 import { docs } from './docs.js';
 
@@ -45,7 +45,7 @@ async function detect(ctx: AdapterContext): Promise<DetectResult> {
  * inverting the order its author asked for.
  *
  * So the name carries a zero-padded index taken from the rule's position in `sortRules`,
- * and the full canonical id follows it. The index makes Roo's sort agree with Driftgate's;
+ * and the full canonical id follows it. The index makes Roo's sort agree with Rulegate's;
  * keeping the id after it means every output file still traces to exactly one canonical
  * rule, which is why T007 kept the `10-` prefix in `.mdc` filenames rather than stripping
  * it for looks.

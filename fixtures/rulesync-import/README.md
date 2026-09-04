@@ -4,7 +4,7 @@ A **rulesync** repository. Two rules, chosen so the `targets` mapping is falsifi
 
 - `style.md` has `targets: ["*"]` and must import as `tools: all`.
 - `tests.md` has `targets: [claudecode, cursor]` and must import as
-  `tools: [claude-code, cursor]` — rulesync's ids translated to Driftgate's.
+  `tools: [claude-code, cursor]` — rulesync's ids translated to Rulegate's.
 
 Without the first, an importer that returned a narrow selector for everything would pass.
 

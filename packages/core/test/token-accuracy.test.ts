@@ -13,7 +13,7 @@ import { estimateTokens } from '../src/tokens/estimate.js';
  * `invariants.test.ts` covers `dependencies` of the published packages, and this import
  * lives in a test — but the reason it is acceptable is not that the guard misses it. It is
  * that the shipped estimator carries no tokenizer at all: this file exists to prove the
- * approximation is good enough that Driftgate never needs to ship 1.5 MB of BPE ranks.
+ * approximation is good enough that Rulegate never needs to ship 1.5 MB of BPE ranks.
  */
 
 const fixtures = fileURLToPath(new URL('../../../fixtures/tokens/', import.meta.url));

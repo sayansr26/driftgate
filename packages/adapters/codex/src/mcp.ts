@@ -8,7 +8,7 @@ import {
   type McpServer,
   type McpTransport,
   type SecretValue,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 import { tomlTable } from './toml.js';
 import { parseToml } from './toml-read.js';
 
@@ -17,11 +17,11 @@ import { parseToml } from './toml-read.js';
  * user-level `~/.codex/config.toml` is outside the repository and is never written
  * (RFC-0001 §11.3).
  *
- * **Driftgate owns this whole file.** Unlike `.mcp.json` and `.cursor/mcp.json`, it is not
+ * **Rulegate owns this whole file.** Unlike `.mcp.json` and `.cursor/mcp.json`, it is not
  * an MCP-only file — it is where every Codex setting lives. Taking it over wholesale is a
  * deliberate decision rather than an oversight, and it is safe for the reason every other
  * artifact is: `state.json` is the only record of ownership, so a `.codex/config.toml`
- * Driftgate did not write is somebody else's and is refused until `--force` backs it up,
+ * Rulegate did not write is somebody else's and is refused until `--force` backs it up,
  * and a setting added by hand afterwards is reported as a hand-edit that `sync --import`
  * can recover. Recorded as a `warn` note, because a settings file a tool claims in full is
  * a first-run surprise otherwise.
@@ -87,7 +87,7 @@ interface Skipped {
  */
 function serverTable(server: McpServer): Record<string, JsonValue> | Skipped {
   // Unknown keys first, interpreted keys second — the same ordering as the two JSON
-  // writers, so a preserved key can never override one Driftgate computed.
+  // writers, so a preserved key can never override one Rulegate computed.
   const body: Record<string, JsonValue> = { ...server.unknown };
 
   const { transport } = server;
@@ -199,7 +199,7 @@ const INTERPRETED = new Set(['command', 'args', 'url', 'env_vars', 'bearer_token
  * string, which is exactly why the writer refuses a renamed reference — and
  * `bearer_token_env_var = "X"` becomes `headers: { Authorization: env:X }`.
  *
- * Tables outside `mcp_servers.*` are **reported, not imported**. Driftgate owns this whole
+ * Tables outside `mcp_servers.*` are **reported, not imported**. Rulegate owns this whole
  * file once it writes it, so a `[tui]` table the user has today will not survive the first
  * `sync`; saying so during `init` is the difference between a warning and a surprise.
  */
@@ -277,7 +277,7 @@ export function importConfigToml(contents: string, file = MCP_FILE): ImportedMcp
 
   if (foreign.size > 0) {
     warnings.push(
-      `${file}: ${String(foreign.size)} non-MCP table(s) (${[...foreign].sort().join(', ')}) are not imported. Driftgate owns this whole file once it writes it, so those settings will not survive the first \`sync\` — copy them somewhere safe first.`,
+      `${file}: ${String(foreign.size)} non-MCP table(s) (${[...foreign].sort().join(', ')}) are not imported. Rulegate owns this whole file once it writes it, so those settings will not survive the first \`sync\` — copy them somewhere safe first.`,
     );
   }
 

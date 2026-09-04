@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { expectContentCovered, expectImportMatch } from '@driftgate/adapter-kit/testing';
+import { expectContentCovered, expectImportMatch } from '@rulegate/adapter-kit/testing';
 import { aider } from '../src/index.js';
 
 describe('aider read()', () => {
@@ -9,7 +9,7 @@ describe('aider read()', () => {
 
   it('loses no user content', async () => {
     // The assertion that matters on a first run: `init` must not drop a line of
-    // somebody's existing config on the way into .driftgate/.
+    // somebody's existing config on the way into .rulegate/.
     await expectContentCovered('aider', aider, ['CONVENTIONS.md']);
   });
 });
@@ -17,7 +17,7 @@ describe('aider read()', () => {
 describe('aider read() — never imports the user’s config (T050c)', () => {
   it('imports nothing from .aider.conf.yml, credentials included', async () => {
     const { aider } = await import('../src/index.js');
-    const { importContextFor } = await import('@driftgate/adapter-kit/testing');
+    const { importContextFor } = await import('@rulegate/adapter-kit/testing');
 
     const result = await aider.read(importContextFor('aider-import/input'));
     const rules = result.rules ?? [];

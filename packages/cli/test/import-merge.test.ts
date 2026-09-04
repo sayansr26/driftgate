@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NodeFileSystem } from '@driftgate/core';
+import { NodeFileSystem } from '@rulegate/core';
 import { runCheck } from '../src/commands/check.js';
 import { runSync } from '../src/commands/sync.js';
 import { ExitCode } from '../src/ui/exit.js';
@@ -15,7 +15,7 @@ let stdout: string[];
 let stderr: string[];
 
 beforeEach(async () => {
-  repo = await mkdtemp(path.join(tmpdir(), 'driftgate-merge-'));
+  repo = await mkdtemp(path.join(tmpdir(), 'rulegate-merge-'));
   stdout = [];
   stderr = [];
   await cp(path.join(fixtures, 'doctor/adopted'), repo, { recursive: true });
@@ -38,7 +38,7 @@ afterEach(async () => {
 });
 
 const read = (rel: string) => readFile(path.join(repo, rel), 'utf8');
-const rulePath = '.driftgate/rules/10-style.md';
+const rulePath = '.rulegate/rules/10-style.md';
 
 /** Hand-edit a generated file the way a user does: type into it. */
 async function handEdit(artifact: string, line: string): Promise<void> {
@@ -46,7 +46,7 @@ async function handEdit(artifact: string, line: string): Promise<void> {
   await writeFile(path.join(repo, artifact), text.replace('## Style', `## Style\n\n${line}`));
 }
 
-describe('driftgate sync --import (T051)', () => {
+describe('rulegate sync --import (T051)', () => {
   it('recovers the edit into the rule it came from, and writes nothing without --yes', async () => {
     await handEdit('CLAUDE.md', 'A line the user added by hand.');
     const before = await read(rulePath);
@@ -152,7 +152,7 @@ describe('driftgate sync --import (T051)', () => {
 });
 
 describe('sync --force covers hand-edited files (T075)', () => {
-  it('overwrites the edit, but only after copying it to .driftgate/backup/', async () => {
+  it('overwrites the edit, but only after copying it to .rulegate/backup/', async () => {
     await handEdit('CLAUDE.md', 'about to be discarded.');
     const edited = await read('CLAUDE.md');
 
@@ -163,7 +163,7 @@ describe('sync --force covers hand-edited files (T075)', () => {
     expect(await runSync({ cwd: repo, force: true, quiet: true })).toBe(ExitCode.Ok);
     expect(await read('CLAUDE.md')).not.toContain('about to be discarded.');
     // T020's rule: a destructive operation backs up first, and `restore` can undo it.
-    expect(await read('.driftgate/backup/CLAUDE.md')).toBe(edited);
+    expect(await read('.rulegate/backup/CLAUDE.md')).toBe(edited);
   });
 
   it('offers both recoveries when it refuses, not just the destructive one', async () => {
@@ -171,7 +171,7 @@ describe('sync --force covers hand-edited files (T075)', () => {
     await runSync({ cwd: repo });
 
     const hints = stderr.join('');
-    expect(hints).toContain('re-apply your edit in .driftgate/');
+    expect(hints).toContain('re-apply your edit in .rulegate/');
     expect(hints).toContain('--import');
   });
 });

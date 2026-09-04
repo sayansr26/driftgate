@@ -1,4 +1,4 @@
-import type { AdapterDocs, SourceLink } from '@driftgate/adapter-kit';
+import type { AdapterDocs, SourceLink } from '@rulegate/adapter-kit';
 
 const GEMINI_CONTEXT_DOCS: SourceLink = {
   url: 'https://google-gemini.github.io/gemini-cli/docs/cli/gemini-md.html',
@@ -29,7 +29,7 @@ export const docs: AdapterDocs = {
       managed: false,
       nesting: 'all-merged',
       description:
-        'Component-level context. Gemini scans directories below the working directory, honouring .gitignore and .geminiignore, and appends what it finds. Driftgate writes only the root file; a nested one is somebody else’s.',
+        'Component-level context. Gemini scans directories below the working directory, honouring .gitignore and .geminiignore, and appends what it finds. Rulegate writes only the root file; a nested one is somebody else’s.',
       source: GEMINI_CONTEXT_DOCS,
     },
     {
@@ -39,7 +39,7 @@ export const docs: AdapterDocs = {
       managed: true,
       nesting: 'all-merged',
       description:
-        'The file Driftgate generates. Gemini walks from the working directory up to the project root (the directory holding .git) collecting these, then concatenates them — a nested file adds to this one rather than replacing it.',
+        'The file Rulegate generates. Gemini walks from the working directory up to the project root (the directory holding .git) collecting these, then concatenates them — a nested file adds to this one rather than replacing it.',
       source: GEMINI_CONTEXT_DOCS,
     },
     {
@@ -48,7 +48,7 @@ export const docs: AdapterDocs = {
       role: 'instructions',
       managed: false,
       description:
-        'User-wide context applied to every project, read before any repository file. Read-only context for `doctor`: Driftgate never writes outside the repository.',
+        'User-wide context applied to every project, read before any repository file. Read-only context for `doctor`: Rulegate never writes outside the repository.',
       source: GEMINI_CONTEXT_DOCS,
     },
     {
@@ -68,7 +68,7 @@ export const docs: AdapterDocs = {
     {
       level: 'warn',
       message:
-        'Gemini reads AGENTS.md only if `context.fileName` in .gemini/settings.json says so — it is a configured alias, not a built-in fallback. A repository that has set it and also enables the codex adapter gives Gemini the same rules twice, once from GEMINI.md and once from AGENTS.md. Driftgate does not read settings.json, so it cannot warn about this per-repo; `doctor` reports the setting rather than guessing.',
+        'Gemini reads AGENTS.md only if `context.fileName` in .gemini/settings.json says so — it is a configured alias, not a built-in fallback. A repository that has set it and also enables the codex adapter gives Gemini the same rules twice, once from GEMINI.md and once from AGENTS.md. Rulegate does not read settings.json, so it cannot warn about this per-repo; `doctor` reports the setting rather than guessing.',
       source: GEMINI_CONTEXT_DOCS,
     },
     {

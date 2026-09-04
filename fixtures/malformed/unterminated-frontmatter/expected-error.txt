@@ -1,2 +1,2 @@
-.driftgate/rules/style.md:1:1  E_FRONTMATTER_UNTERMINATED  frontmatter opened with `---` but was never closed
+.rulegate/rules/style.md:1:1  E_FRONTMATTER_UNTERMINATED  frontmatter opened with `---` but was never closed
   hint: add a closing `---` on its own line

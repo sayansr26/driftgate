@@ -16,7 +16,7 @@ export interface PrecedenceEntry {
   readonly pattern: string;
   readonly scope: 'project' | 'global' | 'nested';
   readonly role: 'instructions' | 'mcp' | 'skills' | 'settings';
-  /** Does Driftgate generate this file, or is it read-only context? */
+  /** Does Rulegate generate this file, or is it read-only context? */
   readonly managed: boolean;
   readonly nesting?: 'nearest-wins' | 'all-merged' | 'root-only';
   readonly description: string;

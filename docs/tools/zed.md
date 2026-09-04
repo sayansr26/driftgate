@@ -2,13 +2,13 @@
 
 # Which files does Zed read?
 
-Driftgate adapter id: `zed` · Verified against Zed docs as published 2026-09-04 on 2026-09-04 · [Homepage](https://zed.dev)
+Rulegate adapter id: `zed` · Verified against Zed docs as published 2026-09-04 on 2026-09-04 · [Homepage](https://zed.dev)
 
 This tool reads the **first** file below that exists and stops. Everything under it is never opened: it costs nothing and contributes nothing, however carefully it was written.
 
 ## Precedence
 
-| # | Path | Scope | Role | Driftgate writes it | Nesting |
+| # | Path | Scope | Role | Rulegate writes it | Nesting |
 |---|---|---|---|---|---|
 | 1 | `.rules` | project | instructions | yes | root only |
 | 2 | `.cursorrules` | project | instructions | no | root only |
@@ -25,7 +25,7 @@ This tool reads the **first** file below that exists and stops. Everything under
 
 ### `.rules`
 
-First in Zed’s list, so it wins whenever it exists. This is what Driftgate generates: writing it is what makes the other eight irrelevant, rather than leaving the answer to whichever file happens to be present.
+First in Zed’s list, so it wins whenever it exists. This is what Rulegate generates: writing it is what makes the other eight irrelevant, rather than leaving the answer to whichever file happens to be present.
 
 Source: [Zed — Agent Instructions](https://zed.dev/docs/ai/instructions) — retrieved 2026-09-04
 
@@ -79,7 +79,7 @@ Source: [Zed — Agent Instructions](https://zed.dev/docs/ai/instructions) — r
 
 ### `~/.config/zed/AGENTS.md`
 
-Personal instructions, applied alongside the project file rather than competing with it — project instructions override it when they conflict. Outside the repository, so Driftgate reports it and never writes it.
+Personal instructions, applied alongside the project file rather than competing with it — project instructions override it when they conflict. Outside the repository, so Rulegate reports it and never writes it.
 
 Source: [Zed — Agent Instructions](https://zed.dev/docs/ai/instructions) — retrieved 2026-09-04
 
@@ -89,7 +89,7 @@ Zed publishes no size cap for instruction files.
 
 ## Notes
 
-- **warn** — Zed reads the FIRST of .rules, .cursorrules, .windsurfrules, .clinerules, .github/copilot-instructions.md, AGENT.md, AGENTS.md, CLAUDE.md, GEMINI.md — and no others. Five of those are files other Driftgate adapters generate, so in a repository that has several, everything below the first is invisible to Zed however carefully it was written.
+- **warn** — Zed reads the FIRST of .rules, .cursorrules, .windsurfrules, .clinerules, .github/copilot-instructions.md, AGENT.md, AGENTS.md, CLAUDE.md, GEMINI.md — and no others. Five of those are files other Rulegate adapters generate, so in a repository that has several, everything below the first is invisible to Zed however carefully it was written.
   Source: [Zed — Agent Instructions](https://zed.dev/docs/ai/instructions) — retrieved 2026-09-04
 - **info** — Whether Zed searches subdirectories or only the worktree root is undocumented, and multi-worktree behaviour is not described either. No entry here declares `nesting`, so doctor reports the worktree root only rather than claiming a walk that may not happen.
   Source: [Zed — Agent Instructions](https://zed.dev/docs/ai/instructions) — retrieved 2026-09-04

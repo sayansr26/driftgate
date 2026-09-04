@@ -55,25 +55,25 @@ jobs:
       # Unit and fixture tests. The goldens under fixtures/ are asserted byte-exact, and
       # `.gitattributes` keeps Git from rewriting their line endings on a Windows checkout.
       #
-      # DRIFTGATE_REQUIRE_SYMLINKS turns the symlink suite's self-skip into a failure. That
+      # RULEGATE_REQUIRE_SYMLINKS turns the symlink suite's self-skip into a failure. That
       # suite skips itself where the platform refuses to create a symlink — Windows without
       # developer mode — and coverage that silently skips is coverage nobody has. If the
       # Windows image cannot create one, the red cell is honest information and the variable
       # gets scoped to the other cells; that decision needs the first real run to inform it.
       - run: pnpm test
         env:
-          DRIFTGATE_REQUIRE_SYMLINKS: '1'
+          RULEGATE_REQUIRE_SYMLINKS: '1'
 
       # The same suite against the built dist/, which is the only lane that catches a
       # broken `exports` map or a regressed exit code. It has already caught one.
       - run: pnpm test
         env:
-          DRIFTGATE_TEST_DIST: '1'
+          RULEGATE_TEST_DIST: '1'
 
       # Dogfooding, as a gate. This repository's CLAUDE.md, AGENTS.md, GEMINI.md,
       # .cursor/rules/*.mdc and .github/copilot-instructions.md are generated; if a rule
       # changed and `sync` was not run, this is where it is caught — by the product.
-      - name: driftgate check (dogfood)
+      - name: rulegate check (dogfood)
         run: node packages/cli/dist/bin.js check
 
       # The Action's bundle is committed (a runner does no `npm install` before running
@@ -130,7 +130,7 @@ jobs:
       # covered by the dist lane, which asserts exit 1 and the annotations on a drifted
       # fixture — a job cannot assert its own failure without `continue-on-error`, which
       # would also hide a real one.
-      - name: driftgate check via the action
+      - name: rulegate check via the action
         uses: ./action
         with:
           annotations: 'true'

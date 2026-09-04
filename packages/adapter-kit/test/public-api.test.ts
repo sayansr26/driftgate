@@ -6,7 +6,7 @@ import { createKitProgram } from './program.js';
 /**
  * The T011 freeze, enforced.
  *
- * `@driftgate/adapter-kit` is the contract external contributors write against, so a
+ * `@rulegate/adapter-kit` is the contract external contributors write against, so a
  * change to this list breaks them. Adding a name is non-breaking and needs only this
  * literal updated with the addition; **removing or renaming one is breaking** and needs
  * an `ADAPTER_API_VERSION` bump — see `docs/adapter-api-v1.md`.
@@ -14,7 +14,7 @@ import { createKitProgram } from './program.js';
  * Why the compiler API rather than a runtime `Object.keys()` or a committed `.d.ts`:
  * types are erased at runtime, so `Object.keys` would freeze the values and leave
  * `Adapter`, `Artifact` and `AdapterContext` — the actual contract — unguarded; and a
- * `.d.ts` golden needs a build, so it could only run in the DRIFTGATE_TEST_DIST lane and
+ * `.d.ts` golden needs a build, so it could only run in the RULEGATE_TEST_DIST lane and
  * would be silent during ordinary development. This reads source, catches additions and
  * removals of both kinds, and runs on a clean clone.
  *
@@ -68,10 +68,10 @@ const FROZEN_V1 = [
   // Added 2026-09-02 (T025). Non-breaking per docs/adapter-api-v1.md: an addition costs
   // one line here and no ADAPTER_API_VERSION bump. See `AdapterDocs.resolution`.
   'FileResolution (type)',
-  'DriftgateError (value)',
-  'DriftgateErrorCode (type)',
-  'DriftgateErrorInit (type)',
-  'DriftgateManifest (type)',
+  'RulegateError (value)',
+  'RulegateErrorCode (type)',
+  'RulegateErrorInit (type)',
+  'RulegateManifest (type)',
   'HASH_MARKER (value)',
   // Added 2026-09-02 (T017), the import surface. Non-breaking per docs/adapter-api-v1.md:
   // additions cost a line here and no ADAPTER_API_VERSION bump.
@@ -105,7 +105,7 @@ const FROZEN_V1 = [
   'importRuleId (value)',
   'importedRule (value)',
   'isCanonicalSource (value)',
-  'isDriftgateError (value)',
+  'isRulegateError (value)',
   'joinPosix (value)',
   'matchesGlob (value)',
   'renderConcatenated (value)',

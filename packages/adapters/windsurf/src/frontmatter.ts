@@ -1,4 +1,4 @@
-import { DriftgateError, stripMarker } from '@driftgate/adapter-kit';
+import { RulegateError, stripMarker } from '@rulegate/adapter-kit';
 
 /**
  * Windsurf's workspace-rule frontmatter, hand-rendered.
@@ -12,7 +12,7 @@ import { DriftgateError, stripMarker } from '@driftgate/adapter-kit';
  * `docs.windsurf.com` URL 307-redirects there).
  */
 
-/** The four documented activation modes. Driftgate emits two of them. */
+/** The four documented activation modes. Rulegate emits two of them. */
 export type Trigger = 'always_on' | 'model_decision' | 'glob' | 'manual';
 
 export interface FrontmatterInit {
@@ -20,8 +20,8 @@ export interface FrontmatterInit {
   readonly description?: string;
 }
 
-function invalid(what: string, hint: string): DriftgateError {
-  return new DriftgateError({ code: 'E_FRONTMATTER_INVALID', message: what, hint });
+function invalid(what: string, hint: string): RulegateError {
+  return new RulegateError({ code: 'E_FRONTMATTER_INVALID', message: what, hint });
 }
 
 /**
@@ -29,7 +29,7 @@ function invalid(what: string, hint: string): DriftgateError {
  *
  * **Multiple patterns are undocumented.** The vendor page shows a single bare pattern and
  * says nothing about separators. Comma joining is what Cursor's `.mdc` uses and what the
- * community guides assume, so it is what Driftgate emits — recorded as an unverified claim
+ * community guides assume, so it is what Rulegate emits — recorded as an unverified claim
  * in `docs.notes` rather than presented as a documented fact. A comma *inside* a glob is
  * refused for the same reason Cursor refuses it: it would silently split into two wrong
  * patterns, and a wrong answer is worse than a missing one.
@@ -66,8 +66,8 @@ function renderDescription(description: string): string {
  * shape as Cursor's derived `alwaysApply`.
  *
  * `model_decision` and `manual` are never emitted. Both mean "the model may skip this
- * rule", and a rule somebody wrote in `.driftgate/rules/` is a rule they want applied;
- * choosing them for the user would quietly downgrade every rule Driftgate generates.
+ * rule", and a rule somebody wrote in `.rulegate/rules/` is a rule they want applied;
+ * choosing them for the user would quietly downgrade every rule Rulegate generates.
  */
 export function renderFrontmatter(init: FrontmatterInit): string {
   const lines: string[] = ['---'];
@@ -95,7 +95,7 @@ export interface ParsedRule {
  *
  * `trigger` is dropped: it is derived on the way out, so recovering it would put a value in
  * canonical that the next render would compute anyway — and a round trip that adds a field
- * nobody wrote is how `sync` starts reporting drift against text Driftgate invented (the
+ * nobody wrote is how `sync` starts reporting drift against text Rulegate invented (the
  * T019 lesson about `description ?? id`).
  */
 export function parseRule(contents: string): ParsedRule {
@@ -105,7 +105,7 @@ export function parseRule(contents: string): ParsedRule {
   // The generated-file marker sits below the frontmatter (it cannot sit above it — the
   // block must occupy the first bytes), so it has to come off here rather than being
   // handled by a shared concatenated importer. Leaving it in makes `write()` -> `read()`
-  // grow a line of Driftgate's own text on every round trip.
+  // grow a line of Rulegate's own text on every round trip.
   const body = stripMarker(contents.slice(match[0].length).replace(/^\s*\n/, ''));
   const globs: string[] = [];
   let description: string | undefined;

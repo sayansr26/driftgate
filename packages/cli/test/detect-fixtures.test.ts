@@ -2,17 +2,17 @@ import { mkdtemp, readdir, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { NodeFileSystem, detectTools, parse } from '@driftgate/core';
-import { detectEngineFixture, fixturePath } from '@driftgate/adapter-kit/testing';
+import { NodeFileSystem, detectTools, parse } from '@rulegate/core';
+import { detectEngineFixture, fixturePath } from '@rulegate/adapter-kit/testing';
 import { ADAPTERS, ADAPTER_NAMES } from '../src/registry.js';
-import type { DetectionReport } from '@driftgate/core';
+import type { DetectionReport } from '@rulegate/core';
 
 /**
  * T016's stated validation: on fixture repos with 0, 1 and 5 tools present, detection
  * output matches expectation, and a filesystem spy confirms zero writes outside the repo.
  *
  * This lives in the CLI package rather than in core because core must not depend on the
- * adapters — eslint bans `@driftgate/adapter-*` in `packages/core/src`, and the dependency
+ * adapters — eslint bans `@rulegate/adapter-*` in `packages/core/src`, and the dependency
  * direction is `cli → adapters → kit → core`. Core owns the algorithm; the CLI owns the
  * roster of adapters this build ships. Moving this file into core would invert that.
  */
@@ -125,7 +125,7 @@ describe('the no-write guarantee', () => {
    * weaker than the claim it is vouching for.
    */
   it('detects a write, so the assertion below is known to be capable of failing', async () => {
-    const dir = await mkdtemp(path.join(tmpdir(), 'driftgate-detect-'));
+    const dir = await mkdtemp(path.join(tmpdir(), 'rulegate-detect-'));
     await writeFile(path.join(dir, 'existing.txt'), 'original');
     const before = await snapshotTree(dir);
 

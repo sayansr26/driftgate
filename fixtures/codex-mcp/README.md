@@ -4,7 +4,7 @@ The MCP half of the Codex adapter (T047), and the reason T047 exists: this is th
 target that is not JSON, and it is where the canonical model is checked for quietly
 assuming JSON semantics.
 
-`input/.driftgate/mcp/servers.yaml` deliberately diverges from `claude-code-mcp/`,
+`input/.rulegate/mcp/servers.yaml` deliberately diverges from `claude-code-mcp/`,
 `cursor-mcp/` and `copilot-mcp/`, which share one file. Two servers had to change, and
 both changes are the finding:
 

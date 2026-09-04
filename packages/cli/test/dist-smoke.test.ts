@@ -11,12 +11,12 @@ const binPath = fileURLToPath(new URL('../dist/bin.js', import.meta.url));
 const fixtures = fileURLToPath(new URL('../../../fixtures/', import.meta.url));
 
 /**
- * Vitest aliases @driftgate/* to source so tests run on a clean clone before a build.
+ * Vitest aliases @rulegate/* to source so tests run on a clean clone before a build.
  * The cost is that nothing else exercises the built output, so a broken `exports` map
  * or a bad bin shebang would stay invisible until publish day. This suite closes that
- * gap; CI runs it after `pnpm build` with DRIFTGATE_TEST_DIST=1.
+ * gap; CI runs it after `pnpm build` with RULEGATE_TEST_DIST=1.
  */
-describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
+describe.runIf(process.env['RULEGATE_TEST_DIST'] === '1')('built dist', () => {
   it('runs the published binary and reports a version', async () => {
     const { stdout } = await run(process.execPath, [binPath, '--version']);
     expect(stdout.trim()).toMatch(/^\d+\.\d+\.\d+$/);
@@ -34,7 +34,7 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
    * a spawned process with a real working directory exercises the walk-up.
    */
   it('syncs the repository root when spawned from a subdirectory', async () => {
-    const repo = await mkdtemp(path.join(tmpdir(), 'driftgate-smoke-'));
+    const repo = await mkdtemp(path.join(tmpdir(), 'rulegate-smoke-'));
     try {
       await cp(path.join(fixtures, 'cursor/input'), repo, { recursive: true });
       const sub = path.join(repo, 'packages/core');
@@ -56,7 +56,7 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
    * an exit code the CLI merely returns is not the code the shell sees.
    */
   it('reports from a subdirectory, exits 0, and writes nothing', async () => {
-    const repo = await mkdtemp(path.join(tmpdir(), 'driftgate-smoke-'));
+    const repo = await mkdtemp(path.join(tmpdir(), 'rulegate-smoke-'));
     try {
       await cp(path.join(fixtures, 'doctor/adopted'), repo, { recursive: true });
       const sub = path.join(repo, 'packages/core');
@@ -77,7 +77,7 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
   });
 
   /**
-   * T011 split `@driftgate/adapter-kit` into two entry points: `.` is the frozen contract
+   * T011 split `@rulegate/adapter-kit` into two entry points: `.` is the frozen contract
    * and `./testing` is the fixture harness. The vitest alias resolves both to source, so
    * the normal suite would keep passing with a malformed `exports` map — the exact class
    * of bug this lane exists for, and the one that would only surface on publish day.
@@ -85,20 +85,20 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
   /**
    * T077's fix, checked through the real resolver.
    *
-   * `driftgate init` was hinted by two error messages and by RFC §8 for the whole of M0
+   * `rulegate init` was hinted by two error messages and by RFC §8 for the whole of M0
    * while it was unregistered, so following the only instruction a new user ever received
    * exited **2** — the code that means the user made the mistake. A unit test importing
    * `runInit` cannot catch a command that was never registered on the program.
    */
   it('registers `init`, so following our own hint does not exit 2', async () => {
-    const repo = await mkdtemp(path.join(tmpdir(), 'driftgate-init-smoke-'));
+    const repo = await mkdtemp(path.join(tmpdir(), 'rulegate-init-smoke-'));
     try {
       await cp(path.join(fixtures, 'claude-code-import/input'), repo, { recursive: true });
       const { stdout } = await run(process.execPath, [binPath, 'init'], { cwd: repo });
       expect(stdout).toContain('nothing was written');
 
-      // And it really wrote nothing: the walk finds no `.driftgate/`.
-      await expect(stat(path.join(repo, '.driftgate'))).rejects.toMatchObject({
+      // And it really wrote nothing: the walk finds no `.rulegate/`.
+      await expect(stat(path.join(repo, '.rulegate'))).rejects.toMatchObject({
         code: 'ENOENT',
       });
     } finally {
@@ -111,7 +111,7 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
    * code the shell *sees* — the dist lane is the only place the difference exists.
    */
   it('check exits 1 on drift, 0 in sync, 1 on a hand-edit, and never 2', async () => {
-    const repo = await mkdtemp(path.join(tmpdir(), 'driftgate-check-smoke-'));
+    const repo = await mkdtemp(path.join(tmpdir(), 'rulegate-check-smoke-'));
     try {
       await cp(path.join(fixtures, 'cursor/input'), repo, { recursive: true });
 
@@ -145,14 +145,14 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
    * dist lane caught at T009, when a dropped `exitOverride` made usage errors exit 1.
    */
   it('check --staged is a registered flag on the built binary, and never exits 2', async () => {
-    const repo = await mkdtemp(path.join(tmpdir(), 'driftgate-staged-smoke-'));
+    const repo = await mkdtemp(path.join(tmpdir(), 'rulegate-staged-smoke-'));
     const git = (...args: string[]) => run('git', args, { cwd: repo });
     try {
       await cp(path.join(fixtures, 'cursor/input'), repo, { recursive: true });
       await run(process.execPath, [binPath, 'sync'], { cwd: repo });
       await git('init', '--quiet');
       await git('config', 'user.email', 'test@example.com');
-      await git('config', 'user.name', 'Driftgate Test');
+      await git('config', 'user.name', 'Rulegate Test');
       await git('add', '-A');
 
       // Resolving at all is exit 0: `execFile` rejects on any non-zero code, so a flag
@@ -180,7 +180,7 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
    */
   it('the Action exits 1 on drift and 0 in sync, and annotates the drift', async () => {
     const actionMain = fileURLToPath(new URL('../../../action/dist/main.js', import.meta.url));
-    const repo = await mkdtemp(path.join(tmpdir(), 'driftgate-action-smoke-'));
+    const repo = await mkdtemp(path.join(tmpdir(), 'rulegate-action-smoke-'));
     const env = { ...process.env };
     delete env['GITHUB_WORKSPACE'];
     delete env['INPUT_ANNOTATIONS'];
@@ -194,7 +194,7 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
       // says nothing GitHub can place on a diff, so this is the only assertion that the
       // Action does more than the CLI.
       expect(drifted.stdout).toContain('::error file=CLAUDE.md,');
-      expect(drifted.stdout).toContain('title=driftgate%3A');
+      expect(drifted.stdout).toContain('title=rulegate%3A');
 
       await run(process.execPath, [binPath, 'sync'], { cwd: repo });
       const { stdout } = await run(process.execPath, [actionMain], { cwd: repo, env });
@@ -227,7 +227,7 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
   });
 
   /**
-   * T080. Piping into a reader that closes early — `driftgate check | head` — used to end
+   * T080. Piping into a reader that closes early — `rulegate check | head` — used to end
    * in a Node stack trace for `EPIPE`, which is not an error: a C program in the same
    * position gets SIGPIPE and dies quietly. Only a real process with a real pipe can show
    * it, because the failure is an asynchronous stream event, not a thrown value.
@@ -254,14 +254,14 @@ describe.runIf(process.env['DRIFTGATE_TEST_DIST'] === '1')('built dist', () => {
   });
 
   it('resolves both adapter-kit entry points from the built output', async () => {
-    // Spawned rather than imported: vitest aliases `@driftgate/*` to source, so an
+    // Spawned rather than imported: vitest aliases `@rulegate/*` to source, so an
     // in-process `import()` here would resolve to `src/` and pass no matter what the
     // `exports` map says. Only Node's own resolver, running from a package that actually
     // depends on the kit, exercises the map.
     const cwd = fileURLToPath(new URL('../../adapters/cursor/', import.meta.url));
     const probe = [
-      "const contract = await import('@driftgate/adapter-kit');",
-      "const testing = await import('@driftgate/adapter-kit/testing');",
+      "const contract = await import('@rulegate/adapter-kit');",
+      "const testing = await import('@rulegate/adapter-kit/testing');",
       'console.log(JSON.stringify({',
       '  finalizeArtifact: typeof contract.finalizeArtifact,',
       '  renderFixture: typeof testing.renderFixture,',

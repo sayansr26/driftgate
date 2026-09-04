@@ -1,9 +1,9 @@
 import { isMap, isScalar, isSeq, type Node } from 'yaml';
-import type { DriftgateError } from '../model/errors.js';
+import type { RulegateError } from '../model/errors.js';
 import {
   CANONICAL_SCHEMA_VERSION,
   DEFAULT_MANIFEST_OPTIONS,
-  type DriftgateManifest,
+  type RulegateManifest,
   type ManifestOptions,
   type ToolConfig,
 } from '../model/canonical.js';
@@ -13,8 +13,8 @@ import { Validator } from './validate.js';
 import type { JsonValue } from '../model/ids.js';
 
 export interface ParsedManifest {
-  readonly manifest: DriftgateManifest;
-  readonly errors: readonly DriftgateError[];
+  readonly manifest: RulegateManifest;
+  readonly errors: readonly RulegateError[];
 }
 
 export function parseManifest(raw: string, file = MANIFEST_PATH): ParsedManifest {
@@ -110,7 +110,7 @@ function parseOptions(v: Validator, node: Node | undefined): ManifestOptions {
   };
 }
 
-function fallbackManifest(file: string): DriftgateManifest {
+function fallbackManifest(file: string): RulegateManifest {
   return {
     schemaVersion: CANONICAL_SCHEMA_VERSION,
     tools: [],

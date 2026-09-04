@@ -1,10 +1,10 @@
 import {
   NodeFileSystem,
   applyScaffold,
-  isDriftgateError,
+  isRulegateError,
   resolveRepoRoot,
   type ScaffoldFile,
-} from '@driftgate/core';
+} from '@rulegate/core';
 import { ADAPTER_NAMES } from '../../registry.js';
 import { createOutput, formatErrors, pluralize } from '../../ui/report.js';
 import { ExitCode, type ExitCodeValue } from '../../ui/exit.js';
@@ -44,7 +44,7 @@ const VITEST_CONFIG = 'vitest.config.ts';
 const RFC = 'docs/rfc-0001-canonical-format.md';
 
 /**
- * `driftgate adapter new <tool>` — the contribution funnel (T028).
+ * `rulegate adapter new <tool>` — the contribution funnel (T028).
  *
  * Adapters are how this project grows, so the distance from "I want tool X supported" to
  * a green test is a growth feature rather than a convenience. The scaffold produces a
@@ -83,8 +83,8 @@ export async function runAdapterNew(options: AdapterNewOptions): Promise<ExitCod
     if (await fs.exists(required)) continue;
     // The scaffold writes into *this* monorepo, not into a user's repository. Saying so
     // up front is better than a patch failure three steps later.
-    out.error(`${repoRoot} is not a checkout of the driftgate monorepo (${required} is missing)`);
-    out.error('hint: adapters live in the driftgate repository; clone it and run this there.');
+    out.error(`${repoRoot} is not a checkout of the rulegate monorepo (${required} is missing)`);
+    out.error('hint: adapters live in the rulegate repository; clone it and run this there.');
     return ExitCode.Usage;
   }
 
@@ -112,7 +112,7 @@ export async function runAdapterNew(options: AdapterNewOptions): Promise<ExitCod
       { path: RFC, contents: registerInRfc(await fs.readFile(RFC), tool), kind: 'update' },
     ];
   } catch (error) {
-    if (!isDriftgateError(error)) throw error;
+    if (!isRulegateError(error)) throw error;
     out.error(formatErrors([error]));
     return ExitCode.Failure;
   }
@@ -125,7 +125,7 @@ export async function runAdapterNew(options: AdapterNewOptions): Promise<ExitCod
   try {
     report = await applyScaffold(files, fs, { dryRun: !apply });
   } catch (error) {
-    if (!isDriftgateError(error)) throw error;
+    if (!isRulegateError(error)) throw error;
     out.error(formatErrors([error]));
     out.error('\nnothing was written.');
     return ExitCode.Failure;
@@ -140,7 +140,7 @@ export async function runAdapterNew(options: AdapterNewOptions): Promise<ExitCod
     out.log(
       `${pluralize(report.created.length, 'file')} to create, ${pluralize(report.updated.length, 'file')} to patch.`,
     );
-    out.log(`nothing was written. run: driftgate adapter new ${tool} --yes`);
+    out.log(`nothing was written. run: rulegate adapter new ${tool} --yes`);
     return ExitCode.Ok;
   }
 
@@ -156,7 +156,7 @@ export async function runAdapterNew(options: AdapterNewOptions): Promise<ExitCod
   // Saying how to dogfood it is the difference between an adapter that is tested against
   // fixtures and one that has been run on a real repository — this one.
   out.log('');
-  out.log(`then: add \`${tool}\` to .driftgate/driftgate.yaml and run driftgate sync`);
+  out.log(`then: add \`${tool}\` to .rulegate/rulegate.yaml and run rulegate sync`);
   out.log(`      this repo dogfoods every adapter it ships; commit ${n.artifact} with your change`);
 
   return ExitCode.Ok;

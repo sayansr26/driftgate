@@ -35,7 +35,7 @@ const APPLIES_TO = /^\*\*Applies to:\*\*\s*(.+)$/;
  * Remove the generated-by marker comment, if the file opens with one.
  *
  * Only the opening lines are considered, matching `hasMarker`'s 512-byte window: the
- * same sentence appearing further down is a user writing about Driftgate, not a claim
+ * same sentence appearing further down is a user writing about Rulegate, not a claim
  * of authorship, and deleting a line from the middle of someone's document to satisfy a
  * heuristic is not a trade this importer makes.
  */
@@ -93,7 +93,7 @@ function parseGlobList(raw: string): readonly string[] {
 /**
  * Split a concatenated instruction file back into sections.
  *
- * The exact inverse of `renderConcatenated` for output Driftgate produced, and a
+ * The exact inverse of `renderConcatenated` for output Rulegate produced, and a
  * reasonable reading of anything else — but the decision of *whether* to split at all
  * belongs to the caller, because on an unmarked file it is a guess.
  */

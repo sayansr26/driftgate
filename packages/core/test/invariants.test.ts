@@ -72,7 +72,7 @@ describe('dependency surface', () => {
     const offenders: string[] = [];
     for (const { name, json } of await packageManifests()) {
       for (const dep of Object.keys(json.dependencies ?? {})) {
-        if (dep.startsWith('@driftgate/') || dep === 'driftgate') continue;
+        if (dep.startsWith('@rulegate/') || dep === 'rulegate') continue;
         if (!ALLOWED_RUNTIME_DEPS.has(dep)) offenders.push(`${name} -> ${dep}`);
       }
     }
@@ -284,7 +284,7 @@ describe('the shared rendering path', () => {
       // imports, and its only import from core is a type.
       if (rel === 'packages/cli/src/commands/adapter/templates.ts') {
         const coreImports = [
-          ...text.matchAll(/^import (type )?\{[^}]*\} from '@driftgate\/core'/gm),
+          ...text.matchAll(/^import (type )?\{[^}]*\} from '@rulegate\/core'/gm),
         ];
         expect(coreImports.length, rel).toBeGreaterThan(0);
         for (const match of coreImports) expect(match[1], rel).toBe('type ');
@@ -328,16 +328,16 @@ describe('the shared rendering path', () => {
 
 describe('the adapter contract boundary', () => {
   /**
-   * T011 froze `@driftgate/adapter-kit` as the contract external contributors write
+   * T011 froze `@rulegate/adapter-kit` as the contract external contributors write
    * against, and the proof that the contract is sufficient is that our own two adapters
    * need nothing else. `eslint.config.js` bans the core import too; this exists because
    * an inline `eslint-disable` defeats a lint rule and nothing defeats a file scan.
    */
-  it('keeps adapters off @driftgate/core entirely', async () => {
+  it('keeps adapters off @rulegate/core entirely', async () => {
     const offenders: string[] = [];
     for (const file of await adapterFiles()) {
       const rel = relPosix(file);
-      if (/from\s+['"]@driftgate\/core/.test(await readFile(file, 'utf8'))) offenders.push(rel);
+      if (/from\s+['"]@rulegate\/core/.test(await readFile(file, 'utf8'))) offenders.push(rel);
     }
     expect(offenders).toEqual([]);
   });
@@ -347,7 +347,7 @@ describe('the adapter contract boundary', () => {
       const json = JSON.parse(
         await readFile(path.join(repoRoot, dir, 'package.json'), 'utf8'),
       ) as PackageJson;
-      expect(Object.keys(json.dependencies ?? {}).sort(), dir).toEqual(['@driftgate/adapter-kit']);
+      expect(Object.keys(json.dependencies ?? {}).sort(), dir).toEqual(['@rulegate/adapter-kit']);
     }
   });
 
@@ -397,8 +397,8 @@ async function adapterFiles(): Promise<string[]> {
  * `lint` and `test` *before* `build`, so neither may resolve a workspace package through
  * its `exports` map into a `dist/` that a clean clone does not have.
  *
- * They drifted. The CLI is the one package whose name is unscoped — `driftgate`, not
- * `@driftgate/cli` — and it was registered in the runner and missed in the linter, so
+ * They drifted. The CLI is the one package whose name is unscoped — `rulegate`, not
+ * `@rulegate/cli` — and it was registered in the runner and missed in the linter, so
  * `action/`'s imports fell back to an absent `dist/index.d.ts` and every symbol behind
  * them, down to `Hunk.oldStart`, linted as `any`. Green on a machine with a built `dist/`,
  * fifty-four errors on CI. Two copies of a list stay equal because something checks, so
@@ -406,9 +406,9 @@ async function adapterFiles(): Promise<string[]> {
  */
 describe('workspace source maps', () => {
   // `action` is private and nothing imports it, so it needs no entry in either map.
-  const UNIMPORTED = new Set(['@driftgate/action']);
+  const UNIMPORTED = new Set(['@rulegate/action']);
 
-  /** `@driftgate/adapter-kit/testing` is a subpath of `@driftgate/adapter-kit`. */
+  /** `@rulegate/adapter-kit/testing` is a subpath of `@rulegate/adapter-kit`. */
   function basePackage(key: string): string {
     const segments = key.split('/');
     return key.startsWith('@') ? segments.slice(0, 2).join('/') : (segments[0] ?? key);

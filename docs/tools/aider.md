@@ -2,13 +2,13 @@
 
 # Which files does Aider read?
 
-Driftgate adapter id: `aider` · Verified against Aider docs as published 2026-09-04 on 2026-09-04 · [Homepage](https://aider.chat)
+Rulegate adapter id: `aider` · Verified against Aider docs as published 2026-09-04 on 2026-09-04 · [Homepage](https://aider.chat)
 
 Every file below that is present is **sent to the model**, all together. The order ranks specificity rather than authority — nothing here overrides anything else.
 
 ## Precedence
 
-| # | Path | Scope | Role | Driftgate writes it | Nesting |
+| # | Path | Scope | Role | Rulegate writes it | Nesting |
 |---|---|---|---|---|---|
 | 1 | `CONVENTIONS.md` | project | instructions | yes | root only |
 | 2 | `.aider.conf.yml` | project | settings | no | root only |
@@ -17,13 +17,13 @@ Every file below that is present is **sent to the model**, all together. The ord
 
 ### `CONVENTIONS.md`
 
-The conventional filename, and what Driftgate generates. Aider loads it only when .aider.conf.yml names it under `read:`, or when it is passed with --read / /read. The name is a convention, not a requirement.
+The conventional filename, and what Rulegate generates. Aider loads it only when .aider.conf.yml names it under `read:`, or when it is passed with --read / /read. The name is a convention, not a requirement.
 
 Source: [Aider — Specifying coding conventions](https://aider.chat/docs/usage/conventions.html) — retrieved 2026-09-04
 
 ### `.aider.conf.yml`
 
-Aider’s configuration, and the only thing that decides whether CONVENTIONS.md is read at all. Driftgate never writes it: it is the user’s file and it can hold literal API keys.
+Aider’s configuration, and the only thing that decides whether CONVENTIONS.md is read at all. Rulegate never writes it: it is the user’s file and it can hold literal API keys.
 
 Source: [Aider — Specifying coding conventions](https://aider.chat/docs/usage/conventions.html) — retrieved 2026-09-04
 
@@ -35,7 +35,7 @@ Aider publishes no size cap for a conventions file.
 
 - **warn** — Aider loads no instruction file automatically. A generated CONVENTIONS.md is read only if .aider.conf.yml names it under `read:` (or it is passed with --read). Without that line the file is in sync, correct, and loaded by nothing — check the config, not just the file.
   Source: [Aider — Specifying coding conventions](https://aider.chat/docs/usage/conventions.html) — retrieved 2026-09-04
-- **info** — Driftgate never writes .aider.conf.yml, under any flag. It is the user’s file, it can hold literal API keys, and owning it would mean owning every Aider setting — the trade-off the codex adapter makes for config.toml and this one deliberately does not.
+- **info** — Rulegate never writes .aider.conf.yml, under any flag. It is the user’s file, it can hold literal API keys, and owning it would mean owning every Aider setting — the trade-off the codex adapter makes for config.toml and this one deliberately does not.
   Source: [Aider — Specifying coding conventions](https://aider.chat/docs/usage/conventions.html) — retrieved 2026-09-04
 - **info** — Whether `read:` merges or replaces across Aider’s home, git-root and cwd config files is undocumented. If it replaces, a repository-level config silently drops a user’s global conventions — worth knowing before relying on both.
   Source: [Aider — Specifying coding conventions](https://aider.chat/docs/usage/conventions.html) — retrieved 2026-09-04

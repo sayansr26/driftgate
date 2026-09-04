@@ -1,4 +1,4 @@
-import type { AdapterDocs, PrecedenceEntry, SourceLink } from '@driftgate/adapter-kit';
+import type { AdapterDocs, PrecedenceEntry, SourceLink } from '@rulegate/adapter-kit';
 
 const INSTRUCTIONS_DOCS: SourceLink = {
   url: 'https://zed.dev/docs/ai/instructions',
@@ -29,10 +29,10 @@ function link(pattern: string, description: string): PrecedenceEntry {
  * What Zed actually loads — and it is the roster's only true first-match chain.
  *
  * Zed checks nine filenames in order and **uses the first that exists, full stop**. The
- * other eight are never opened. Five of the nine are files other Driftgate adapters
+ * other eight are never opened. Five of the nine are files other Rulegate adapters
  * generate, so a repository with `.cursorrules` and a generated `CLAUDE.md` sends Zed the
  * `.cursorrules` and ignores the `CLAUDE.md` entirely — a fact no other tool in the roster
- * produces, and precisely the question `driftgate doctor` exists to answer.
+ * produces, and precisely the question `rulegate doctor` exists to answer.
  *
  * `resolution: 'first-match'` is what encodes that, and it had to be added to the frozen
  * kit for this adapter (T050a). `'override'` — which the seeded issue prescribed — gets the
@@ -55,7 +55,7 @@ export const docs: AdapterDocs = {
       role: 'instructions',
       managed: true,
       description:
-        'First in Zed’s list, so it wins whenever it exists. This is what Driftgate generates: writing it is what makes the other eight irrelevant, rather than leaving the answer to whichever file happens to be present.',
+        'First in Zed’s list, so it wins whenever it exists. This is what Rulegate generates: writing it is what makes the other eight irrelevant, rather than leaving the answer to whichever file happens to be present.',
       source: INSTRUCTIONS_DOCS,
     },
     link(
@@ -90,7 +90,7 @@ export const docs: AdapterDocs = {
       role: 'instructions',
       managed: false,
       description:
-        'Personal instructions, applied alongside the project file rather than competing with it — project instructions override it when they conflict. Outside the repository, so Driftgate reports it and never writes it.',
+        'Personal instructions, applied alongside the project file rather than competing with it — project instructions override it when they conflict. Outside the repository, so Rulegate reports it and never writes it.',
       source: INSTRUCTIONS_DOCS,
     },
   ],
@@ -99,7 +99,7 @@ export const docs: AdapterDocs = {
     {
       level: 'warn',
       message:
-        'Zed reads the FIRST of .rules, .cursorrules, .windsurfrules, .clinerules, .github/copilot-instructions.md, AGENT.md, AGENTS.md, CLAUDE.md, GEMINI.md — and no others. Five of those are files other Driftgate adapters generate, so in a repository that has several, everything below the first is invisible to Zed however carefully it was written.',
+        'Zed reads the FIRST of .rules, .cursorrules, .windsurfrules, .clinerules, .github/copilot-instructions.md, AGENT.md, AGENTS.md, CLAUDE.md, GEMINI.md — and no others. Five of those are files other Rulegate adapters generate, so in a repository that has several, everything below the first is invisible to Zed however carefully it was written.',
       source: INSTRUCTIONS_DOCS,
     },
     {

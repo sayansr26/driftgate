@@ -1,4 +1,4 @@
-import { NodeFileSystem, planRestore, resolveRepoRoot, restoreFromBackup } from '@driftgate/core';
+import { NodeFileSystem, planRestore, resolveRepoRoot, restoreFromBackup } from '@rulegate/core';
 import { createOutput, pluralize } from '../ui/report.js';
 import { ExitCode, type ExitCodeValue } from '../ui/exit.js';
 
@@ -13,7 +13,7 @@ export interface RestoreOptions {
 }
 
 /**
- * Put back the originals Driftgate copied into `.driftgate/backup/`.
+ * Put back the originals Rulegate copied into `.rulegate/backup/`.
  *
  * Writes nothing without `--yes`, which is `init`'s idiom rather than a second one:
  * restoring overwrites files that currently exist, so it is a destructive operation and
@@ -36,8 +36,8 @@ export async function runRestore(options: RestoreOptions): Promise<ExitCodeValue
     const scoped = (options.only ?? []).length > 0;
     out.log(
       scoped
-        ? 'nothing in .driftgate/backup/ matches those paths'
-        : '.driftgate/backup/ is empty; there is nothing to restore',
+        ? 'nothing in .rulegate/backup/ matches those paths'
+        : '.rulegate/backup/ is empty; there is nothing to restore',
     );
     return ExitCode.Ok;
   }
@@ -56,20 +56,20 @@ export async function runRestore(options: RestoreOptions): Promise<ExitCodeValue
 
   if (!apply) {
     out.log('');
-    out.log(`nothing was written. run: driftgate restore --yes`);
+    out.log(`nothing was written. run: rulegate restore --yes`);
     return ExitCode.Ok;
   }
 
   const report = await restoreFromBackup(candidates, fs, { dryRun: false });
 
   out.log('');
-  out.log(`restored ${pluralize(report.restored.length, 'file')} from .driftgate/backup/`);
+  out.log(`restored ${pluralize(report.restored.length, 'file')} from .rulegate/backup/`);
   if (report.restored.length > 0) {
     // Saying so is the difference between a surprise and a stated consequence: a
-    // restored file that driftgate still generates now differs from what `sync` would
+    // restored file that rulegate still generates now differs from what `sync` would
     // write, which is exactly what "hand-edited" means.
     out.log(
-      'note: any restored file driftgate still generates will read as hand-edited to the next sync',
+      'note: any restored file rulegate still generates will read as hand-edited to the next sync',
     );
   }
 

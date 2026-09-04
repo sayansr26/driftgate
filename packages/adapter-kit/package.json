@@ -1,9 +1,19 @@
 {
-  "name": "@driftgate/adapter-kit",
+  "name": "@rulegate/adapter-kit",
   "version": "0.0.0",
-  "description": "Public adapter contract and test harness for Driftgate adapters.",
+  "description": "Public adapter contract and test harness for Rulegate adapters.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sayansr26/rulegate.git",
+    "directory": "packages/adapter-kit"
+  },
+  "homepage": "https://github.com/sayansr26/rulegate#readme",
+  "bugs": "https://github.com/sayansr26/rulegate/issues",
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=20"
   },
@@ -26,6 +36,6 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@driftgate/core": "workspace:*"
+    "@rulegate/core": "workspace:*"
   }
 }

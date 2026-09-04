@@ -1,0 +1,28 @@
+---
+description: Architecture
+order: 20
+---
+
+One flow underlies every command:
+
+```
+.rulegate/ ──parse()──▶ canonical model ──adapter.write()──▶ target artifacts
+                                                                    │
+                                                          hashes ──▶ .rulegate/state.json
+```
+
+- **`sync`** — render all enabled adapters, write, record hashes.
+- **`check`** — render **in memory**, compare to disk, exit 1 with a diff. Read-only by
+  construction.
+- **`doctor`** — `detect()` + `read()` + encoded per-tool precedence rules + an offline
+  token estimate.
+
+**`check` and `sync` must share one rendering path in `packages/core`.** If they can
+diverge, `check` is lying. This is the single most important structural constraint, and
+it is enforced mechanically: `computePlan` is the only renderer, `applyPlan` is the only
+writer, `verifyPlan` only reads, and tests in `packages/core/test/invariants.test.ts`
+fail if a write or a rendering primitive appears anywhere else.
+
+Adapters are pure modules `{ detect, read, write, docs }`. `docs` carries that tool's
+encoded precedence rules with a source link and the tool version verified against —
+treat it as versioned data, not comments.

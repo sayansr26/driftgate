@@ -30,7 +30,7 @@ export default tseslint.config(
         'error',
         {
           selector: "MemberExpression[object.name='os'][property.name='EOL']",
-          message: 'os.EOL is platform-dependent; Driftgate always emits \\n.',
+          message: 'os.EOL is platform-dependent; Rulegate always emits \\n.',
         },
         {
           selector: "MemberExpression[property.name='localeCompare']",
@@ -48,15 +48,15 @@ export default tseslint.config(
       'no-restricted-imports': [
         'error',
         {
-          // The frozen contract is @driftgate/adapter-kit (T011). Reaching past it into
+          // The frozen contract is @rulegate/adapter-kit (T011). Reaching past it into
           // core is how an adapter comes to depend on something that is not promised to
           // external contributors — and it is how our own two adapters would stop being
           // proof that the contract is sufficient.
           patterns: [
             {
-              group: ['@driftgate/core', '@driftgate/core/*'],
+              group: ['@rulegate/core', '@rulegate/core/*'],
               message:
-                'Adapters import from @driftgate/adapter-kit, the frozen contract. If a symbol is missing, add it to the kit — additions are non-breaking.',
+                'Adapters import from @rulegate/adapter-kit, the frozen contract. If a symbol is missing, add it to the kit — additions are non-breaking.',
             },
           ],
           paths: [
@@ -102,7 +102,7 @@ export default tseslint.config(
       'no-restricted-imports': [
         'error',
         {
-          patterns: ['@driftgate/adapter-*'],
+          patterns: ['@rulegate/adapter-*'],
           paths: [
             { name: 'node:fs', message: 'Filesystem access belongs in core/src/io only.' },
             {
@@ -130,9 +130,9 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ['@driftgate/core', '@driftgate/core/*'],
+              group: ['@rulegate/core', '@rulegate/core/*'],
               message:
-                'Adapters and their tests import from @driftgate/adapter-kit (contract) and @driftgate/adapter-kit/testing (harness).',
+                'Adapters and their tests import from @rulegate/adapter-kit (contract) and @rulegate/adapter-kit/testing (harness).',
             },
           ],
         },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { expectFixtureMatch } from '@driftgate/adapter-kit/testing';
+import { expectFixtureMatch } from '@rulegate/adapter-kit/testing';
 import { rooCode } from '../src/index.js';
 import { importMcpConfig, renderMcpJson } from '../src/mcp.js';
 

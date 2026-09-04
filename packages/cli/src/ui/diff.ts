@@ -1,4 +1,4 @@
-import type { FormattedLine } from '@driftgate/core';
+import type { FormattedLine } from '@rulegate/core';
 import type { Colors } from './report.js';
 
 /**

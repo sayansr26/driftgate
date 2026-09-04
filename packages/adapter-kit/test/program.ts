@@ -8,7 +8,7 @@ const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
  * A TypeScript program over the kit, resolved to **source**.
  *
  * The `paths` mapping is the load-bearing part, and it was added after both freeze
- * guards were caught passing against a stale build. `@driftgate/core` resolves through
+ * guards were caught passing against a stale build. `@rulegate/core` resolves through
  * its `exports` map to `dist/index.d.ts`, so without this the guards describe whatever
  * was last built: edit `DetectResult` in core, run the guards, and they stay green until
  * someone runs `pnpm build`. A guard whose answer depends on build freshness is not a
@@ -24,7 +24,7 @@ export function createKitProgram(entryFiles: readonly string[]): ts.Program {
     noEmit: true,
     baseUrl: repoRoot,
     paths: {
-      '@driftgate/core': [path.join(repoRoot, 'packages/core/src/index.ts')],
+      '@rulegate/core': [path.join(repoRoot, 'packages/core/src/index.ts')],
     },
   });
 }

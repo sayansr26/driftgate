@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { computePlan, MemoryFileSystem } from '@driftgate/core';
+import { computePlan, MemoryFileSystem } from '@rulegate/core';
 import { ADAPTERS, ADAPTER_NAMES } from '../src/registry.js';
 
 const rfcPath = fileURLToPath(
@@ -18,29 +18,29 @@ const rfcPath = fileURLToPath(
 
 /** The example's canonical source, transcribed from §14. */
 const EXAMPLE = new Map([
-  ['.driftgate/driftgate.yaml', 'schemaVersion: 1\ntools:\n  - claude-code\n  - cursor\n'],
+  ['.rulegate/rulegate.yaml', 'schemaVersion: 1\ntools:\n  - claude-code\n  - cursor\n'],
   [
-    '.driftgate/rules/10-style.md',
+    '.rulegate/rules/10-style.md',
     '---\ndescription: Style\norder: 10\n---\n\nUse tabs. Never `any`.\n',
   ],
   [
-    '.driftgate/rules/20-testing.md',
+    '.rulegate/rules/20-testing.md',
     '---\ndescription: Testing\norder: 20\n---\n\nVitest. Colocate tests beside the code they cover.\n',
   ],
   [
-    '.driftgate/rules/30-frontend.md',
+    '.rulegate/rules/30-frontend.md',
     "---\ndescription: Frontend\nglobs:\n  - 'src/components/**/*.tsx'\norder: 30\n---\n\nPrefer server components.\n",
   ],
 ]);
 
-/** Every `**\`path\`**` heading after "driftgate sync produces:" in §14. */
+/** Every `**\`path\`**` heading after "rulegate sync produces:" in §14. */
 async function claimedArtifactPaths(): Promise<string[]> {
   const rfc = await readFile(rfcPath, 'utf8');
   // §14's own sample output contains `## Style` and friends inside fenced blocks, so a
   // naive section split ends at the first one and silently reads almost nothing. Blank
   // the fences first, keeping line structure intact.
   const defenced = rfc.replace(/```[\s\S]*?```/g, (block) => block.replace(/[^\n]/g, ''));
-  const produced = defenced.split('`driftgate sync` produces:')[1];
+  const produced = defenced.split('`rulegate sync` produces:')[1];
   expect(produced, '§14 must still say what sync produces').toBeDefined();
   const section = produced!.split(/^## /m)[0]!;
   return [...section.matchAll(/^\*\*`([^`]+)`\*\*/gm)].map((m) => m[1]!);

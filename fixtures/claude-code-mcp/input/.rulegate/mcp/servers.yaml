@@ -1,0 +1,36 @@
+# Deliberately not in id order: the renderer sorts, and a fixture that arrives sorted
+# never supplies the input that sort exists for (T043's inert guard, same shape).
+schemaVersion: 1
+servers:
+  zebra-stdio:
+    command: npx
+    args: ['-y', '@modelcontextprotocol/server-github']
+    env:
+      GITHUB_TOKEN: env:GITHUB_TOKEN
+
+  alpha-http:
+    url: https://mcp.example.com/mcp
+    headers:
+      X-Api-Key: env:DOCS_API_KEY
+    # Not a key Rulegate interprets. Preserved verbatim (RFC-0001 §11.1) and re-emitted,
+    # which is the only path by which a literal could reach generated output — the case
+    # T044's scan over rendered bytes exists for.
+    timeout: 600000
+
+  linear-sse:
+    url: https://mcp.linear.app/sse
+    transport: sse
+    headers:
+      Authorization: env:LINEAR_API_KEY
+
+  cursor-only:
+    command: ./scripts/cursor-helper
+    tools: [cursor]
+
+  disabled-server:
+    command: ./scripts/not-yet
+    enabled: false
+
+  user-global:
+    command: ./scripts/machine-wide
+    scope: global

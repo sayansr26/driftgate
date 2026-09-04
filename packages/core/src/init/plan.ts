@@ -1,5 +1,5 @@
 import { formatterWarnings } from './formatters.js';
-import { DriftgateError } from '../model/errors.js';
+import { RulegateError } from '../model/errors.js';
 import {
   CANONICAL_SCHEMA_VERSION,
   DEFAULT_MANIFEST_OPTIONS,
@@ -31,9 +31,9 @@ export interface InitInput {
    * Read-only importers for competing rule-sync tools (T054).
    *
    * A separate list from `adapters`, and never merged into one: an adapter is a tool
-   * Driftgate *generates for*, an interop importer is a tool it takes over *from*. Passing
-   * ruler as an adapter would put it in `driftgate.yaml`, in `doctor`'s table and in every
-   * rule's `tools:` selector — asserting Driftgate maintains a ruler config, which it must
+   * Rulegate *generates for*, an interop importer is a tool it takes over *from*. Passing
+   * ruler as an adapter would put it in `rulegate.yaml`, in `doctor`'s table and in every
+   * rule's `tools:` selector — asserting Rulegate maintains a ruler config, which it must
    * never do. Optional, so every existing caller is unaffected.
    */
   readonly interop?: readonly InteropLike[];
@@ -42,7 +42,7 @@ export interface InitInput {
 /**
  * The shape `computeInitPlan` needs from an interop importer.
  *
- * Structural rather than an import of `@driftgate/interop`: `packages/core` depends on no
+ * Structural rather than an import of `@rulegate/interop`: `packages/core` depends on no
  * adapter and on no importer, and the dependency direction is what keeps core free of
  * tool-specific knowledge.
  */
@@ -58,17 +58,17 @@ export interface InteropLike {
 }
 
 export interface InitPlan {
-  /** True when the repository already has a `.driftgate/`. Then there is nothing to do. */
+  /** True when the repository already has a `.rulegate/`. Then there is nothing to do. */
   readonly adopted: boolean;
   readonly detected: readonly ToolId[];
   readonly canonical: Canonical;
-  /** The `.driftgate/` files init would write. */
+  /** The `.rulegate/` files init would write. */
   readonly canonicalFiles: readonly CanonicalFile[];
   /**
    * The artifact plan the first `sync` will apply, computed here from the same renderer.
    *
    * `init` shows it rather than only promising it, because the interesting question a
-   * user has at this moment is not "what goes in `.driftgate/`" but "what happens to my
+   * user has at this moment is not "what goes in `.rulegate/`" but "what happens to my
    * `CLAUDE.md`".
    */
   readonly plan: Plan;
@@ -84,8 +84,8 @@ export interface InitPlan {
   readonly mcpConflicts: readonly McpImportConflict[];
   /** Competing rule-sync tools found in the repository and imported from (T054). */
   readonly interop: readonly string[];
-  readonly warnings: readonly DriftgateError[];
-  readonly errors: readonly DriftgateError[];
+  readonly warnings: readonly RulegateError[];
+  readonly errors: readonly RulegateError[];
 }
 
 /**
@@ -94,13 +94,13 @@ export interface InitPlan {
  *
  * Computes and writes nothing. Whether to apply it is the caller's decision and the
  * user's, which is the point: `init` is the first command anyone runs, on a repository
- * whose contents Driftgate did not write, and a first command that changes files before
+ * whose contents Rulegate did not write, and a first command that changes files before
  * showing what it will change is how a tool loses a user in one step.
  */
 export async function computeInitPlan(input: InitInput): Promise<InitPlan> {
   const { repoRoot, fs, adapters } = input;
-  const errors: DriftgateError[] = [];
-  const warnings: DriftgateError[] = [];
+  const errors: RulegateError[] = [];
+  const warnings: RulegateError[] = [];
 
   if (await fs.exists(MANIFEST_PATH)) {
     // Not an error. Running `init` twice is a reasonable thing to do, and the answer is
@@ -142,9 +142,9 @@ export async function computeInitPlan(input: InitInput): Promise<InitPlan> {
     interopFound.push(importer.displayName);
     for (const path of found.notImported) {
       warnings.push(
-        new DriftgateError({
+        new RulegateError({
           code: 'W_INTEROP_NOT_IMPORTED',
-          message: `${importer.displayName}: \`${path}\` was found and not imported. Driftgate imports rules only; copy anything else across by hand before removing it.`,
+          message: `${importer.displayName}: \`${path}\` was found and not imported. Rulegate imports rules only; copy anything else across by hand before removing it.`,
         }),
       );
     }
@@ -176,10 +176,10 @@ export async function computeInitPlan(input: InitInput): Promise<InitPlan> {
 
   // Import warnings are warnings and never errors. `runInit` returns without writing while
   // `errors` is non-empty, so one odd server in somebody's `.mcp.json` would otherwise make
-  // a new user's very first command fail on a file Driftgate merely read — T077's shape.
+  // a new user's very first command fail on a file Rulegate merely read — T077's shape.
   for (const source of collected.sources) {
     for (const message of source.mcpWarnings) {
-      warnings.push(new DriftgateError({ code: 'W_MCP_IMPORT', message }));
+      warnings.push(new RulegateError({ code: 'W_MCP_IMPORT', message }));
     }
   }
 

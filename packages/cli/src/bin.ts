@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import { isDriftgateError } from '@driftgate/core';
+import { isRulegateError } from '@rulegate/core';
 import { buildProgram } from './program.js';
 import { ExitCode } from './ui/exit.js';
 
-// `driftgate check | head` closes the pipe while we are still writing to it, and Node
+// `rulegate check | head` closes the pipe while we are still writing to it, and Node
 // reports that as an asynchronous `EPIPE` on the stream — which, unhandled, prints a stack
 // trace for something that is not an error. A C program gets SIGPIPE and dies silently;
 // this is the closest equivalent.
@@ -21,10 +21,10 @@ for (const stream of [process.stdout, process.stderr]) {
 try {
   await buildProgram().parseAsync(process.argv);
 } catch (error) {
-  // A DriftgateError that reaches here is still a user-facing failure, not a crash:
+  // A RulegateError that reaches here is still a user-facing failure, not a crash:
   // print the actionable form rather than a stack trace.
   process.stderr.write(
-    `${isDriftgateError(error) ? error.format() : String(error instanceof Error ? error.message : error)}\n`,
+    `${isRulegateError(error) ? error.format() : String(error instanceof Error ? error.message : error)}\n`,
   );
   process.exitCode = ExitCode.Failure;
 }

@@ -1,9 +1,9 @@
-import { DriftgateError } from '../model/errors.js';
+import { RulegateError } from '../model/errors.js';
 import { compareCodepoint } from '../render/order.js';
 import type { WritableFileSystem } from '../fs/types.js';
 
 /**
- * The writer behind `driftgate adapter new` (T028).
+ * The writer behind `rulegate adapter new` (T028).
  *
  * It lives in `core/src/io/` rather than in the CLI because that is the only lawful
  * place: `packages/core/test/invariants.test.ts` allows a filesystem write in
@@ -49,17 +49,17 @@ export async function applyScaffold(
   for (const file of ordered) {
     const exists = await fs.exists(file.path);
     if (file.kind === 'create' && exists) {
-      throw new DriftgateError({
+      throw new RulegateError({
         code: 'E_SCAFFOLD_CONFLICT',
         message: `${file.path} already exists`,
-        hint: 'Driftgate never overwrites a file it did not generate. Remove it, or choose another tool name.',
+        hint: 'Rulegate never overwrites a file it did not generate. Remove it, or choose another tool name.',
       });
     }
     if (file.kind === 'update' && !exists) {
-      throw new DriftgateError({
+      throw new RulegateError({
         code: 'E_SCAFFOLD_CONFLICT',
         message: `${file.path} is missing, so it cannot be patched`,
-        hint: 'Run this from a checkout of the driftgate monorepo.',
+        hint: 'Run this from a checkout of the rulegate monorepo.',
       });
     }
   }

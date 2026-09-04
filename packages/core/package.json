@@ -1,9 +1,19 @@
 {
-  "name": "@driftgate/core",
+  "name": "@rulegate/core",
   "version": "0.0.0",
-  "description": "Canonical model, parser, deterministic renderer, state, and pipeline for Driftgate.",
+  "description": "Canonical model, parser, deterministic renderer, state, and pipeline for Rulegate.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sayansr26/rulegate.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/sayansr26/rulegate#readme",
+  "bugs": "https://github.com/sayansr26/rulegate/issues",
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=20"
   },

@@ -3,9 +3,9 @@ coverage
 fixtures
 pnpm-lock.yaml
 
-# Driftgate's own generated output. A formatter and a generator cannot both own a file:
-# reformatting these makes the next `driftgate sync` report them as hand-edited and
-# refuse to write. Format the source instead — .driftgate/rules/ — and re-run sync.
+# Rulegate's own generated output. A formatter and a generator cannot both own a file:
+# reformatting these makes the next `rulegate sync` report them as hand-edited and
+# refuse to write. Format the source instead — .rulegate/rules/ — and re-run sync.
 AGENTS.md
 CLAUDE.md
 GEMINI.md

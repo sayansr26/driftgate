@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { Canonical } from '@driftgate/adapter-kit';
+import type { Canonical } from '@rulegate/adapter-kit';
 import { codex, AGENTS_MD } from '../src/index.js';
-import { contextFor, importContextFor, importFixture } from '@driftgate/adapter-kit/testing';
+import { contextFor, importContextFor, importFixture } from '@rulegate/adapter-kit/testing';
 
 /**
  * T014's stated validation, and the only trap this adapter carries.
  *
- * `AGENTS.md` is a valid canonical *input* — a repository with no `.driftgate/` can use it
+ * `AGENTS.md` is a valid canonical *input* — a repository with no `.rulegate/` can use it
  * as its source of truth — and it is also this adapter's *output*. Generating a file from
  * itself destroys the source, which PRD §11 rates trust-fatal.
  *
@@ -33,7 +33,7 @@ describe('codex and the AGENTS.md self-reference', () => {
   it('still emits AGENTS.md when some other file is the canonical source', async () => {
     // The negative half. Without it the test above passes against an adapter that emits
     // nothing at all, which is the failure mode a guard like this actually has.
-    const artifacts = await writeWithCanonicalSources(['.driftgate/driftgate.yaml']);
+    const artifacts = await writeWithCanonicalSources(['.rulegate/rulegate.yaml']);
     expect(artifacts.map((a) => a.path)).toEqual([AGENTS_MD]);
   });
 
@@ -60,7 +60,7 @@ describe('codex and the AGENTS.md self-reference', () => {
   });
 
   it('still imports AGENTS.md when some other file is the canonical source', async () => {
-    const imported = await readWithCanonicalSources(['.driftgate/driftgate.yaml']);
+    const imported = await readWithCanonicalSources(['.rulegate/rulegate.yaml']);
     expect(imported.rules?.map((r) => r.id)).toEqual(['agents']);
   });
 });

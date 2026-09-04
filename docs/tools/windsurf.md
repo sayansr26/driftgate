@@ -2,13 +2,13 @@
 
 # Which files does Windsurf read?
 
-Driftgate adapter id: `windsurf` · Verified against Cascade docs as published 2026-09-04 on 2026-09-04 · [Homepage](https://windsurf.com)
+Rulegate adapter id: `windsurf` · Verified against Cascade docs as published 2026-09-04 on 2026-09-04 · [Homepage](https://windsurf.com)
 
 Every file below that is present is **sent to the model**, all together. The order ranks specificity rather than authority — nothing here overrides anything else.
 
 ## Precedence
 
-| # | Path | Scope | Role | Driftgate writes it | Nesting |
+| # | Path | Scope | Role | Rulegate writes it | Nesting |
 |---|---|---|---|---|---|
 | 1 | `.devin/rules/*.md` | project | instructions | no | all-merged |
 | 2 | `.windsurf/rules/*.md` | project | instructions | yes | all-merged |
@@ -20,19 +20,19 @@ Every file below that is present is **sent to the model**, all together. The ord
 
 ### `.devin/rules/*.md`
 
-Devin Desktop workspace rules. Documented as taking precedence over .windsurf/rules. Driftgate reads these on import so a Devin user does not lose them, and never writes them: the directory belongs to a different product.
+Devin Desktop workspace rules. Documented as taking precedence over .windsurf/rules. Rulegate reads these on import so a Devin user does not lose them, and never writes them: the directory belongs to a different product.
 
 Source: [Windsurf — Rules and memories (Cascade)](https://docs.devin.ai/desktop/cascade/memories) — retrieved 2026-09-04
 
 ### `.windsurf/rules/*.md`
 
-Workspace rules, one file per rule, each with a trigger: frontmatter key. Discovered in subdirectories and in parent directories up to the git root. This is what Driftgate generates.
+Workspace rules, one file per rule, each with a trigger: frontmatter key. Discovered in subdirectories and in parent directories up to the git root. This is what Rulegate generates.
 
 Source: [Windsurf — Rules and memories (Cascade)](https://docs.devin.ai/desktop/cascade/memories) — retrieved 2026-09-04
 
 ### `.windsurfrules`
 
-Legacy single-file rules at the workspace root, superseded by .windsurf/rules. Driftgate imports it and never writes it.
+Legacy single-file rules at the workspace root, superseded by .windsurf/rules. Rulegate imports it and never writes it.
 
 Source: [Windsurf — Rules and memories (Cascade)](https://docs.devin.ai/desktop/cascade/memories) — retrieved 2026-09-04
 
@@ -44,7 +44,7 @@ Source: [Windsurf — Rules and memories (Cascade)](https://docs.devin.ai/deskto
 
 ### `~/.codeium/windsurf/memories/global_rules.md`
 
-User-level rules, always applied, no frontmatter. Outside the repository, so Driftgate reports it and never writes it.
+User-level rules, always applied, no frontmatter. Outside the repository, so Rulegate reports it and never writes it.
 
 Source: [Windsurf — Rules and memories (Cascade)](https://docs.devin.ai/desktop/cascade/memories) — retrieved 2026-09-04
 
@@ -52,13 +52,13 @@ Source: [Windsurf — Rules and memories (Cascade)](https://docs.devin.ai/deskto
 
 - Per file: 12000 bytes
 
-Windsurf documents 12,000 characters per workspace rule file and 6,000 for the global one. Driftgate measures bytes, so a rule using non-ASCII characters may be reported over the limit while still being under it.
+Windsurf documents 12,000 characters per workspace rule file and 6,000 for the global one. Rulegate measures bytes, so a rule using non-ASCII characters may be reported over the limit while still being under it.
 
 ## Notes
 
-- **warn** — Multiple glob patterns are undocumented. The vendor shows a single bare pattern (globs: **/*.test.ts) and does not say how several are separated; Driftgate joins them with commas, matching Cursor .mdc and community practice. A rule whose scoping matters and that carries more than one pattern is worth checking in Windsurf before relying on it.
+- **warn** — Multiple glob patterns are undocumented. The vendor shows a single bare pattern (globs: **/*.test.ts) and does not say how several are separated; Rulegate joins them with commas, matching Cursor .mdc and community practice. A rule whose scoping matters and that carries more than one pattern is worth checking in Windsurf before relying on it.
   Source: [Windsurf — Rules and memories (Cascade)](https://docs.devin.ai/desktop/cascade/memories) — retrieved 2026-09-04
-- **warn** — .devin/rules takes precedence over .windsurf/rules. In a repository that has both, the files Driftgate generates are shadowed by a directory it deliberately does not write.
+- **warn** — .devin/rules takes precedence over .windsurf/rules. In a repository that has both, the files Rulegate generates are shadowed by a directory it deliberately does not write.
   Source: [Windsurf — Rules and memories (Cascade)](https://docs.devin.ai/desktop/cascade/memories) — retrieved 2026-09-04
 - **info** — trigger: is derived, not authored. A rule with globs becomes trigger: glob and a repo-wide rule becomes trigger: always_on; model_decision and manual are never generated, because both let the model skip a rule the author asked for.
   Source: [Windsurf — Rules and memories (Cascade)](https://docs.devin.ai/desktop/cascade/memories) — retrieved 2026-09-04

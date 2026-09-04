@@ -1,4 +1,4 @@
-import { findRepoRoot, resolveRepoRoot } from '@driftgate/core';
+import { findRepoRoot, resolveRepoRoot } from '@rulegate/core';
 
 export interface ResolvedCwd {
   /** The repository root every command should act on. */

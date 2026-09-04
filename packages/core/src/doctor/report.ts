@@ -16,7 +16,7 @@ import {
 } from './warnings.js';
 import type { Adapter } from '../adapter/adapter.js';
 import type { FileResolution } from '../adapter/docs.js';
-import type { DriftgateError } from '../model/errors.js';
+import type { RulegateError } from '../model/errors.js';
 import type { ReadOnlyFileSystem } from '../fs/types.js';
 import type { DoctorReport, DoctorWarning, ToolDiagnosis } from './types.js';
 
@@ -40,7 +40,7 @@ export interface DoctorInput {
  * What will each tool read, what does it cost, and what is wrong with it?
  *
  * Reads only, and never throws for anything a repository could contain. It runs on
- * repositories that have never adopted Driftgate — that is its primary audience, and the
+ * repositories that have never adopted Rulegate — that is its primary audience, and the
  * first thing `init` will ask of it — so a missing canonical source sets `adopted: false`
  * and is not an error. Only a canonical source that exists and cannot be parsed is.
  *
@@ -53,7 +53,7 @@ export async function buildDoctorReport(input: DoctorInput): Promise<DoctorRepor
 
   const plan = await computePlan({ repoRoot, fs, adapters });
   const adopted = !plan.errors.some((e) => e.code === 'E_NO_CANONICAL_SOURCE');
-  const errors: readonly DriftgateError[] = plan.errors.filter(
+  const errors: readonly RulegateError[] = plan.errors.filter(
     (e) => e.code !== 'E_NO_CANONICAL_SOURCE',
   );
 

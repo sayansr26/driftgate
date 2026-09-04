@@ -8,7 +8,7 @@ import {
   formatHunks,
   NodeFileSystem,
   resolveRepoRoot,
-} from '@driftgate/core';
+} from '@rulegate/core';
 import { ADAPTERS } from '../registry.js';
 import { createOutput, formatErrors, pluralize } from '../ui/report.js';
 import { renderDiff } from '../ui/diff.js';
@@ -20,14 +20,14 @@ import {
 } from '../ui/hints.js';
 import { ExitCode, type ExitCodeValue } from '../ui/exit.js';
 import type { Output } from '../ui/report.js';
-import type { MergePlan } from '@driftgate/core';
+import type { MergePlan } from '@rulegate/core';
 
 export interface SyncOptions {
   readonly cwd: string;
   readonly dryRun?: boolean;
   readonly force?: boolean;
   /**
-   * Merge hand-edits on generated files back into `.driftgate/` (T051).
+   * Merge hand-edits on generated files back into `.rulegate/` (T051).
    *
    * Prints the merge and writes nothing without `--yes`, like `init` and `restore`. It is
    * a separate mode rather than a fallback inside an ordinary `sync` because recovering
@@ -109,7 +109,7 @@ export async function runSync(options: SyncOptions): Promise<ExitCodeValue> {
 
     if (unmanaged.length > 0) {
       out.error(
-        `${pluralize(unmanaged.length, 'file')} driftgate did not generate; nothing was overwritten.`,
+        `${pluralize(unmanaged.length, 'file')} rulegate did not generate; nothing was overwritten.`,
       );
       out.error(HINT_UNMANAGED);
     }
@@ -117,7 +117,7 @@ export async function runSync(options: SyncOptions): Promise<ExitCodeValue> {
   }
 
   const dry = options.dryRun === true;
-  for (const path of report.backedUp) out.log(`backed up  .driftgate/backup/${path}`);
+  for (const path of report.backedUp) out.log(`backed up  .rulegate/backup/${path}`);
   // Deletions before writes: that is the order they happened in, and a user scanning
   // the output for what left the repository should not have to read past what entered it.
   for (const path of report.deleted) out.log(`${dry ? 'would delete' : 'deleted'}  ${path}`);
@@ -131,7 +131,7 @@ export async function runSync(options: SyncOptions): Promise<ExitCodeValue> {
 }
 
 /**
- * `sync --import`: recover hand-edits into `.driftgate/`, then stop.
+ * `sync --import`: recover hand-edits into `.rulegate/`, then stop.
  *
  * It deliberately does not go on to write artifacts. The merge changes the canonical
  * source, and what the user should see next is `sync` rendering *from what they now have*
@@ -182,7 +182,7 @@ async function runImport(
 
   if (merge.merges.length === 0) {
     out.error('');
-    out.error('nothing could be imported; .driftgate/ is unchanged.');
+    out.error('nothing could be imported; .rulegate/ is unchanged.');
     return ExitCode.Failure;
   }
 
@@ -196,7 +196,7 @@ async function runImport(
   // pin in `pipeline/` are both unchanged by this command existing.
   await applyCanonicalFiles(merge.files, fs, { dryRun: options.dryRun === true });
   out.log('');
-  out.log(`imported ${pluralize(merge.merges.length, 'rule')} into .driftgate/`);
-  out.log('hint: run: driftgate sync');
+  out.log(`imported ${pluralize(merge.merges.length, 'rule')} into .rulegate/`);
+  out.log('hint: run: rulegate sync');
   return merge.refusals.length > 0 ? ExitCode.Failure : ExitCode.Ok;
 }

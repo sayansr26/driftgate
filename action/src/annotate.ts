@@ -7,7 +7,7 @@ import {
   type VerifyEntry,
   type VerifyReport,
   type VerifyStatus,
-} from 'driftgate';
+} from 'rulegate';
 
 /**
  * GitHub renders at most ten annotations per level per step. Emitting more is not an
@@ -35,13 +35,13 @@ const RECOVERY: Readonly<Record<VerifyStatus, string>> = {
 
 /** What each status means, for a reader who is looking at a PR diff rather than a terminal. */
 const EXPLANATION: Readonly<Record<VerifyStatus, string>> = {
-  stale: 'This generated file is out of date: .driftgate/ has moved on.',
+  stale: 'This generated file is out of date: .rulegate/ has moved on.',
   missing: 'This generated file is missing.',
   orphaned: 'No enabled adapter generates this file any more.',
   'hand-edited': 'This generated file was edited by hand; the edit would be overwritten.',
   'orphan-hand-edited':
     'This file was edited by hand and no rule generates it any more, so it cannot be regenerated.',
-  unmanaged: 'A file driftgate did not generate is standing where its output goes.',
+  unmanaged: 'A file rulegate did not generate is standing where its output goes.',
 };
 
 /**
@@ -100,7 +100,7 @@ function format(a: Annotation): string {
  * location.
  */
 export function annotationsFor(entry: VerifyEntry): Annotation[] {
-  const title = `driftgate: ${entry.status}`;
+  const title = `rulegate: ${entry.status}`;
   const message = `${EXPLANATION[entry.status]}\n${RECOVERY[entry.status]}`;
 
   if (entry.expected === undefined || entry.actual === undefined) {

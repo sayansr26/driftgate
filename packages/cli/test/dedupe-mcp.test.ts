@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { NodeFileSystem, collectImports, computeInitPlan, dedupeMcpServers } from '@driftgate/core';
+import { NodeFileSystem, collectImports, computeInitPlan, dedupeMcpServers } from '@rulegate/core';
 import { ADAPTERS } from '../src/registry.js';
 
 const fixtures = path.resolve(import.meta.dirname, '../../../fixtures');
@@ -46,7 +46,7 @@ describe('MCP import — T048', () => {
 
   it('never narrows a selector because a tool that carries no MCP was read', async () => {
     // Gemini has no MCP format at all, so it is not a tool that declined — it was never
-    // asked. Counting it would narrow every imported server for a reason about Driftgate's
+    // asked. Counting it would narrow every imported server for a reason about Rulegate's
     // roster rather than about the user's configuration.
     //
     // The fixture holds four formats and the roster now has five MCP-carrying tools, so

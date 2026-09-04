@@ -4,7 +4,7 @@ import {
   importedRule,
   type AdapterContext,
   type RuleDocument,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 import type { InteropImporter, InteropResult } from './types.js';
 
 const RULER_DIR = '.ruler';
@@ -26,7 +26,7 @@ const EXCLUDED = new Set(['skills', 'agents']);
  * Ruler's own section marker.
  *
  * `concatenateRules` emits two blank lines, `<!-- Source: <path> -->`, a blank line, then
- * the trimmed content. **That is better provenance than Driftgate's own format gives us**:
+ * the trimmed content. **That is better provenance than Rulegate's own format gives us**:
  * a heading is ambiguous, but this names the source file outright, so a generated
  * `AGENTS.md` can be split back into exactly the rules that produced it.
  */

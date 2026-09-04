@@ -1,4 +1,4 @@
-name: Adapter request — a tool Driftgate does not support
+name: Adapter request — a tool Rulegate does not support
 description: Ask for an adapter for an AI coding tool, or claim one to write yourself.
 title: 'adapter: <tool name>'
 labels: [adapter, tool-not-supported]
@@ -7,8 +7,8 @@ body:
     attributes:
       value: |
         Adapters are the contribution this project wants most, and
-        [`docs/writing-an-adapter.md`](https://github.com/driftgate-dev/driftgate/blob/master/docs/writing-an-adapter.md)
-        plus `driftgate adapter new <tool>` make one an afternoon's work. Filling this in
+        [`docs/writing-an-adapter.md`](https://github.com/sayansr26/rulegate/blob/master/docs/writing-an-adapter.md)
+        plus `rulegate adapter new <tool>` make one an afternoon's work. Filling this in
         well is most of that afternoon, whoever ends up writing the code.
   - type: input
     id: tool
@@ -42,7 +42,7 @@ body:
     attributes:
       label: Link to the vendor's documentation for those files
       description: |
-        Required. Every precedence claim Driftgate makes carries a source URL and the
+        Required. Every precedence claim Rulegate makes carries a source URL and the
         version it was verified against; a claim without one cannot ship.
     validations:
       required: true

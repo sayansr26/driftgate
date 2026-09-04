@@ -1,6 +1,6 @@
 # Seeded adapter requests
 
-One file per `good first adapter` issue: a tool Driftgate does not support, with the files
+One file per `good first adapter` issue: a tool Rulegate does not support, with the files
 that tool actually reads, a link to the vendor documentation, and enough detail that the
 issue is actionable without asking the maintainer anything.
 

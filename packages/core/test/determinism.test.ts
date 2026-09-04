@@ -22,10 +22,10 @@ function sha256(s: string): string {
 function rule(id: string, order: number, body = `Body of ${id}.`): RuleDocument {
   return {
     id,
-    path: `.driftgate/rules/${id}.md`,
+    path: `.rulegate/rules/${id}.md`,
     body,
     frontmatter: { globs: [], tools: ALL_TOOLS, order, unknown: {} },
-    source: { file: `.driftgate/rules/${id}.md` },
+    source: { file: `.rulegate/rules/${id}.md` },
   };
 }
 

@@ -6,7 +6,7 @@ import {
   type JsonValue,
   type RuleDocument,
   type ToolSelector,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 import type { InteropImporter, InteropResult } from './types.js';
 
 const RULESYNC_DIR = '.rulesync';
@@ -14,7 +14,7 @@ const RULES_DIR = `${RULESYNC_DIR}/rules`;
 
 /**
  * rulesync keeps one Markdown file per rule under `.rulesync/rules/`, with YAML
- * frontmatter — a shape close enough to Driftgate's that the import is nearly lossless.
+ * frontmatter — a shape close enough to Rulegate's that the import is nearly lossless.
  *
  * Verified against `dyoshikawa/rulesync` on 2026-09-04:
  * `src/constants/rulesync-paths.ts` (the directory layout and `rulesync.jsonc`) and
@@ -23,7 +23,7 @@ const RULES_DIR = `${RULESYNC_DIR}/rules`;
  * per-tool object for each supported tool).
  */
 
-/** rulesync target ids that name a tool Driftgate also has. Anything else is preserved. */
+/** rulesync target ids that name a tool Rulegate also has. Anything else is preserved. */
 const TARGET_TO_TOOL: Readonly<Record<string, string>> = {
   claudecode: 'claude-code',
   cursor: 'cursor',

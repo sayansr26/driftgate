@@ -3,7 +3,7 @@
  * package in a tool whose pitch is a thin tree — and because the output has to carry the
  * one thing a generic diff hides.
  *
- * `driftgate check` reports drift by hash, and `hashContents` sees a trailing space, a
+ * `rulegate check` reports drift by hash, and `hashContents` sees a trailing space, a
  * tab, or a missing final newline that a printed diff renders as *nothing*. A reader
  * shown two identical-looking lines concludes the tool is broken. So `+`/`-` lines have
  * their invisibles escaped, and a side without a final newline is marked the way git

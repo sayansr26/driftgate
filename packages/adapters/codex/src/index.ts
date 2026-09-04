@@ -14,7 +14,7 @@ import {
   type Canonical,
   type DetectResult,
   type ImportResult,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 import { MCP_FILE, importConfigToml, renderConfigToml } from './mcp.js';
 import { docs } from './docs.js';
 
@@ -59,7 +59,7 @@ async function readRules(ctx: AdapterContext): Promise<Partial<Canonical>> {
  *
  * This is the sharpest edge in the adapter. `read()` used to return early whenever
  * `AGENTS.md` was the canonical source — correct for rules, and it would have silently
- * suppressed MCP import on every repository that adopts Driftgate through a bare
+ * suppressed MCP import on every repository that adopts Rulegate through a bare
  * `AGENTS.md`, which is the most common first contact this tool has. Exactly the mirror of
  * the write-side bug T046 found, arriving from the other direction.
  */
@@ -86,8 +86,8 @@ async function write(ctx: AdapterContext): Promise<readonly Artifact[]> {
   // source is the ordinary way to use Codex, and it still has MCP servers to generate.
   //
   // The self-reference. AGENTS.md is a valid canonical *input* as well as this adapter's
-  // *output*, so a repo with no `.driftgate/` that uses AGENTS.md as its source would
-  // otherwise have Driftgate generate that file from itself and destroy it. `computePlan`
+  // *output*, so a repo with no `.rulegate/` that uses AGENTS.md as its source would
+  // otherwise have Rulegate generate that file from itself and destroy it. `computePlan`
   // catches this too, with E_ARTIFACT_OVERWRITES_SOURCE — but a hard error is the wrong
   // answer for a case that is ordinary rather than mistaken, so the adapter declines
   // quietly and the run stays green.

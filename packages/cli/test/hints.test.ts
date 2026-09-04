@@ -8,13 +8,13 @@ const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
 /**
  * A hint is advice we tell the user to follow. `sync` used to hint at
- * `driftgate sync --import`, which is T051 and unimplemented, so following it produced
+ * `rulegate sync --import`, which is T051 and unimplemented, so following it produced
  * usage help and exit 2 — the code reserved for "you made a mistake" (T075). A README
  * promise decays; this does not.
  *
  * Subcommands are covered too, as of T019. They could not be until then: two hints and
- * RFC §8 named `driftgate init` while it was unregistered, so following the only
- * instruction a user with no `.driftgate/` ever received exited **2** (T077). Widening
+ * RFC §8 named `rulegate init` while it was unregistered, so following the only
+ * instruction a user with no `.rulegate/` ever received exited **2** (T077). Widening
  * this guard is how that stays fixed.
  */
 
@@ -64,7 +64,7 @@ async function sourceFiles(): Promise<string[]> {
 }
 
 /**
- * Both channels a hint can reach the user through: `DriftgateError.hint`, and the CLI's
+ * Both channels a hint can reach the user through: `RulegateError.hint`, and the CLI's
  * own free-text `hint:` lines. Matching on the source text rather than on constructed
  * errors is what makes this cover hints no test happens to trigger.
  *
@@ -105,19 +105,27 @@ describe('hints only name things that exist', () => {
   });
 
   it('never advertises a subcommand the CLI does not register', async () => {
-    // T077: `run: driftgate init` was the first instruction a new user got, and it was
+    // T077: `run: rulegate init` was the first instruction a new user got, and it was
     // the first thing that failed.
     const registered = registeredSubcommands();
     const offenders: string[] = [];
+    const matched: string[] = [];
 
     for (const { file, text } of await hintTexts()) {
-      // Only actual invocations: `run: driftgate x` or a backticked `driftgate x`.
-      // A bare `driftgate <word>` also matches prose like "pin driftgate to a version".
-      for (const [, name] of text.matchAll(/(?:run: |`)driftgate ([a-z][a-z0-9-]*)/g)) {
-        if (name !== undefined && !registered.has(name)) offenders.push(`${file}: ${name}`);
+      // Only actual invocations: `run: rulegate x` or a backticked `rulegate x`.
+      // A bare `rulegate <word>` also matches prose like "pin rulegate to a version".
+      for (const [, name] of text.matchAll(/(?:run: |`)rulegate ([a-z][a-z0-9-]*)/g)) {
+        if (name === undefined) continue;
+        matched.push(name);
+        if (!registered.has(name)) offenders.push(`${file}: ${name}`);
       }
     }
 
+    // The regex carries the product name, so a rename that misses it makes `matchAll`
+    // yield nothing, the loop body never run, and `expect([]).toEqual([])` pass while
+    // checking absolutely nothing. The outer hint-count guard above does not cover this
+    // loop. Assert the regex still matches before trusting its verdict.
+    expect(matched.length).toBeGreaterThan(0);
     expect(offenders).toEqual([]);
   });
 

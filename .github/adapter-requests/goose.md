@@ -37,15 +37,15 @@ is not strictly Markdown, and a marker Goose reads aloud as an instruction is wo
 marker. Whatever you choose, `read()` has to strip it back off — the round-trip test will
 catch you if it does not.
 
-Also: `@`-prefixed references inline other files. Driftgate must never emit one. It would
-make the generated file's meaning depend on a file Driftgate does not control, which is the
+Also: `@`-prefixed references inline other files. Rulegate must never emit one. It would
+make the generated file's meaning depend on a file Rulegate does not control, which is the
 same class of problem as a nondeterministic render.
 
 ## Steps
 
 ```bash
-driftgate adapter new goose          # prints the plan
-driftgate adapter new goose --yes    # applies it
+rulegate adapter new goose          # prints the plan
+rulegate adapter new goose --yes    # applies it
 pnpm install && pnpm test           # green as generated
 ```
 
@@ -57,7 +57,7 @@ pnpm install && pnpm test           # green as generated
    dated `1970-01-01` so an unverified claim cannot be mistaken for a verified one.
 4. Run Goose against the generated config and confirm it actually loads. Say so in the PR,
    with the version you tested.
-5. Add `goose` to `.driftgate/driftgate.yaml` and run `driftgate sync` — this repository
+5. Add `goose` to `.rulegate/rulegate.yaml` and run `rulegate sync` — this repository
    dogfoods every adapter it ships. Commit the generated file with your change.
 
 ## Done when

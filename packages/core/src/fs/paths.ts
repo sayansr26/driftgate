@@ -1,7 +1,7 @@
 import path from 'node:path';
 
 /**
- * Every path that crosses a Driftgate boundary — into the model, into an Artifact,
+ * Every path that crosses a Rulegate boundary — into the model, into an Artifact,
  * into state.json, or into generated file content — is repo-relative and POSIX-separated.
  * Native separators exist only in `repoRoot` and inside the io layer.
  */

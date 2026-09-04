@@ -29,7 +29,7 @@ export type McpTransport =
   | { readonly kind: 'http'; readonly url: string }
   | { readonly kind: 'sse'; readonly url: string };
 
-/** A server as `.driftgate/mcp/servers.yaml` describes it (T043, RFC-0001 §11). */
+/** A server as `.rulegate/mcp/servers.yaml` describes it (T043, RFC-0001 §11). */
 export interface McpServer {
   /** The key under `servers:`. Unique, and the name every target format writes it under. */
   readonly id: string;
@@ -47,7 +47,7 @@ export interface McpServer {
    */
   readonly scope: McpScope;
   readonly enabled: boolean;
-  /** Keys Driftgate does not interpret, preserved verbatim so a round trip loses nothing. */
+  /** Keys Rulegate does not interpret, preserved verbatim so a round trip loses nothing. */
   readonly unknown: Readonly<Record<string, JsonValue>>;
   readonly source: SourceRef;
 }

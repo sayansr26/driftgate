@@ -7,16 +7,16 @@ we find out before users do.
 ## Five layouts, because there are five questions
 
 ```
-fixtures/<tool>/input/          a repo with a .driftgate/
+fixtures/<tool>/input/          a repo with a .rulegate/
 fixtures/<tool>/expected/       exactly the bytes the adapter must produce from it
 
 fixtures/<tool>-detect/positive/   a repo where detect() must find the tool
 fixtures/<tool>-detect/negative/   a repo where it must not
 
-fixtures/<tool>-import/input/      a repo with the tool's native files and no .driftgate/
+fixtures/<tool>-import/input/      a repo with the tool's native files and no .rulegate/
 fixtures/<tool>-import/expected/   the canonical rules read() must produce, as init writes them
 
-fixtures/<tool>-mcp/input/         a repo with .driftgate/mcp/servers.yaml and NO rules
+fixtures/<tool>-mcp/input/         a repo with .rulegate/mcp/servers.yaml and NO rules
 fixtures/<tool>-mcp/expected/      the tool's own MCP config, in the tool's own format
 
 fixtures/detect-engine/<case>/     a repo the *whole adapter set* is run against (T016)
@@ -24,12 +24,12 @@ fixtures/detect-engine/<case>/     a repo the *whole adapter set* is run against
 
 They differ because the situations differ: a detect fixture is a whole repository that
 either shows the tool's fingerprints or does not, and it has no expected output — often no
-`.driftgate/` at all, since `detect()` runs on repositories that have not adopted Driftgate
+`.rulegate/` at all, since `detect()` runs on repositories that have not adopted Rulegate
 yet. That is the first step of `init`.
 
-An **import** fixture (T017) is that same before-Driftgate repository, plus the answer:
+An **import** fixture (T017) is that same before-Rulegate repository, plus the answer:
 the rules `read()` must recover from it, serialized as `rules/<id>.md` exactly as `init`
-will write them under `.driftgate/`. The `input/` repos are deliberately messy — a BOM and
+will write them under `.rulegate/`. The `input/` repos are deliberately messy — a BOM and
 CRLF, a fenced block containing a `##`, headings in Japanese and emoji that slug to
 nothing, a `.mdc` description containing `:` and `#`, a doubled quote inside Copilot's
 single-quoted YAML, and a legacy `.cursorrules` carrying a rule that exists nowhere else.
@@ -48,10 +48,10 @@ side: what differs between them is the whole reason there are four adapters. `co
 the exception and its README says why — Codex has no variable substitution, so two servers
 had to change to stay expressible there at all.
 
-Never build the subpath by hand. `@driftgate/adapter-kit/testing` resolves all three shapes:
+Never build the subpath by hand. `@rulegate/adapter-kit/testing` resolves all three shapes:
 
 ```ts
-import { detectFixture, expectFixtureMatch, expectIdempotent } from '@driftgate/adapter-kit/testing';
+import { detectFixture, expectFixtureMatch, expectIdempotent } from '@rulegate/adapter-kit/testing';
 
 await expectFixtureMatch('cursor', cursor);                  // input/ vs expected/
 await expectFixtureMatch('cursor-mcp', cursor);              // the same two, mcp layout

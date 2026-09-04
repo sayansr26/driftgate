@@ -9,7 +9,7 @@ import {
   type McpServer,
   type ReferenceParse,
   type SecretValue,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 
 /**
  * Project scope. Roo also keeps a global config in its VS Code extension storage, which is
@@ -43,7 +43,7 @@ function transportType(kind: 'http' | 'sse'): string {
  *
  * Unlike Codex — which has no substitution *and* offers `env_vars` / `bearer_token_env_var`
  * as a different key — Roo offers no such key either. So a canonical `env:` reference is
- * written as Driftgate's own `env:NAME` spelling: it is preserved losslessly for a round
+ * written as Rulegate's own `env:NAME` spelling: it is preserved losslessly for a round
  * trip, and it is inert rather than wrong, because a literal credential is the one thing
  * this project will not write into a git-committed file under any flag. Recorded as a
  * `warn` note, because a server that starts and fails to authenticate is otherwise a bug
@@ -61,7 +61,7 @@ function secretMap(map: Readonly<Record<string, SecretValue>>): Record<string, J
 
 function serverJson(server: McpServer): JsonValue {
   // Unknown keys first, interpreted keys second — the same ordering as every other writer,
-  // so a preserved key can never override one Driftgate computed.
+  // so a preserved key can never override one Rulegate computed.
   const body: Record<string, JsonValue> = { ...server.unknown };
 
   const { transport } = server;
@@ -90,7 +90,7 @@ export function renderMcpJson(servers: readonly McpServer[], marker: boolean): s
   return stableJsonStringify(withJsonMarker({ mcpServers }, marker));
 }
 
-/** Driftgate's own `env:NAME`, since Roo documents no interpolation of its own. */
+/** Rulegate's own `env:NAME`, since Roo documents no interpolation of its own. */
 function parseReference(raw: string): ReferenceParse | undefined {
   const m = /^env:([A-Za-z_][A-Za-z0-9_]*)$/.exec(raw);
   return m === null ? undefined : { kind: 'ref', ref: envRef(m[1]!) };

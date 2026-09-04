@@ -1,5 +1,5 @@
 import { isMap, isScalar, isSeq, type Node } from 'yaml';
-import type { DriftgateError } from '../model/errors.js';
+import type { RulegateError } from '../model/errors.js';
 import { DEFAULT_RULE_ORDER, type RuleDocument, type RuleFrontmatter } from '../model/rule.js';
 import { ALL_TOOLS, type ToolSelector } from '../model/selector.js';
 import { deriveRuleId } from '../model/paths.js';
@@ -12,7 +12,7 @@ const KNOWN_KEYS = new Set(['description', 'globs', 'tools', 'order']);
 
 export interface ParsedRule {
   readonly rule?: RuleDocument;
-  readonly errors: readonly DriftgateError[];
+  readonly errors: readonly RulegateError[];
 }
 
 export function parseRuleFile(relPath: string, raw: string): ParsedRule {

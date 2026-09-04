@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DriftgateError, type JsonValue } from '@driftgate/adapter-kit';
+import { RulegateError, type JsonValue } from '@rulegate/adapter-kit';
 import { tomlKey, tomlString, tomlTable } from '../src/toml.js';
 
 const codeOf = (fn: () => unknown): string | undefined => {
@@ -7,7 +7,7 @@ const codeOf = (fn: () => unknown): string | undefined => {
     fn();
     return undefined;
   } catch (e) {
-    return e instanceof DriftgateError ? e.code : `not a DriftgateError: ${String(e)}`;
+    return e instanceof RulegateError ? e.code : `not a RulegateError: ${String(e)}`;
   }
 };
 
@@ -88,7 +88,7 @@ describe('the TOML emitter (T047)', () => {
       tomlTable(['mcp_servers', 'x'], nested);
       expect.unreachable('should have refused');
     } catch (e) {
-      const err = e as DriftgateError;
+      const err = e as RulegateError;
       expect(err.message).toContain('mcp_servers.x.auth');
       expect(err.message).not.toContain(secret);
       expect(err.hint ?? '').not.toContain(secret);

@@ -1,4 +1,4 @@
-import { DriftgateError } from '../model/errors.js';
+import { RulegateError } from '../model/errors.js';
 import { escapesRoot, normalizeRelative } from '../fs/paths.js';
 import { isCanonicalSource } from '../model/canonical.js';
 import { STATE_PATH } from '../model/paths.js';
@@ -19,7 +19,7 @@ export interface PlanInput {
   readonly fs: ReadOnlyFileSystem;
   readonly adapters: readonly Adapter[];
   /**
-   * Plan from this model instead of parsing `.driftgate/` off disk.
+   * Plan from this model instead of parsing `.rulegate/` off disk.
    *
    * For `init` (T019), which has a canonical model in memory — imported from the
    * repository's existing tool configs — and nothing on disk yet to parse. It is a
@@ -38,8 +38,8 @@ export interface Plan {
   /** Exactly what `state.json` would contain if this plan were applied. */
   readonly state: StateFile;
   readonly enabledAdapters: readonly ToolId[];
-  readonly errors: readonly DriftgateError[];
-  readonly warnings: readonly DriftgateError[];
+  readonly errors: readonly RulegateError[];
+  readonly warnings: readonly RulegateError[];
 }
 
 /**
@@ -53,8 +53,8 @@ export interface Plan {
  */
 export async function computePlan(input: PlanInput): Promise<Plan> {
   const { fs, repoRoot, adapters } = input;
-  const errors: DriftgateError[] = [];
-  const warnings: DriftgateError[] = [];
+  const errors: RulegateError[] = [];
+  const warnings: RulegateError[] = [];
 
   let canonical: Canonical;
   if (input.canonical === undefined) {
@@ -79,11 +79,11 @@ export async function computePlan(input: PlanInput): Promise<Plan> {
     // When v2 arrives, this is the branch that decides whether a v1 adapter still runs.
     if (adapter.apiVersion !== ADAPTER_API_VERSION) {
       errors.push(
-        new DriftgateError({
+        new RulegateError({
           code: 'E_ADAPTER_API_VERSION',
           message: `adapter \`${adapter.name}\` targets adapter API v${String(adapter.apiVersion)}, but this build speaks v${String(ADAPTER_API_VERSION)}`,
           source: { file: canonical.manifest.source.file },
-          hint: `upgrade the adapter, or pin driftgate to a version that speaks v${String(adapter.apiVersion)}`,
+          hint: `upgrade the adapter, or pin rulegate to a version that speaks v${String(adapter.apiVersion)}`,
         }),
       );
       continue;
@@ -99,9 +99,9 @@ export async function computePlan(input: PlanInput): Promise<Plan> {
       // One broken adapter must not take down the run: the user still needs to see
       // what the others would do, and which one failed.
       errors.push(
-        cause instanceof DriftgateError
+        cause instanceof RulegateError
           ? cause
-          : new DriftgateError({
+          : new RulegateError({
               code: 'E_ADAPTER_FAILED',
               message: `adapter \`${adapter.name}\` failed: ${describe(cause)}`,
               source: { file: canonical.manifest.source.file },
@@ -117,7 +117,7 @@ export async function computePlan(input: PlanInput): Promise<Plan> {
 
       if (escapesRoot(artifact.path)) {
         errors.push(
-          new DriftgateError({
+          new RulegateError({
             code: 'E_PATH_ESCAPE',
             message: `adapter \`${adapter.name}\` tried to write outside the repository: ${artifact.path}`,
             source: { file: artifact.path },
@@ -137,13 +137,13 @@ export async function computePlan(input: PlanInput): Promise<Plan> {
         const found = scanTextForSecrets(artifact.contents);
         if (found.length > 0) {
           errors.push(
-            new DriftgateError({
+            new RulegateError({
               code: 'E_LITERAL_SECRET',
               // Locations, never the values. A message that quoted what it found would
               // print the secret into CI logs.
               message: `adapter \`${adapter.name}\` would write a literal credential to ${path} (${found.join(', ')})`,
               source: { file: path },
-              hint: 'use an `env:NAME` reference in .driftgate/mcp/servers.yaml; driftgate never writes a literal secret',
+              hint: 'use an `env:NAME` reference in .rulegate/mcp/servers.yaml; rulegate never writes a literal secret',
             }),
           );
           continue;
@@ -152,7 +152,7 @@ export async function computePlan(input: PlanInput): Promise<Plan> {
 
       if (isCanonicalSource(canonical.manifest, path)) {
         errors.push(
-          new DriftgateError({
+          new RulegateError({
             code: 'E_ARTIFACT_OVERWRITES_SOURCE',
             message: `adapter \`${adapter.name}\` tried to overwrite the canonical source ${path}`,
             source: { file: path },
@@ -164,9 +164,9 @@ export async function computePlan(input: PlanInput): Promise<Plan> {
 
       if (path === STATE_PATH) {
         errors.push(
-          new DriftgateError({
+          new RulegateError({
             code: 'E_ARTIFACT_PATH_CONFLICT',
-            message: `adapter \`${adapter.name}\` tried to write ${STATE_PATH}, which Driftgate owns`,
+            message: `adapter \`${adapter.name}\` tried to write ${STATE_PATH}, which Rulegate owns`,
             source: { file: path },
           }),
         );
@@ -182,7 +182,7 @@ export async function computePlan(input: PlanInput): Promise<Plan> {
       const other = claimedBy.get(key);
       if (other !== undefined) {
         errors.push(
-          new DriftgateError({
+          new RulegateError({
             code: 'E_ARTIFACT_PATH_CONFLICT',
             message: `adapters \`${other}\` and \`${adapter.name}\` both generate ${path}`,
             source: { file: path },

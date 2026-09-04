@@ -20,12 +20,12 @@ export interface RuleFrontmatter {
   readonly tools: ToolSelector;
   /** Lower renders first; ties broken by `id`, never by filesystem order. */
   readonly order: number;
-  /** Every frontmatter key Driftgate does not understand, preserved verbatim. */
+  /** Every frontmatter key Rulegate does not understand, preserved verbatim. */
   readonly unknown: Readonly<Record<string, JsonValue>>;
 }
 
 export interface RuleDocument {
-  /** Path under `.driftgate/rules` minus `.md`, POSIX, NFC-normalized. */
+  /** Path under `.rulegate/rules` minus `.md`, POSIX, NFC-normalized. */
   readonly id: RuleId;
   /** Repo-relative POSIX path of the file this came from. */
   readonly path: string;

@@ -12,7 +12,7 @@ describe('path safety', () => {
     ['a/../../outside.md', true],
     ['', true],
     ['a/../b.md', false],
-    ['.driftgate/rules/style.md', false],
+    ['.rulegate/rules/style.md', false],
   ])('escapesRoot(%s) === %s', (input, expected) => {
     expect(escapesRoot(input)).toBe(expected);
   });
@@ -24,9 +24,9 @@ describe('path safety', () => {
 
 describe('glob', () => {
   it.each([
-    ['.driftgate/rules/a.md', '.driftgate/rules/**/*.md', true],
-    ['.driftgate/rules/nested/a.md', '.driftgate/rules/**/*.md', true],
-    ['.driftgate/rules/a.txt', '.driftgate/rules/**/*.md', false],
+    ['.rulegate/rules/a.md', '.rulegate/rules/**/*.md', true],
+    ['.rulegate/rules/nested/a.md', '.rulegate/rules/**/*.md', true],
+    ['.rulegate/rules/a.txt', '.rulegate/rules/**/*.md', false],
     ['src/a.ts', 'src/*.ts', true],
     ['src/nested/a.ts', 'src/*.ts', false],
   ])('matchesGlob(%s, %s) === %s', (p, pattern, expected) => {

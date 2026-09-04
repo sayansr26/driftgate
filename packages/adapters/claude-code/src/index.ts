@@ -14,7 +14,7 @@ import {
   type Canonical,
   type DetectResult,
   type ImportResult,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 import { MCP_FILE, importMcpConfig, renderMcpJson } from './mcp.js';
 import { docs } from './docs.js';
 

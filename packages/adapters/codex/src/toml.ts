@@ -1,10 +1,10 @@
-import { compareCodepoint, DriftgateError, type JsonValue } from '@driftgate/adapter-kit';
+import { compareCodepoint, RulegateError, type JsonValue } from '@rulegate/adapter-kit';
 
 /**
  * A TOML emitter, scoped to exactly what an `McpServer` can contain.
  *
  * Hand-written for the same two reasons `mdc.ts` and `instructions.ts` are. An adapter may
- * declare exactly one dependency — `@driftgate/adapter-kit`, pinned by
+ * declare exactly one dependency — `@rulegate/adapter-kit`, pinned by
  * `invariants.test.ts` — so a TOML library cannot be added here at all. And a destination's
  * dialect is tool knowledge: the renderer speaks the destination's language, which is why
  * the `${NAME}` / `${env:NAME}` split lives in the two JSON writers rather than in core.
@@ -19,11 +19,11 @@ import { compareCodepoint, DriftgateError, type JsonValue } from '@driftgate/ada
 /** TOML bare keys are `A-Za-z0-9_-`. Anything else has to be quoted. */
 const BARE_KEY = /^[A-Za-z0-9_-]+$/;
 
-function unrepresentable(what: string, where: string): DriftgateError {
-  return new DriftgateError({
+function unrepresentable(what: string, where: string): RulegateError {
+  return new RulegateError({
     code: 'E_MCP_UNREPRESENTABLE',
     message: `${where} cannot be written to Codex's config.toml: ${what}`,
-    hint: 'remove the value, or exclude this server from codex with a `tools:` selector in .driftgate/mcp/servers.yaml',
+    hint: 'remove the value, or exclude this server from codex with a `tools:` selector in .rulegate/mcp/servers.yaml',
   });
 }
 
@@ -91,7 +91,7 @@ function tomlValue(value: JsonValue, where: string): string {
   }
   // A nested object would have to become a sub-table, which changes where the key appears
   // in the file rather than only how it is written. Refused rather than relocated.
-  throw unrepresentable('a nested table under a key Driftgate does not interpret', where);
+  throw unrepresentable('a nested table under a key Rulegate does not interpret', where);
 }
 
 /** One `[header]` table. Keys are emitted in codepoint order — the bytes are a contract. */

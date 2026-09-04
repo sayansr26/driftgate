@@ -1,5 +1,5 @@
 import { isAlias, isMap, isScalar, isSeq, type Node, type YAMLMap } from 'yaml';
-import { DriftgateError, type DriftgateErrorCode } from '../model/errors.js';
+import { RulegateError, type RulegateErrorCode } from '../model/errors.js';
 import type { JsonValue } from '../model/ids.js';
 import type { YamlParse } from './yaml.js';
 
@@ -12,12 +12,12 @@ import type { YamlParse } from './yaml.js';
  * be threaded through anyway, and at that point the library earns nothing.
  */
 export class Validator {
-  readonly errors: DriftgateError[] = [];
+  readonly errors: RulegateError[] = [];
 
   constructor(
     readonly file: string,
     readonly yaml: YamlParse,
-    readonly code: DriftgateErrorCode = 'E_FRONTMATTER_INVALID',
+    readonly code: RulegateErrorCode = 'E_FRONTMATTER_INVALID',
   ) {}
 
   /**
@@ -30,7 +30,7 @@ export class Validator {
   private aliasTrap(node: Node | undefined, field: string): boolean {
     if (node === undefined || !isAlias(node)) return false;
     this.errors.push(
-      new DriftgateError({
+      new RulegateError({
         code: 'E_YAML_SYNTAX',
         message: `\`${field}\` starts with '*', which YAML reads as an alias rather than text`,
         source: this.yaml.posAt(node.range?.[0], field),
@@ -42,7 +42,7 @@ export class Validator {
 
   fail(node: Node | null | undefined, field: string, message: string, hint?: string): void {
     this.errors.push(
-      new DriftgateError({
+      new RulegateError({
         code: this.code,
         message,
         source: this.yaml.posAt(node?.range?.[0], field),

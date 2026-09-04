@@ -5,14 +5,14 @@
 # land, not the working tree. Checking the working tree would block a commit over an
 # unstaged edit and pass one whose staged artifacts are stale — wrong in both directions.
 #
-# `pass_filenames: false` because `check` renders the whole plan from `.driftgate/` and
+# `pass_filenames: false` because `check` renders the whole plan from `.rulegate/` and
 # compares every artifact. Handing it the changed files would make the answer depend on
 # which files happened to be in the commit, and a hook that only sometimes notices drift is
 # worse than none.
-- id: driftgate-check
-  name: driftgate check --staged
-  description: Fail the commit if generated tool configs do not match .driftgate/
-  entry: driftgate check --staged
+- id: rulegate-check
+  name: rulegate check --staged
+  description: Fail the commit if generated tool configs do not match .rulegate/
+  entry: rulegate check --staged
   language: node
   pass_filenames: false
   # Any commit can invalidate the generated files, because the canonical source or the

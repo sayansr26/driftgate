@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { codex } from '../src/index.js';
-import { contextFor, detectFixture } from '@driftgate/adapter-kit/testing';
+import { contextFor, detectFixture } from '@rulegate/adapter-kit/testing';
 
 describe('codex detect()', () => {
   it('finds Codex and says what gave it away', async () => {

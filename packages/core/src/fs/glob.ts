@@ -1,5 +1,5 @@
 /**
- * A deliberately small glob matcher. Driftgate's own needs are narrow — `**`, `*`, `?`
+ * A deliberately small glob matcher. Rulegate's own needs are narrow — `**`, `*`, `?`
  * and character classes over POSIX paths — and a dependency here would be a
  * supply-chain surface in a tool whose whole pitch is a thin dependency tree.
  *

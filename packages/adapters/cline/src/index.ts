@@ -1,6 +1,6 @@
 import {
   ADAPTER_API_VERSION,
-  DriftgateError,
+  RulegateError,
   basenamePosix,
   claimRuleId,
   detected,
@@ -19,7 +19,7 @@ import {
   type DetectResult,
   type ImportResult,
   type RuleDocument,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 import { docs } from './docs.js';
 
 export const RULES_DIR = '.clinerules';
@@ -28,7 +28,7 @@ export const RULES_DIR = '.clinerules';
  * `.clinerules` is the directory, and the extensions are both documented.
  *
  * The vendor is explicit that Cline "processes all `.md` and `.txt` files inside
- * `.clinerules/`", so the import side reads both. Driftgate writes only `.md`: a generator
+ * `.clinerules/`", so the import side reads both. Rulegate writes only `.md`: a generator
  * picking `.txt` for prose would be choosing the less useful of two formats the tool treats
  * identically.
  *
@@ -109,7 +109,7 @@ function write(ctx: AdapterContext): Promise<readonly Artifact[]> {
     const path = `${RULES_DIR}/${slugForId(rule.id)}.md`;
     const previous = claimed.get(path);
     if (previous !== undefined) {
-      throw new DriftgateError({
+      throw new RulegateError({
         code: 'E_ARTIFACT_PATH_CONFLICT',
         message: `rules \`${previous}\` and \`${rule.id}\` both render to ${path}`,
         source: rule.source,

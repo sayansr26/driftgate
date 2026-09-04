@@ -1,5 +1,5 @@
 import { isMap, isScalar, type Node, type YAMLMap } from 'yaml';
-import { DriftgateError } from '../model/errors.js';
+import { RulegateError } from '../model/errors.js';
 import { CANONICAL_SCHEMA_VERSION } from '../model/canonical.js';
 import {
   DEFAULT_MCP_SCOPE,
@@ -18,7 +18,7 @@ import type { JsonValue, SourceRef } from '../model/ids.js';
 
 export interface ParsedMcpServers {
   readonly servers: readonly McpServer[];
-  readonly errors: readonly DriftgateError[];
+  readonly errors: readonly RulegateError[];
 }
 
 /** Keys this parser understands. Everything else is preserved in `unknown`. */
@@ -35,7 +35,7 @@ const KNOWN_KEYS = new Set([
 ]);
 
 /**
- * Read `.driftgate/mcp/servers.yaml` into canonical MCP servers.
+ * Read `.rulegate/mcp/servers.yaml` into canonical MCP servers.
  *
  * Like every other parser here it **never throws on user input** — it accumulates, so a
  * file with four broken servers produces four messages in one run. A server that could
@@ -45,7 +45,7 @@ const KNOWN_KEYS = new Set([
  *
  * `servers` is a mapping rather than a list because the id is the key every target format
  * writes the server under, and a mapping makes duplicate ids a YAML-level impossibility
- * instead of a validation Driftgate has to perform.
+ * instead of a validation Rulegate has to perform.
  */
 export function parseMcpServers(raw: string, file = MCP_SERVERS_PATH): ParsedMcpServers {
   const parsed = parseYaml(raw, file);
@@ -209,7 +209,7 @@ function parseSecretMap(
     const ref = parseEnvRef(value);
     if (ref === undefined) {
       v.errors.push(
-        new DriftgateError({
+        new RulegateError({
           code: 'E_LITERAL_SECRET',
           message: `\`${field}.${key}\` is a literal value, not an environment reference`,
           source: sourceOf(v, item.value as Node | undefined, `${field}.${key}`, file),
@@ -251,7 +251,7 @@ function parseScope(v: Validator, node: Node | undefined, field: string): McpSco
 }
 
 /**
- * Keys Driftgate does not interpret, kept verbatim — and checked for secrets on the way
+ * Keys Rulegate does not interpret, kept verbatim — and checked for secrets on the way
  * through (T044).
  *
  * This is the hole the `SecretValue` type cannot close. `unknown` is what makes import
@@ -267,7 +267,7 @@ function collectUnknown(v: Validator, node: YAMLMap, field: string): Record<stri
     const value = v.plain(v.get(node, key));
     for (const path of findLiteralSecrets(value, `${field}.${key}`)) {
       v.errors.push(
-        new DriftgateError({
+        new RulegateError({
           code: 'E_LITERAL_SECRET',
           message: `\`${path}\` looks like a literal credential`,
           source: v.yaml.posAt(v.get(node, key)?.range?.[0], `${field}.${key}`),

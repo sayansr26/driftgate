@@ -1,10 +1,10 @@
-import { gatherCheck, reportCheck } from 'driftgate';
+import { gatherCheck, reportCheck } from 'rulegate';
 import { renderAnnotations } from './annotate.js';
 import { joinWorkspace, readBooleanInput, readInput } from './inputs.js';
 
 /**
- * GitHub Action wrapper for `driftgate check`: exit 1 when a generated agent config has
- * drifted from `.driftgate/`, with the drift marked inline on the pull request's diff.
+ * GitHub Action wrapper for `rulegate check`: exit 1 when a generated agent config has
+ * drifted from `.rulegate/`, with the drift marked inline on the pull request's diff.
  *
  * Invoked at module top level on purpose. The original stub exported a `main()` that
  * nothing called, so `node dist/main.js` loaded a module, did nothing, and exited 0 — an

@@ -1,10 +1,10 @@
 # Adapter API v1
 
-The contract external adapters are written against is **`@driftgate/adapter-kit`**, and it
+The contract external adapters are written against is **`@rulegate/adapter-kit`**, and it
 is **frozen** as of T011 (2026-09-02). This document is normative: it lists the frozen
 surface, defines what counts as a breaking change, and says how a v2 would arrive.
 
-`@driftgate/core` is **not** the contract. It is published because the kit depends on it,
+`@rulegate/core` is **not** the contract. It is published because the kit depends on it,
 but it carries no compatibility guarantee and its shape will change. Adapter source may not
 import it — enforced by `eslint.config.js` and by an invariant scan in
 `packages/core/test/invariants.test.ts`.
@@ -30,10 +30,10 @@ the disk. `write()` must be deterministic, and `read()` must be lossless.
 
 ## Two entry points
 
-| Import                           | Contents                                                               | Frozen? |
-| -------------------------------- | ---------------------------------------------------------------------- | ------- |
-| `@driftgate/adapter-kit`         | The contract: types, render helpers, determinism primitives, errors    | **Yes** |
-| `@driftgate/adapter-kit/testing` | The fixture harness (`renderFixture`, `readExpected`, `contextFor`, …) | No      |
+| Import                          | Contents                                                               | Frozen? |
+| ------------------------------- | ---------------------------------------------------------------------- | ------- |
+| `@rulegate/adapter-kit`         | The contract: types, render helpers, determinism primitives, errors    | **Yes** |
+| `@rulegate/adapter-kit/testing` | The fixture harness (`renderFixture`, `readExpected`, `contextFor`, …) | No      |
 
 They are separate because the harness reads the filesystem. Re-exporting it from the
 contract entry would put `node:fs` and a concrete filesystem into the import graph of every
@@ -50,7 +50,7 @@ field changes no export name.
 `ArtifactDraft`, `DetectResult`, `DirEntry`, `DocNote`, `PrecedenceEntry`,
 `ReadOnlyFileSystem`, `SourceLink`, `VerifiedAgainst`.
 
-**Model types** — `Canonical`, `DriftgateManifest`, `ManifestOptions`, `ToolConfig`,
+**Model types** — `Canonical`, `RulegateManifest`, `ManifestOptions`, `ToolConfig`,
 `RuleDocument`, `RuleFrontmatter`, `ToolSelector`, `ToolId`, `RuleId`, `JsonValue`,
 `SourceRef`.
 
@@ -67,8 +67,8 @@ and hash straight into `state.json`. A ban is only honest once the lawful altern
 **Selection and predicates** — `selects`, `ALL_TOOLS`, `appliesRepoWide`, `ruleHeading`,
 `DEFAULT_RULE_ORDER`, `isCanonicalSource`, `matchesGlob`.
 
-**Errors** — `DriftgateError`, `isDriftgateError`, `DriftgateErrorCode`,
-`DriftgateErrorInit`. Throw these rather than a bare `Error`, or the CLI prints a stack
+**Errors** — `RulegateError`, `isRulegateError`, `RulegateErrorCode`,
+`RulegateErrorInit`. Throw these rather than a bare `Error`, or the CLI prints a stack
 trace instead of `file:line:column` and a hint.
 
 **Values** — `ADAPTER_API_VERSION`, `detected`, `NOT_DETECTED`.
@@ -95,7 +95,7 @@ it, so `McpServer`, `McpTransport`, `EnvRef`, `SecretValue` and `McpScope` are p
 frozen surface and are pinned key-for-key in `test/shape/pins.ts`.
 
 `RuleFrontmatter.unknown` is the forward-compatibility channel for rule metadata: any
-frontmatter key Driftgate does not recognize is preserved there verbatim.
+frontmatter key Rulegate does not recognize is preserved there verbatim.
 
 ### Writing MCP servers (added at T045)
 
@@ -160,7 +160,7 @@ still 1.
 
 ## How v2 would arrive
 
-`ADAPTER_API_VERSION` becomes `2` and `@driftgate/adapter-kit` majors. The host reads
+`ADAPTER_API_VERSION` becomes `2` and `@rulegate/adapter-kit` majors. The host reads
 `adapter.apiVersion` before calling `write()` — `packages/core/src/pipeline/plan.ts` — and a
 mismatch produces `E_ADAPTER_API_VERSION` naming both versions, without taking down the rest
 of the run. That branch is unreachable from TypeScript today, which is the point: it exists
@@ -168,7 +168,7 @@ for a plain-JS adapter and for a `node_modules` holding an adapter built against
 kit, and it is the mechanism by which a v2 host would keep running v1 adapters for at least
 one minor after v2 ships.
 
-`@driftgate/core` is explicitly outside all of this and versions independently.
+`@rulegate/core` is explicitly outside all of this and versions independently.
 
 ## Writing an adapter
 
@@ -177,8 +177,8 @@ The full walkthrough is [`writing-an-adapter.md`](writing-an-adapter.md). The sh
 Start with the scaffold, from a checkout of this repository:
 
 ```
-driftgate adapter new <tool>          # prints the plan; writes nothing
-driftgate adapter new <tool> --yes    # applies it
+rulegate adapter new <tool>          # prints the plan; writes nothing
+rulegate adapter new <tool> --yes    # applies it
 pnpm install && pnpm test             # green as generated
 ```
 
@@ -195,6 +195,6 @@ so an unverified claim cannot be mistaken for a verified one), and a hand-writte
 Fixture-first. Hand-write `fixtures/<tool>/expected/` from the tool's documented behavior
 _before_ implementing `detect` → `read` → `write`, then make the fixture pass byte-exact.
 Encode the tool's precedence rules in `docs`, each with a source URL and the tool version
-verified against — that data powers `driftgate doctor` and the per-tool documentation pages.
+verified against — that data powers `rulegate doctor` and the per-tool documentation pages.
 Finally, confirm the generated config actually loads in the real tool, and record that you
 did.

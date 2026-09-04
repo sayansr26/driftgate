@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { expectDocsValid } from '@driftgate/adapter-kit/testing';
+import { expectDocsValid } from '@rulegate/adapter-kit/testing';
 import { ADAPTERS } from '../src/registry.js';
 
 /**

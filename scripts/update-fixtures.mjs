@@ -166,7 +166,7 @@ if (!apply) {
 for (const change of changes) {
   const target = path.join(fixturesRoot, change.fixture, 'expected', change.rel);
   // Scoped by construction rather than by intent: this script deletes files, and the
-  // repository's central promise is that Driftgate never deletes what it did not generate.
+  // repository's central promise is that Rulegate never deletes what it did not generate.
   const prefix = path.join(fixturesRoot, change.fixture, 'expected') + path.sep;
   if (!path.resolve(target).startsWith(prefix)) {
     console.error(`refusing to touch a path outside the fixture: ${target}`);

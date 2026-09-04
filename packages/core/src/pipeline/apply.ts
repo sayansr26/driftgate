@@ -1,4 +1,4 @@
-import { DriftgateError } from '../model/errors.js';
+import { RulegateError } from '../model/errors.js';
 import { BACKUP_DIR, STATE_PATH } from '../model/paths.js';
 import {
   hashContents,
@@ -16,8 +16,8 @@ import type { ReadOnlyFileSystem, WritableFileSystem } from '../fs/types.js';
 export interface ApplyOptions {
   readonly dryRun: boolean;
   /**
-   * Take ownership of files Driftgate did not generate, backing each one up under
-   * `.driftgate/backup/` first. Without an opt-in like this there is no way to onboard
+   * Take ownership of files Rulegate did not generate, backing each one up under
+   * `.rulegate/backup/` first. Without an opt-in like this there is no way to onboard
    * a repository that already has a `CLAUDE.md` — which is every repository worth
    * onboarding. `force` never widens to hand-edited generated files or to deletion.
    */
@@ -26,9 +26,9 @@ export interface ApplyOptions {
 
 /** Why a planned artifact was not written, or a recorded one was not deleted. */
 export type SkipReason =
-  /** Driftgate generated it, and the bytes on disk have since changed. */
+  /** Rulegate generated it, and the bytes on disk have since changed. */
   | 'hand-edited'
-  /** Driftgate never generated it, and somebody else's bytes are already there. */
+  /** Rulegate never generated it, and somebody else's bytes are already there. */
   | 'unmanaged'
   /**
    * No enabled adapter produces it any more, so it is a deletion candidate — but the
@@ -44,21 +44,21 @@ export interface ApplyReport {
   readonly unchanged: readonly string[];
   /** Planned files left alone rather than clobbered, and orphans left alone rather than deleted. */
   readonly skipped: readonly { readonly path: string; readonly reason: SkipReason }[];
-  /** Repo-relative paths of originals copied under `.driftgate/backup/` before overwrite or delete. */
+  /** Repo-relative paths of originals copied under `.rulegate/backup/` before overwrite or delete. */
   readonly backedUp: readonly string[];
   /** Repo-relative paths of generated files removed because no adapter produces them any more. */
   readonly deleted: readonly string[];
   readonly stateWritten: boolean;
   /** Conditions that changed how the run was interpreted without stopping it. */
-  readonly warnings: readonly DriftgateError[];
+  readonly warnings: readonly RulegateError[];
 }
 
-/** `CLAUDE.md` -> `.driftgate/backup/CLAUDE.md`. Stays inside the repo by construction. */
+/** `CLAUDE.md` -> `.rulegate/backup/CLAUDE.md`. Stays inside the repo by construction. */
 export function backupPathFor(relPath: string): string {
   return `${BACKUP_DIR}/${relPath}`;
 }
 
-/** The inverse. `undefined` for a path that is not under `.driftgate/backup/`. */
+/** The inverse. `undefined` for a path that is not under `.rulegate/backup/`. */
 export function restoreTargetFor(backupRelPath: string): string | undefined {
   const prefix = `${BACKUP_DIR}/`;
   if (!backupRelPath.startsWith(prefix)) return undefined;
@@ -85,12 +85,12 @@ interface OrphanOutcome {
 }
 
 /**
- * `state.json` must describe what Driftgate actually owns, not what it wished it had
+ * `state.json` must describe what Rulegate actually owns, not what it wished it had
  * written. `plan.state` covers every planned artifact, including the ones this run
  * refused to touch, so writing it verbatim would claim ownership of a file we
  * deliberately left alone — and since `compareToDisk` derives deletion candidates
  * from state alone, that claim is exactly what would arm orphan deletion against a
- * file Driftgate never generated.
+ * file Rulegate never generated.
  *
  * Unmanaged skips are therefore dropped: we do not own them. Hand-edited skips keep
  * their *previous* record, because we do own them and the recorded hash is what makes
@@ -98,9 +98,9 @@ interface OrphanOutcome {
  *
  * The mirror-image rule is `retainOrphans`, and it is T073's second defect. `plan.state`
  * holds only *currently planned* artifacts, so a file we generated and no longer
- * generate falls out of state simply by not being mentioned — Driftgate forgets it
+ * generate falls out of state simply by not being mentioned — Rulegate forgets it
  * wrote it, deletion is disarmed against exactly the files it exists to reclaim, and a
- * later run calls its own artifact `1 file driftgate did not generate`, which is false.
+ * later run calls its own artifact `1 file rulegate did not generate`, which is false.
  * An orphan leaves state only when this run actually deleted it or found it already
  * gone.
  */
@@ -195,7 +195,7 @@ export async function applyPlan(
     }
 
     if (unmanaged.has(artifact.path) && !force) {
-      // A file Driftgate never generated is not ours to overwrite. `state.json` is the
+      // A file Rulegate never generated is not ours to overwrite. `state.json` is the
       // only record of what we own, and this path is absent from it.
       skipped.push({ path: artifact.path, reason: 'unmanaged' });
       continue;
@@ -251,9 +251,9 @@ export async function applyPlan(
 export function assertDeletable(path: string, previous: StateFile): StateArtifact {
   const record = findArtifact(previous, path);
   if (record !== undefined) return record;
-  throw new DriftgateError({
+  throw new RulegateError({
     code: 'E_DELETE_UNRECORDED',
-    message: `refusing to delete ${path}: state.json does not record it as generated by driftgate`,
+    message: `refusing to delete ${path}: state.json does not record it as generated by rulegate`,
     source: { file: path },
     hint: 'state.json is the only record of ownership; a path absent from it is somebody else’s file',
   });
@@ -264,8 +264,8 @@ export function assertDeletable(path: string, previous: StateFile): StateArtifac
  *
  * The candidate list is `DiskComparison.orphaned` and nothing else — that is, paths
  * `state.json` records as ours. That single sourcing is what makes "never delete a file
- * Driftgate did not generate" a structural property rather than a promise: a path
- * Driftgate never recorded cannot reach `deleteFile`, because nothing else produces a
+ * Rulegate did not generate" a structural property rather than a promise: a path
+ * Rulegate never recorded cannot reach `deleteFile`, because nothing else produces a
  * candidate.
  *
  * Before this existed, deleting a rule left its `.cursor/rules/*.mdc` on disk at exit 0
@@ -308,7 +308,7 @@ async function reclaimOrphans(
 }
 
 export interface RestoreCandidate {
-  /** Where the original is kept, e.g. `.driftgate/backup/CLAUDE.md`. */
+  /** Where the original is kept, e.g. `.rulegate/backup/CLAUDE.md`. */
   readonly from: string;
   /** Where it would be put back, e.g. `CLAUDE.md`. */
   readonly to: string;
@@ -324,7 +324,7 @@ export interface RestoreReport {
   readonly candidates: readonly RestoreCandidate[];
 }
 
-/** Every file kept under `.driftgate/backup/`, sorted, with what restoring it would do. */
+/** Every file kept under `.rulegate/backup/`, sorted, with what restoring it would do. */
 export async function planRestore(
   fs: ReadOnlyFileSystem,
   only: readonly string[] = [],
@@ -353,15 +353,15 @@ export async function planRestore(
 }
 
 /**
- * Put the originals in `.driftgate/backup/` back where they came from.
+ * Put the originals in `.rulegate/backup/` back where they came from.
  *
  * `copyFile`, never read-then-write: reads are BOM-stripped and EOL-normalized, so a
  * read-then-write restore would quietly convert a CRLF original to LF, and a restore
  * that does not reproduce the original bytes is not a restore.
  *
- * There are no ownership rules to apply. Everything under `.driftgate/backup/` is there
- * because Driftgate took the original over, so putting it back is an undo of Driftgate's
- * own act. A restored file that Driftgate currently generates simply reads as
+ * There are no ownership rules to apply. Everything under `.rulegate/backup/` is there
+ * because Rulegate took the original over, so putting it back is an undo of Rulegate's
+ * own act. A restored file that Rulegate currently generates simply reads as
  * hand-edited to the next `sync`, which is the correct description of what just
  * happened.
  */
@@ -409,7 +409,7 @@ async function listFilesUnder(fs: ReadOnlyFileSystem, dir: string): Promise<read
   return out;
 }
 
-/** One `.driftgate/` file `init` proposes to write, and what writing it would do. */
+/** One `.rulegate/` file `init` proposes to write, and what writing it would do. */
 export interface CanonicalFile {
   readonly path: string;
   readonly contents: string;
@@ -422,7 +422,7 @@ export interface CanonicalWriteReport {
 }
 
 /**
- * Write the `.driftgate/` files `init` computed.
+ * Write the `.rulegate/` files `init` computed.
  *
  * Here rather than in `init/` because `packages/core/test/invariants.test.ts` allows
  * filesystem writes in exactly three places, and `pipeline/apply.ts` is the only one of
@@ -430,7 +430,7 @@ export interface CanonicalWriteReport {
  * widening a P0 allowlist so that a second function could write files — which is the
  * shape of the change that later makes "applyPlan is the only writer" untrue.
  *
- * Unlike `applyPlan` this has no ownership rules to apply: `.driftgate/` is Driftgate's
+ * Unlike `applyPlan` this has no ownership rules to apply: `.rulegate/` is Rulegate's
  * own directory, and a file already there with different contents means the repository
  * has been adopted, which `computeInitPlan` refuses before reaching this point.
  */

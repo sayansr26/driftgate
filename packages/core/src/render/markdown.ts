@@ -27,7 +27,7 @@ export function renderRuleSection(rule: RuleDocument, options: SectionOptions): 
   // file imports as one untitled rule, and falling back to the id put a `## claude`
   // heading at the top of the user's own document that nobody wrote. Content preserved
   // and a line invented is still a file the user did not write — and `sync` would then
-  // report their next edit as drift against text Driftgate made up.
+  // report their next edit as drift against text Rulegate made up.
   if (rule.frontmatter.description !== undefined) {
     parts.push(`${'#'.repeat(options.headingLevel)} ${ruleHeading(rule)}`);
   }

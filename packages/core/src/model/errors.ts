@@ -1,6 +1,6 @@
 import { formatSourceRef, type SourceRef } from './ids.js';
 
-export type DriftgateErrorCode =
+export type RulegateErrorCode =
   | 'E_NO_CANONICAL_SOURCE'
   | 'E_YAML_SYNTAX'
   | 'E_MANIFEST_INVALID'
@@ -19,9 +19,9 @@ export type DriftgateErrorCode =
   | 'E_DELETE_UNRECORDED'
   // A formatter and a generator both claim a generated file. Raised as a warning by
   // `init` (T072): reformatting generated output makes the next `sync` report it as
-  // hand-edited and refuse to write it, which reads as Driftgate being broken.
+  // hand-edited and refuse to write it, which reads as Rulegate being broken.
   | 'E_FORMATTER_CONFLICT'
-  // `driftgate adapter new` refused rather than overwrite a path that already exists, or
+  // `rulegate adapter new` refused rather than overwrite a path that already exists, or
   // patch one that does not (T028).
   | 'E_SCAFFOLD_CONFLICT'
   // `check --staged` needed the git index, and git could not answer. Two codes rather
@@ -32,7 +32,7 @@ export type DriftgateErrorCode =
   | 'E_GIT_FAILED'
   | 'E_ADAPTER_FAILED'
   | 'E_ADAPTER_API_VERSION'
-  // `.driftgate/mcp/servers.yaml` does not describe a server Driftgate can render (T043).
+  // `.rulegate/mcp/servers.yaml` does not describe a server Rulegate can render (T043).
   | 'E_MCP_INVALID'
   // A value that should be an `env:` reference is a literal (T044). Its own code because
   // it is the one parse failure whose *message must not quote the offending value*.
@@ -54,20 +54,20 @@ export type DriftgateErrorCode =
   | 'E_MCP_UNREPRESENTABLE'
   // Something in somebody else's MCP config was not imported (T048). A **warning**, and
   // deliberately not an error: `runInit` writes nothing while `errors` is non-empty, so an
-  // error here would make a new user's first command fail on a file Driftgate only read —
+  // error here would make a new user's first command fail on a file Rulegate only read —
   // T077's shape. The server is absent from canonical and the reason is printed.
   | 'W_MCP_IMPORT'
   // The platform refused a path — Windows' 260-character limit, in practice (T069). Its own
   // code because the bare errno names no limit and suggests no action, and because it makes
   // `check` fail on one platform and pass on another for the same repository.
   | 'E_PATH_TOO_LONG'
-  // A competing rule-sync tool held something Driftgate imports rules but not everything
+  // A competing rule-sync tool held something Rulegate imports rules but not everything
   // from — MCP, skills, subagents (T054). A warning: `init` completes, and the user is told
   // what did not come across rather than discovering it when a server stops working.
   | 'W_INTEROP_NOT_IMPORTED';
 
-export interface DriftgateErrorInit {
-  readonly code: DriftgateErrorCode;
+export interface RulegateErrorInit {
+  readonly code: RulegateErrorCode;
   readonly message: string;
   readonly source?: SourceRef;
   /** One actionable sentence, rendered on its own line as "hint: ...". */
@@ -79,20 +79,20 @@ export interface DriftgateErrorInit {
  * Every user-facing failure. Carries the file, line, and offending field so that a
  * malformed config produces an actionable message rather than a stack trace.
  */
-export class DriftgateError extends Error {
-  readonly code: DriftgateErrorCode;
+export class RulegateError extends Error {
+  readonly code: RulegateErrorCode;
   readonly source: SourceRef | undefined;
   readonly hint: string | undefined;
 
-  constructor(init: DriftgateErrorInit) {
+  constructor(init: RulegateErrorInit) {
     super(init.message, init.cause === undefined ? undefined : { cause: init.cause });
-    this.name = 'DriftgateError';
+    this.name = 'RulegateError';
     this.code = init.code;
     this.source = init.source;
     this.hint = init.hint;
   }
 
-  /** e.g. `.driftgate/rules/style.md:4:8  E_FRONTMATTER_INVALID  ...` plus a hint line. */
+  /** e.g. `.rulegate/rules/style.md:4:8  E_FRONTMATTER_INVALID  ...` plus a hint line. */
   format(): string {
     const where = this.source ? formatSourceRef(this.source) : '';
     const head = [where, this.code, this.message].filter((p) => p !== '').join('  ');
@@ -100,6 +100,6 @@ export class DriftgateError extends Error {
   }
 }
 
-export function isDriftgateError(e: unknown): e is DriftgateError {
-  return e instanceof DriftgateError;
+export function isRulegateError(e: unknown): e is RulegateError {
+  return e instanceof RulegateError;
 }

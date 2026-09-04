@@ -3,7 +3,7 @@ import { serializeCanonical } from '../model/serialize.js';
 import { compareCodepoint } from '../render/order.js';
 import { collectImports } from './collect.js';
 import type { Adapter } from '../adapter/adapter.js';
-import type { DriftgateError } from '../model/errors.js';
+import type { RulegateError } from '../model/errors.js';
 import type { Canonical } from '../model/canonical.js';
 import type { CanonicalFile } from '../pipeline/apply.js';
 import type { Plan } from '../pipeline/plan.js';
@@ -12,7 +12,7 @@ import type { RuleDocument } from '../model/rule.js';
 import type { ToolId } from '../model/ids.js';
 
 /**
- * T051 — merge a hand-edit on a generated file back into `.driftgate/`.
+ * T051 — merge a hand-edit on a generated file back into `.rulegate/`.
  *
  * Hand-editing generated files is a habit users will not break, and today the only way out
  * is to delete your own edit. That is the one outcome worse than doing nothing, so this is
@@ -35,7 +35,7 @@ import type { ToolId } from '../model/ids.js';
 /** What the merge would do to one canonical rule. */
 export interface RuleMerge {
   readonly id: string;
-  /** The rule file under `.driftgate/rules/`. */
+  /** The rule file under `.rulegate/rules/`. */
   readonly path: string;
   readonly before: string;
   readonly after: string;
@@ -53,10 +53,10 @@ export interface MergeRefusal {
 export interface MergePlan {
   /** Rules whose body would change, sorted by path. Empty when there is nothing to merge. */
   readonly merges: readonly RuleMerge[];
-  /** The `.driftgate/` files to write. Empty exactly when `merges` is. */
+  /** The `.rulegate/` files to write. Empty exactly when `merges` is. */
   readonly files: readonly CanonicalFile[];
   readonly refusals: readonly MergeRefusal[];
-  readonly errors: readonly DriftgateError[];
+  readonly errors: readonly RulegateError[];
 }
 
 export interface MergeInput {
@@ -92,7 +92,7 @@ export async function computeMergePlan(input: MergeInput): Promise<MergePlan> {
       refusals.push({
         path,
         reason: 'unrecoverable',
-        detail: 'driftgate has no record of writing this file',
+        detail: 'rulegate has no record of writing this file',
       });
       continue;
     }
@@ -163,7 +163,7 @@ export async function computeMergePlan(input: MergeInput): Promise<MergePlan> {
       refusals.push({
         path,
         reason: 'unrecoverable',
-        detail: `the file now has ${String(imported.length)} sections where ${String(ruleIds.length)} rules produced it; add or remove the rule in .driftgate/rules/ instead`,
+        detail: `the file now has ${String(imported.length)} sections where ${String(ruleIds.length)} rules produced it; add or remove the rule in .rulegate/rules/ instead`,
       });
       continue;
     }

@@ -46,7 +46,7 @@ export function computePlan(input: PlanInput): Promise<Plan> {
 
 ## A very long single line
 
-Driftgate keeps one canonical set of AI-agent instructions in `.driftgate/` and generates each tool native config from it, which is a deliberately long line that no formatter will wrap because this file is in .prettierignore and that is the point of it being here.
+Rulegate keeps one canonical set of AI-agent instructions in `.rulegate/` and generates each tool native config from it, which is a deliberately long line that no formatter will wrap because this file is in .prettierignore and that is the point of it being here.
 A CRLF section follows.
 Second line with a carriage return.
 

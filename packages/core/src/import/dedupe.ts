@@ -15,7 +15,7 @@ export interface ImportSource {
    *
    * `dedupeMcpServers` divides by the tools that could have answered, and a tool with no
    * MCP format was never asked. Counting Gemini as a tool that declined would narrow every
-   * imported server away from `all` for a reason that is about Driftgate's roster rather
+   * imported server away from `all` for a reason that is about Rulegate's roster rather
    * than about the user's configuration — the same trap `dedupeImported` avoids by taking
    * `allTools` from the sources it was handed.
    */
@@ -56,7 +56,7 @@ export interface DedupeResult {
  *
  * Chosen high on purpose. A false positive costs the user a question they have to read
  * and answer about two rules that were never related; a false negative costs them two
- * similar rules in `.driftgate/` that they can merge in ten seconds. Only one of those
+ * similar rules in `.rulegate/` that they can merge in ten seconds. Only one of those
  * errors erodes trust in the output, so the threshold leans away from it.
  */
 const SIMILARITY_THRESHOLD = 0.7;

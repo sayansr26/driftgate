@@ -1,4 +1,4 @@
-import type { AdapterDocs, SourceLink } from '@driftgate/adapter-kit';
+import type { AdapterDocs, SourceLink } from '@rulegate/adapter-kit';
 
 const RULES_DOCS: SourceLink = {
   url: 'https://docs.cline.bot/features/cline-rules',
@@ -11,7 +11,7 @@ const RULES_DOCS: SourceLink = {
  *
  * **This is the roster's clearest duplicate-load case, and it is the reason to have this
  * adapter's `docs` right.** Cline reads `.cursorrules`, `.windsurfrules` and `AGENTS.md` on
- * top of its own directory — three files that *other* Driftgate adapters generate. Enabling
+ * top of its own directory — three files that *other* Rulegate adapters generate. Enabling
  * `cline` alongside `codex` sends Cline the same canonical rules twice, and alongside
  * `cursor` and `windsurf` as well, four times. Every one of those is declared here with
  * `managed: false`, which is what lets `doctor`'s `duplicateLoadWarnings` fire from adapter
@@ -38,7 +38,7 @@ export const docs: AdapterDocs = {
       role: 'instructions',
       managed: true,
       description:
-        'Workspace rules. Cline processes all .md and .txt files inside .clinerules/ and combines them. This is what Driftgate generates; it writes .md only, and imports both extensions.',
+        'Workspace rules. Cline processes all .md and .txt files inside .clinerules/ and combines them. This is what Rulegate generates; it writes .md only, and imports both extensions.',
       source: RULES_DOCS,
     },
     {
@@ -56,7 +56,7 @@ export const docs: AdapterDocs = {
       role: 'instructions',
       managed: false,
       description:
-        'Cline reads Windsurf’s legacy rules file as well as its own. Driftgate never writes it. The vendor documents no rank among the workspace formats.',
+        'Cline reads Windsurf’s legacy rules file as well as its own. Rulegate never writes it. The vendor documents no rank among the workspace formats.',
       source: RULES_DOCS,
     },
     {
@@ -74,7 +74,7 @@ export const docs: AdapterDocs = {
       role: 'instructions',
       managed: false,
       description:
-        'User-level rules, combined with workspace rules. Workspace rules take precedence when the two conflict — the one ranking the vendor does document. Outside the repository, so Driftgate reports it and never writes it.',
+        'User-level rules, combined with workspace rules. Workspace rules take precedence when the two conflict — the one ranking the vendor does document. Outside the repository, so Rulegate reports it and never writes it.',
       source: RULES_DOCS,
     },
   ],
@@ -85,7 +85,7 @@ export const docs: AdapterDocs = {
     {
       level: 'warn',
       message:
-        'Cline reads .cursorrules, .windsurfrules and AGENTS.md in addition to .clinerules/. These are additive, not an override chain, so enabling cline alongside codex, cursor or windsurf sends Cline the same canonical rules more than once. `driftgate doctor` counts the cost per repository (W_DUPLICATE_LOAD); this note records why it happens.',
+        'Cline reads .cursorrules, .windsurfrules and AGENTS.md in addition to .clinerules/. These are additive, not an override chain, so enabling cline alongside codex, cursor or windsurf sends Cline the same canonical rules more than once. `rulegate doctor` counts the cost per repository (W_DUPLICATE_LOAD); this note records why it happens.',
       source: RULES_DOCS,
     },
     {

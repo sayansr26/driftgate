@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { VerifyEntry, VerifyReport } from 'driftgate';
+import type { VerifyEntry, VerifyReport } from 'rulegate';
 import {
   annotationsFor,
   escapeData,
@@ -92,11 +92,11 @@ describe('annotationsFor', () => {
     );
     const [orphan] = annotationsFor(entry({ path: 'CLAUDE.md', status: 'orphaned' }));
 
-    expect(handEdited?.message).toContain('re-apply your edit in .driftgate/');
+    expect(handEdited?.message).toContain('re-apply your edit in .rulegate/');
     // Different situation, different fix: telling somebody to re-apply an edit in a rule
     // that no longer exists is the mistake `hints.ts` exists to prevent.
-    expect(orphan?.message).not.toContain('re-apply your edit in .driftgate/');
-    expect(orphan?.message).toContain('driftgate sync');
+    expect(orphan?.message).not.toContain('re-apply your edit in .rulegate/');
+    expect(orphan?.message).toContain('rulegate sync');
   });
 });
 
@@ -110,7 +110,7 @@ describe('renderAnnotations', () => {
 
     expect(line).toContain('::error file=GEMINI.md,');
     expect(line).not.toContain('line=');
-    expect(line).toContain('title=driftgate%3A missing');
+    expect(line).toContain('title=rulegate%3A missing');
   });
 
   it('caps the annotations and counts what it dropped', () => {

@@ -7,8 +7,8 @@ import {
   sortRules,
   type Adapter,
   type RuleDocument,
-} from '@driftgate/core';
-import { contextFor, writeFixture } from '@driftgate/adapter-kit/testing';
+} from '@rulegate/core';
+import { contextFor, writeFixture } from '@rulegate/adapter-kit/testing';
 import { ADAPTERS } from '../src/registry.js';
 
 /**
@@ -55,7 +55,7 @@ describe('write() -> read() round trip (T017)', () => {
       const artifacts = await adapter.write(source);
       expect(artifacts.length, 'fixture produced no artifacts to read back').toBeGreaterThan(0);
 
-      // A repository containing only what this adapter just wrote, and no `.driftgate/` —
+      // A repository containing only what this adapter just wrote, and no `.rulegate/` —
       // which is exactly the shape `init` meets. The canonical is empty for the same
       // reason: a parsed one would let the Codex self-reference guard decline its own
       // `AGENTS.md`, and `init` has no canonical to parse yet.

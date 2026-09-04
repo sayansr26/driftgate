@@ -68,11 +68,11 @@ function stub(init: StubInit): Adapter {
 }
 
 /** A repo with a real canonical source, so `adopted` is true and plans are non-empty. */
-const MANIFEST = ['.driftgate/driftgate.yaml', 'schemaVersion: 1\ntools: []\n'] as const;
+const MANIFEST = ['.rulegate/rulegate.yaml', 'schemaVersion: 1\ntools: []\n'] as const;
 
 function manifestEnabling(...tools: readonly string[]): readonly [string, string] {
   return [
-    '.driftgate/driftgate.yaml',
+    '.rulegate/rulegate.yaml',
     `schemaVersion: 1\ntools:\n${tools.map((t) => `  - ${t}\n`).join('')}`,
   ];
 }
@@ -198,8 +198,8 @@ describe('buildDoctorReport — warnings', () => {
     // Set equality is not enough either: the concatenated file carries the *union* of what
     // the split files carry, so no two of them have the same rule set. The question is per
     // rule, which is what `Artifact.provenance.ruleIds` answers.
-    // Enabled, not merely detected: provenance exists only for files Driftgate generates,
-    // so the rule-level key is available exactly where Driftgate knows what it wrote. A
+    // Enabled, not merely detected: provenance exists only for files Rulegate generates,
+    // so the rule-level key is available exactly where Rulegate knows what it wrote. A
     // detected-but-disabled tool falls back to the byte comparison, which is all there is.
     const r = await buildDoctorReport({
       repoRoot: '/repo',
@@ -498,7 +498,7 @@ describe('buildDoctorReport — warnings', () => {
       repoRoot: '/repo',
       fs: new MemoryFileSystem([
         [
-          '.driftgate/driftgate.yaml',
+          '.rulegate/rulegate.yaml',
           'schemaVersion: 1\ntools:\n  - alpha\noptions:\n  ignore:\n    - fixtures/**\n',
         ],
         ...disk,
@@ -507,19 +507,19 @@ describe('buildDoctorReport — warnings', () => {
     });
     expect(codes(quiet)).not.toContain('W_ORPHAN_FILE');
 
-    // The record sense is not narrowed by it. `state.json` says Driftgate wrote this file,
+    // The record sense is not narrowed by it. `state.json` says Rulegate wrote this file,
     // and a config key that could make the tool stop mentioning a file it owns is one line
     // away from forgetting it owns it.
     const recorded = await buildDoctorReport({
       repoRoot: '/repo',
       fs: new MemoryFileSystem([
         [
-          '.driftgate/driftgate.yaml',
+          '.rulegate/rulegate.yaml',
           'schemaVersion: 1\ntools:\n  - alpha\noptions:\n  ignore:\n    - fixtures/**\n',
         ],
         ['fixtures/x/RULES.md', 'ours, and abandoned'],
         [
-          '.driftgate/state.json',
+          '.rulegate/state.json',
           JSON.stringify({
             schemaVersion: 1,
             artifacts: [
@@ -561,7 +561,7 @@ describe('buildDoctorReport — warnings', () => {
 });
 
 describe('buildDoctorReport — contract', () => {
-  it('works on a repository that has never adopted driftgate', async () => {
+  it('works on a repository that has never adopted rulegate', async () => {
     const r = await buildDoctorReport({
       repoRoot: '/repo',
       fs: new MemoryFileSystem([['CLAUDE.md', 'hand written']]),
@@ -578,7 +578,7 @@ describe('buildDoctorReport — contract', () => {
   it('still reports a real parse error', async () => {
     const r = await buildDoctorReport({
       repoRoot: '/repo',
-      fs: new MemoryFileSystem([['.driftgate/driftgate.yaml', 'tools: [: broken']]),
+      fs: new MemoryFileSystem([['.rulegate/rulegate.yaml', 'tools: [: broken']]),
       adapters: [stub({ name: 'alpha', files: [entry('A.md')] })],
     });
     expect(r.adopted).toBe(true);
@@ -631,7 +631,7 @@ describe('buildDoctorReport — contract', () => {
         manifestEnabling('writer'),
         ['shared.md', onDisk],
         [
-          '.driftgate/state.json',
+          '.rulegate/state.json',
           JSON.stringify({
             schemaVersion: 1,
             artifacts: [
@@ -657,7 +657,7 @@ describe('buildDoctorReport — contract', () => {
         manifestEnabling('writer'),
         ['shared.md', 'new render\n'],
         [
-          '.driftgate/state.json',
+          '.rulegate/state.json',
           JSON.stringify({
             schemaVersion: 1,
             artifacts: [

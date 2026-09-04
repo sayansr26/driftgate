@@ -1,14 +1,14 @@
-import { aider } from '@driftgate/adapter-aider';
-import { claudeCode } from '@driftgate/adapter-claude-code';
-import { cline } from '@driftgate/adapter-cline';
-import { codex } from '@driftgate/adapter-codex';
-import { copilot } from '@driftgate/adapter-copilot';
-import { cursor } from '@driftgate/adapter-cursor';
-import { gemini } from '@driftgate/adapter-gemini';
-import { rooCode } from '@driftgate/adapter-roo-code';
-import { windsurf } from '@driftgate/adapter-windsurf';
-import { zed } from '@driftgate/adapter-zed';
-import type { Adapter } from '@driftgate/core';
+import { aider } from '@rulegate/adapter-aider';
+import { claudeCode } from '@rulegate/adapter-claude-code';
+import { cline } from '@rulegate/adapter-cline';
+import { codex } from '@rulegate/adapter-codex';
+import { copilot } from '@rulegate/adapter-copilot';
+import { cursor } from '@rulegate/adapter-cursor';
+import { gemini } from '@rulegate/adapter-gemini';
+import { rooCode } from '@rulegate/adapter-roo-code';
+import { windsurf } from '@rulegate/adapter-windsurf';
+import { zed } from '@rulegate/adapter-zed';
+import type { Adapter } from '@rulegate/core';
 
 /** Every adapter this build ships. Order here is irrelevant; the plan sorts output. */
 export const ADAPTERS: readonly Adapter[] = [

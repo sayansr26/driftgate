@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { diffLines, formatHunks } from '@driftgate/core';
+import { diffLines, formatHunks } from '@rulegate/core';
 import { renderDiff } from '../src/ui/diff.js';
 import { createOutput } from '../src/ui/report.js';
 

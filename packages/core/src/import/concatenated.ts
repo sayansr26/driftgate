@@ -16,7 +16,7 @@ export interface ImportConcatenatedOptions {
    * Split into one rule per heading.
    *
    * Defaults to whether the file carries our marker, and that default is the whole
-   * design. For a file Driftgate wrote, splitting is the exact inverse of the renderer.
+   * design. For a file Rulegate wrote, splitting is the exact inverse of the renderer.
    * For a hand-written one it is a guess — headings in somebody's `CLAUDE.md` are
    * prose structure, not rule boundaries, and a wrong guess silently reorders their
    * instructions and attaches the wrong globs. So an unmarked file is imported whole,

@@ -89,13 +89,13 @@ function renderToolPage(adapter) {
   // The H1 is the query it should answer, verbatim. These pages exist to be found.
   out.push(`# Which files does ${docs.toolName} read?`, '');
   out.push(
-    `Driftgate adapter id: \`${name}\` · Verified against ${escapeCell(docs.verifiedAgainst.version)} on ${docs.verifiedAgainst.date} · [Homepage](${docs.homepage})`,
+    `Rulegate adapter id: \`${name}\` · Verified against ${escapeCell(docs.verifiedAgainst.version)} on ${docs.verifiedAgainst.date} · [Homepage](${docs.homepage})`,
     '',
   );
   out.push(RESOLUTION_PROSE[resolution] ?? RESOLUTION_PROSE.override, '');
 
   out.push('## Precedence', '');
-  out.push('| # | Path | Scope | Role | Driftgate writes it | Nesting |');
+  out.push('| # | Path | Scope | Role | Rulegate writes it | Nesting |');
   out.push('|---|---|---|---|---|---|');
   docs.files.forEach((entry, i) => {
     out.push(
@@ -158,7 +158,7 @@ function renderRegistry(adapters) {
   out.push(MARKER, '');
   out.push('# Adapters', '');
   out.push(
-    `Driftgate ships ${String(adapters.length)} adapters. Each one is a pure module — it reads, it returns values, and it never writes to disk or touches the network. See [writing an adapter](writing-an-adapter.md).`,
+    `Rulegate ships ${String(adapters.length)} adapters. Each one is a pure module — it reads, it returns values, and it never writes to disk or touches the network. See [writing an adapter](writing-an-adapter.md).`,
     '',
   );
   out.push('| Tool | Id | Coverage | Status | Maintainer | Verified against | Precedence |');
@@ -166,7 +166,7 @@ function renderRegistry(adapters) {
   for (const adapter of adapters) {
     const d = adapter.docs;
     out.push(
-      `| ${escapeCell(d.toolName)} | \`${adapter.name}\` | ${coverageOf(adapter)} | ${d.status ?? 'not stated'} | ${escapeCell(d.maintainer ?? 'Driftgate maintainers')} | ${escapeCell(d.verifiedAgainst.version)} (${d.verifiedAgainst.date}) | [which files it reads](tools/${adapter.name}.md) |`,
+      `| ${escapeCell(d.toolName)} | \`${adapter.name}\` | ${coverageOf(adapter)} | ${d.status ?? 'not stated'} | ${escapeCell(d.maintainer ?? 'Rulegate maintainers')} | ${escapeCell(d.verifiedAgainst.version)} (${d.verifiedAgainst.date}) | [which files it reads](tools/${adapter.name}.md) |`,
     );
   }
   out.push('');
@@ -182,7 +182,7 @@ function renderRegistry(adapters) {
 function renderIndex(adapters) {
   const out = [MARKER, '', '# Which files does your AI coding tool read?', ''];
   out.push(
-    'One page per tool Driftgate supports, generated from the precedence data each adapter carries. Every claim links to the vendor page it came from and the date that page was read.',
+    'One page per tool Rulegate supports, generated from the precedence data each adapter carries. Every claim links to the vendor page it came from and the date that page was read.',
     '',
   );
   for (const adapter of adapters) {

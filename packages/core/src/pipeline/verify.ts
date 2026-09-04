@@ -1,7 +1,7 @@
 import { hashContents, loadState } from '../state/state.js';
 import { compareToDisk } from '../state/compare.js';
 import { compareCodepoint } from '../render/order.js';
-import type { DriftgateError } from '../model/errors.js';
+import type { RulegateError } from '../model/errors.js';
 import type { Plan } from './plan.js';
 import type { ReadOnlyFileSystem } from '../fs/types.js';
 
@@ -42,13 +42,13 @@ export interface VerifyReport {
   /** Planned paths that do not exist. */
   readonly missing: readonly string[];
   /** Conditions that changed how the answer was reached without stopping it. */
-  readonly warnings: readonly DriftgateError[];
+  readonly warnings: readonly RulegateError[];
 }
 
 /**
  * Compare what is on disk against what the plan says should be there. Reads only.
  *
- * `driftgate check` (T023) is this function plus an exit code. It consumes the identical
+ * `rulegate check` (T023) is this function plus an exit code. It consumes the identical
  * `Plan.artifacts` array that `sync` applies, so it is structurally incapable of verifying
  * something `sync` would not produce — and the rule for `clean` is the other half of that
  * promise: **clean means `sync` would write nothing and delete nothing.** A path is out of

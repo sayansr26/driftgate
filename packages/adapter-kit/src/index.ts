@@ -5,11 +5,11 @@
  * (the export list) plus `test/contract-shape.test.ts` (the shape of each export) for the
  * two guards that enforce it.
  *
- * The definitions live in `@driftgate/core`; this package re-exports them, which keeps
+ * The definitions live in `@rulegate/core`; this package re-exports them, which keeps
  * the declared dependency direction (adapter-kit -> core) intact. The test of whether
  * this surface is the right one is mechanical: an adapter must be writable against this
  * package alone, and the two shipped adapters are the proof — no adapter source file may
- * import `@driftgate/core` at all, enforced by eslint and by an invariant scan.
+ * import `@rulegate/core` at all, enforced by eslint and by an invariant scan.
  *
  * When in doubt, leave a symbol out. Adding an export later is additive; removing one is
  * a breaking change that costs an `apiVersion` bump.
@@ -30,16 +30,16 @@ export type {
   ReadOnlyFileSystem,
   SourceLink,
   VerifiedAgainst,
-} from '@driftgate/core';
+} from '@rulegate/core';
 
-export { ADAPTER_API_VERSION, detected, NOT_DETECTED } from '@driftgate/core';
+export { ADAPTER_API_VERSION, detected, NOT_DETECTED } from '@rulegate/core';
 
 // The model an adapter reads. `Canonical.skills` is still a T057 stub: the freeze covers
 // its presence as an array, not its element shape. `Canonical.mcpServers` is no longer one
 // — T043 settled `McpServer` and it is exported below. See README.
 export type {
   Canonical,
-  DriftgateManifest,
+  RulegateManifest,
   JsonValue,
   ManifestOptions,
   RuleDocument,
@@ -49,7 +49,7 @@ export type {
   ToolConfig,
   ToolId,
   ToolSelector,
-} from '@driftgate/core';
+} from '@rulegate/core';
 
 // MCP (T043/T045). No `Adapter` signature changed and `ADAPTER_API_VERSION` did not move:
 // `read()` already returns `Partial<Canonical>` and `write()` already returns artifacts,
@@ -59,13 +59,13 @@ export type {
 //
 // `SecretValue` is `EnvRef` and nothing else, which is what makes "never write a literal
 // secret" a property an adapter cannot violate rather than a rule it has to remember.
-export type { EnvRef, McpScope, McpServer, McpTransport, SecretValue } from '@driftgate/core';
-export { DEFAULT_MCP_SCOPE, envRef, formatEnvRef, parseEnvRef } from '@driftgate/core';
+export type { EnvRef, McpScope, McpServer, McpTransport, SecretValue } from '@rulegate/core';
+export { DEFAULT_MCP_SCOPE, envRef, formatEnvRef, parseEnvRef } from '@rulegate/core';
 // `selectMcpServers` is here for the reason `slugForId` is (T011): which servers a tool
 // gets is one rule made of three refusals — disabled, `scope: global`, and the `tools`
 // selector — and two adapters restating it independently is how one of them ends up
 // writing a server the other was told to skip.
-export { selectMcpServers } from '@driftgate/core';
+export { selectMcpServers } from '@rulegate/core';
 // MCP import (T048). Three of the four target formats are the same object-of-servers JSON
 // shape, differing only in the top-level key and the reference spelling, so the inverse is
 // one shared function parameterized by those two — the same argument that put
@@ -81,13 +81,13 @@ export type {
   ImportedServerInit,
   ParseReference,
   ReferenceParse,
-} from '@driftgate/core';
-export { importMcpJson, importedServer } from '@driftgate/core';
+} from '@rulegate/core';
+export { importMcpJson, importedServer } from '@rulegate/core';
 
 // Rendering. These exist so that every adapter produces byte-identical output for the
 // same input without reimplementing normalization, ordering, or the generated-file
 // marker — determinism is a contract (NFR4), not a per-adapter aspiration.
-export type { ArtifactDraft, SectionOptions } from '@driftgate/core';
+export type { ArtifactDraft, SectionOptions } from '@rulegate/core';
 export {
   DEFAULT_SECTION_OPTIONS,
   HASH_MARKER,
@@ -106,7 +106,7 @@ export {
   JSON_MARKER_KEY,
   stableJsonStringify,
   withJsonMarker,
-} from '@driftgate/core';
+} from '@rulegate/core';
 
 // Determinism primitives, exported because the alternative is illegal rather than merely
 // discouraged. `.localeCompare` is lint-banned repo-wide, so an adapter that needs to sort
@@ -114,7 +114,7 @@ export {
 // source because `path.join` emits backslashes on Windows, which would land in
 // `Artifact.path` and hash straight into `state.json`. A ban is only honest once the legal
 // alternative ships with the contract.
-export { basenamePosix, compareCodepoint, dirnamePosix, joinPosix, toPosix } from '@driftgate/core';
+export { basenamePosix, compareCodepoint, dirnamePosix, joinPosix, toPosix } from '@rulegate/core';
 
 // Selection and predicates: which rules this tool takes, and which paths are off limits.
 export {
@@ -126,29 +126,29 @@ export {
   ruleHeading,
   selects,
   slugForId,
-} from '@driftgate/core';
+} from '@rulegate/core';
 
 // Import: native config -> canonical, the inverse of the renderers above. Shared here
 // rather than per adapter because three of the five shipped adapters read the identical
 // concatenated Markdown shape, and two importers that disagree about where a section ends
 // is how one tool's rules quietly go missing on a first run. The per-format dialects stay
 // in the adapters that own them.
-export type { ImportConcatenatedOptions, ImportedRuleInit } from '@driftgate/core';
+export type { ImportConcatenatedOptions, ImportedRuleInit } from '@rulegate/core';
 export {
   claimRuleId,
   importConcatenated,
   importRuleId,
   importedRule,
   stripMarker,
-} from '@driftgate/core';
+} from '@rulegate/core';
 
 // Errors. An adapter reports a problem the same way core does, so the CLI can format it
 // with file:line:column and a hint rather than printing a stack.
-export type { DriftgateErrorCode, DriftgateErrorInit } from '@driftgate/core';
-export { DriftgateError, isDriftgateError } from '@driftgate/core';
+export type { RulegateErrorCode, RulegateErrorInit } from '@rulegate/core';
+export { RulegateError, isRulegateError } from '@rulegate/core';
 
 // The fixture harness is deliberately NOT re-exported here. It reads the filesystem, so
 // re-exporting it would put `node:fs` and a concrete filesystem into the import graph of
 // every adapter — through the package whose contract says adapters cannot touch the disk —
 // and would put `renderFixture` in an adapter author's autocomplete next to `write()`.
-// It lives behind the `@driftgate/adapter-kit/testing` subpath instead.
+// It lives behind the `@rulegate/adapter-kit/testing` subpath instead.

@@ -4,7 +4,7 @@ Each directory is a repository whose canonical source is broken in one specific 
 The parser must produce an actionable message naming the file, the line, and the
 offending field — never a stack trace, and never a silent wrong answer.
 
-`driftgate check` and `sync` refuse to run when any of these fire.
+`rulegate check` and `sync` refuse to run when any of these fire.
 
 | Fixture | Failure |
 |---|---|

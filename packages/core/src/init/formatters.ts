@@ -1,4 +1,4 @@
-import { DriftgateError } from '../model/errors.js';
+import { RulegateError } from '../model/errors.js';
 import { matchesGlob } from '../fs/glob.js';
 import type { ReadOnlyFileSystem } from '../fs/types.js';
 
@@ -7,7 +7,7 @@ import type { ReadOnlyFileSystem } from '../fs/types.js';
  *
  * A formatter and a generator cannot both own a file. Reformat a generated one and the
  * next `sync` correctly reports it as hand-edited and refuses to write it — a deadlock
- * that looks, from the outside, like Driftgate being broken. Every user with a formatter
+ * that looks, from the outside, like Rulegate being broken. Every user with a formatter
  * hits it, so `init` says so at the one moment the information is useful.
  *
  * It warns rather than editing the ignore file itself. That file is the user's, and a
@@ -153,12 +153,12 @@ export interface FormatterWarningInput {
 /** One warning per configured formatter that would fight over a generated path. */
 export async function formatterWarnings(
   input: FormatterWarningInput,
-): Promise<readonly DriftgateError[]> {
+): Promise<readonly RulegateError[]> {
   const { fs, generated } = input;
   if (generated.length === 0) return [];
 
   const pkg = (await fs.tryReadFile('package.json')) ?? '';
-  const warnings: DriftgateError[] = [];
+  const warnings: RulegateError[] = [];
 
   for (const formatter of FORMATTERS) {
     if (!(await isConfigured(fs, formatter, pkg))) continue;
@@ -170,7 +170,7 @@ export async function formatterWarnings(
     if (unlisted.length === 0) continue;
 
     warnings.push(
-      new DriftgateError({
+      new RulegateError({
         code: 'E_FORMATTER_CONFLICT',
         message: `this repository uses ${formatter.name}, and ${String(unlisted.length)} generated file(s) are not excluded from it`,
         source:

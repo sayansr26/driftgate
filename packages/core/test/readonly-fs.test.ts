@@ -13,7 +13,7 @@ describe('createReadOnlyFileSystem', () => {
   let root: string;
 
   beforeEach(async () => {
-    root = await mkdtemp(path.join(tmpdir(), 'driftgate-ro-'));
+    root = await mkdtemp(path.join(tmpdir(), 'rulegate-ro-'));
     await writeFile(path.join(root, 'a.md'), 'hello\r\n');
   });
 

@@ -13,7 +13,7 @@ import {
   type Artifact,
   type Canonical,
   type DetectResult,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 import { docs } from './docs.js';
 
 export const CONVENTIONS_MD = 'CONVENTIONS.md';
@@ -22,7 +22,7 @@ export const CONVENTIONS_MD = 'CONVENTIONS.md';
  * **`CONVENTIONS.md` is deliberately not evidence.**
  *
  * Aider reads nothing automatically, and `sync` writes that file itself — so treating it as
- * detection evidence would make every repository Driftgate has ever synced report Aider as
+ * detection evidence would make every repository Rulegate has ever synced report Aider as
  * configured, forever, and make `doctor` unfalsifiable on this tool.
  *
  * The cost, accepted: `init` on a repository with a hand-written `CONVENTIONS.md` and no

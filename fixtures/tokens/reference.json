@@ -2,32 +2,32 @@
   "tokenizer": "gpt-tokenizer",
   "version": "4.0.0",
   "encoding": "cl100k_base",
-  "retrieved": "2026-09-02",
+  "retrieved": "2026-09-04",
   "documents": [
     {
       "document": "01-claude-md.md",
-      "chars": 6516,
-      "referenceTokens": 1637
+      "chars": 6495,
+      "referenceTokens": 1620
     },
     {
       "document": "02-canonical-rule.md",
-      "chars": 2583,
-      "referenceTokens": 652
+      "chars": 2576,
+      "referenceTokens": 645
     },
     {
       "document": "03-cursor-rule.mdc",
-      "chars": 2656,
-      "referenceTokens": 669
+      "chars": 2647,
+      "referenceTokens": 661
     },
     {
       "document": "04-prose-and-tables.md",
-      "chars": 4681,
-      "referenceTokens": 1043
+      "chars": 4679,
+      "referenceTokens": 1042
     },
     {
       "document": "05-adversarial.md",
-      "chars": 2012,
-      "referenceTokens": 762
+      "chars": 2010,
+      "referenceTokens": 760
     }
   ]
 }

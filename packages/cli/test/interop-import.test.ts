@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { NodeFileSystem, computeInitPlan } from '@driftgate/core';
-import { INTEROP, ruler, rulesync } from '@driftgate/interop';
+import { NodeFileSystem, computeInitPlan } from '@rulegate/core';
+import { INTEROP, ruler, rulesync } from '@rulegate/interop';
 import { ADAPTERS } from '../src/registry.js';
 import { ADAPTER_NAMES } from '../src/registry.js';
 
@@ -19,9 +19,9 @@ async function init(name: string) {
 
 describe('interop — T054', () => {
   it('keeps interop importers out of the adapter set entirely', () => {
-    // The structural claim. An id in both lists would put a tool Driftgate never generates
-    // for into driftgate.yaml, doctor's table, and every rule's `tools:` selector —
-    // asserting Driftgate maintains a ruler config, which it must never do.
+    // The structural claim. An id in both lists would put a tool Rulegate never generates
+    // for into rulegate.yaml, doctor's table, and every rule's `tools:` selector —
+    // asserting Rulegate maintains a ruler config, which it must never do.
     for (const importer of INTEROP) {
       expect(ADAPTER_NAMES).not.toContain(importer.name);
     }

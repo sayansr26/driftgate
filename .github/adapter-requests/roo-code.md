@@ -33,7 +33,7 @@ actually read it in `retrieved`.)_
 
 ## The part that needs care
 
-The **basename, case-insensitive** sort is the detail to get right. Driftgate encodes rule
+The **basename, case-insensitive** sort is the detail to get right. Rulegate encodes rule
 order in the filename, and Roo Code's ordering is its own — so the generated filenames have
 to sort under Roo's rule into the order the canonical `order` field asks for. Prove it with
 a fixture whose rule order and alphabetical order disagree.
@@ -48,8 +48,8 @@ cleanly and selects no transport Roo recognizes.
 ## Steps
 
 ```bash
-driftgate adapter new roo-code          # prints the plan
-driftgate adapter new roo-code --yes    # applies it
+rulegate adapter new roo-code          # prints the plan
+rulegate adapter new roo-code --yes    # applies it
 pnpm install && pnpm test           # green as generated
 ```
 
@@ -61,7 +61,7 @@ pnpm install && pnpm test           # green as generated
    dated `1970-01-01` so an unverified claim cannot be mistaken for a verified one.
 4. Run Roo Code against the generated config and confirm it actually loads. Say so in the PR,
    with the version you tested.
-5. Add `roo-code` to `.driftgate/driftgate.yaml` and run `driftgate sync` — this repository
+5. Add `roo-code` to `.rulegate/rulegate.yaml` and run `rulegate sync` — this repository
    dogfoods every adapter it ships. Commit the generated file with your change.
 
 ## Done when

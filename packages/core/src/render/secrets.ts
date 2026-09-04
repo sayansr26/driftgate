@@ -94,7 +94,7 @@ const TOKEN_PATTERNS: readonly RegExp[] = [
 /**
  * A reference rather than a value.
  *
- * `env:NAME` is Driftgate's own syntax. The `${...}` forms are what the target formats
+ * `env:NAME` is Rulegate's own syntax. The `${...}` forms are what the target formats
  * use — VS Code writes `${env:NAME}` and `${input:name}`, Claude Code and Cursor accept
  * `${NAME}` — so a config that already defers to the environment must not be reported as
  * a literal just because it spells it the destination's way.

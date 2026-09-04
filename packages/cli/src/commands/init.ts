@@ -5,9 +5,9 @@ import {
   computeInitPlan,
   resolveRepoRoot,
   type McpTransport,
-} from '@driftgate/core';
+} from '@rulegate/core';
 import { ADAPTERS } from '../registry.js';
-import { INTEROP } from '@driftgate/interop';
+import { INTEROP } from '@rulegate/interop';
 import { createOutput, formatErrors, pluralize } from '../ui/report.js';
 import { ExitCode, type ExitCodeValue } from '../ui/exit.js';
 
@@ -21,7 +21,7 @@ export interface InitOptions {
 }
 
 /**
- * The first command anybody runs, on a repository Driftgate did not write.
+ * The first command anybody runs, on a repository Rulegate did not write.
  *
  * It prints the whole plan and stops. Nothing is written without `--yes`, and the plan it
  * prints is the plan that `--yes` applies — computed by `computePlan`, the same renderer
@@ -41,8 +41,8 @@ export async function runInit(options: InitOptions): Promise<ExitCodeValue> {
   const init = await computeInitPlan({ repoRoot, fs, adapters: ADAPTERS, interop: INTEROP });
 
   if (init.adopted) {
-    out.log('.driftgate/ already exists; nothing to import.');
-    out.log(`run: driftgate sync  (${pluralize(init.plan.artifacts.length, 'artifact')})`);
+    out.log('.rulegate/ already exists; nothing to import.');
+    out.log(`run: rulegate sync  (${pluralize(init.plan.artifacts.length, 'artifact')})`);
     return ExitCode.Ok;
   }
 
@@ -54,13 +54,13 @@ export async function runInit(options: InitOptions): Promise<ExitCodeValue> {
 
   if (init.detected.length === 0) {
     out.log('no AI tool configuration found in this repository.');
-    out.log('hint: create .driftgate/rules/*.md by hand, then run: driftgate sync');
+    out.log('hint: create .rulegate/rules/*.md by hand, then run: rulegate sync');
     return ExitCode.Ok;
   }
 
   out.log(`detected  ${init.detected.join(', ')}`);
   if (init.interop.length > 0) {
-    // Named separately from `detected`: these are tools Driftgate is taking over *from*,
+    // Named separately from `detected`: these are tools Rulegate is taking over *from*,
     // not tools it will generate for, and printing them in one list would suggest a
     // `ruler` config is about to be maintained.
     out.log(`migrating from  ${init.interop.join(', ')}`);
@@ -79,9 +79,7 @@ export async function runInit(options: InitOptions): Promise<ExitCodeValue> {
   // is answered before anything is written rather than discovered on the next command.
   if (init.plan.artifacts.length > 0) {
     out.log('');
-    out.log(
-      `then \`driftgate sync\` would write ${pluralize(init.plan.artifacts.length, 'file')}:`,
-    );
+    out.log(`then \`rulegate sync\` would write ${pluralize(init.plan.artifacts.length, 'file')}:`);
     for (const artifact of init.plan.artifacts) out.log(`  ${artifact.path}`);
   }
 
@@ -104,7 +102,7 @@ export async function runInit(options: InitOptions): Promise<ExitCodeValue> {
     // Kept, both of them, and said out loud. Merging them would mean deleting one of two
     // things the user wrote on the strength of a similarity score; the honest move is to
     // import both and point at them.
-    out.error('  both were imported. review them in .driftgate/rules/ and merge by hand.');
+    out.error('  both were imported. review them in .rulegate/rules/ and merge by hand.');
   }
 
   if (init.mcpConflicts.length > 0) {
@@ -123,7 +121,7 @@ export async function runInit(options: InitOptions): Promise<ExitCodeValue> {
     // the id is the key, so two definitions cannot both survive. Importing neither would be
     // worse than picking — the first `sync` would then remove the server from every tool
     // config and break a setup that worked five minutes ago.
-    out.error('  one definition was taken. review it in .driftgate/mcp/servers.yaml.');
+    out.error('  one definition was taken. review it in .rulegate/mcp/servers.yaml.');
   }
 
   if (options.yes !== true) {
@@ -136,13 +134,13 @@ export async function runInit(options: InitOptions): Promise<ExitCodeValue> {
 
   // `force` because every file this plan touches is one `init` just imported *from*.
   // Taking ownership is exactly what the user asked for, and `applyPlan` copies each
-  // original into `.driftgate/backup/` before overwriting it — which is the difference
+  // original into `.rulegate/backup/` before overwriting it — which is the difference
   // between taking ownership and taking someone's work.
   const report = await applyPlan(init.plan, fs, { dryRun: false, force: true });
 
   out.log('');
   for (const path of canonicalWritten.written) out.log(`wrote  ${path}`);
-  for (const path of report.backedUp) out.log(`backed up  .driftgate/backup/${path}`);
+  for (const path of report.backedUp) out.log(`backed up  .rulegate/backup/${path}`);
   for (const path of report.written) out.log(`wrote  ${path}`);
 
   if (report.skipped.length > 0) {
@@ -152,7 +150,7 @@ export async function runInit(options: InitOptions): Promise<ExitCodeValue> {
   }
 
   out.log('');
-  out.log('done. edit .driftgate/rules/ and run: driftgate sync');
+  out.log('done. edit .rulegate/rules/ and run: rulegate sync');
   return ExitCode.Ok;
 }
 

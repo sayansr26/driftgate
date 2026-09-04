@@ -58,7 +58,7 @@ export async function resolveTool(docs: AdapterDocs, ctx: ResolveContext): Promi
   //
   // The owner is the entry that names the path *literally*, and only failing that the
   // lowest-ranked entry that matched. Rank alone would hand the root `GEMINI.md` to the
-  // glob and report the file Driftgate actually generates as `absent`, which is the
+  // glob and report the file Rulegate actually generates as `absent`, which is the
   // opposite of the fact the row exists to state.
   const found: Measured[][] = [];
   for (const [rank, entry] of docs.files.entries())
@@ -295,7 +295,7 @@ function aggregateStatus(
   entry: PrecedenceEntry,
   detection: ToolDetection,
 ): FileSyncStatus {
-  // The declared path is the one Driftgate has an opinion about; a nested copy it never
+  // The declared path is the one Rulegate has an opinion about; a nested copy it never
   // generated must not colour the answer. Without this, `CLAUDE.md` reported `unmanaged`
   // on this very repository because five unrelated copies under `fixtures/` outranked the
   // generated root file under worst-first.
@@ -331,7 +331,7 @@ function byteLength(text: string): number {
  *
  * `DirEntry.kind` already carries this, so no new filesystem capability is needed — one
  * `listDir` per directory, memoized, rather than a stat per file. Symlinking one tool's
- * config at another's is the oldest workaround in this space and the one Driftgate exists
+ * config at another's is the oldest workaround in this space and the one Rulegate exists
  * to replace, so naming it is the point of reporting it.
  */
 export class SymlinkProbe {

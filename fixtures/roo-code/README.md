@@ -4,7 +4,7 @@ The fixture is built so that **canonical order and alphabetical order disagree**
 the one thing this adapter has to get right.
 
 Roo Code concatenates the files in `.roo/rules/` sorted "by basename only,
-case-insensitive". That ordering is Roo's, and it knows nothing about Driftgate's `order`
+case-insensitive". That ordering is Roo's, and it knows nothing about Rulegate's `order`
 frontmatter — so a rule named `40-alpha-last` would sort *before* `10-style` under any
 scheme that used the rule id alone, and the user's stated order would silently invert.
 

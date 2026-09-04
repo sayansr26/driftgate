@@ -12,7 +12,7 @@ whole workflow, and it is written for someone who has never seen this codebase.
 ## What Windsurf reads
 
 - `.devin/rules/*.md` — **takes precedence over `.windsurf/rules/`.** Devin Desktop's
-  directory; Driftgate reads it on import and never writes it.
+  directory; Rulegate reads it on import and never writes it.
 - `.windsurf/rules/*.md` — workspace rules, the modern form. Discovered in
   subdirectories and in parent directories up to the git root.
 - `.windsurfrules` — a single file at the workspace root. Legacy, still read.
@@ -32,7 +32,7 @@ actually read it in `retrieved`.)_
 **MCP is out of scope for this adapter.** Cascade's only MCP config is
 `~/.codeium/windsurf/mcp_config.json`, outside the repository; the project-level
 `.devin/mcp_config.json` is documented under the **Devin CLI**, a different product.
-Driftgate never writes outside the repository, so `windsurf` emits no MCP artifact and
+Rulegate never writes outside the repository, so `windsurf` emits no MCP artifact and
 records the global path as unmanaged instead.
 
 - **Adapter id:** `windsurf`
@@ -53,8 +53,8 @@ the URL you actually read.
 ## Steps
 
 ```bash
-driftgate adapter new windsurf          # prints the plan
-driftgate adapter new windsurf --yes    # applies it
+rulegate adapter new windsurf          # prints the plan
+rulegate adapter new windsurf --yes    # applies it
 pnpm install && pnpm test           # green as generated
 ```
 
@@ -66,7 +66,7 @@ pnpm install && pnpm test           # green as generated
    dated `1970-01-01` so an unverified claim cannot be mistaken for a verified one.
 4. Run Windsurf against the generated config and confirm it actually loads. Say so in the PR,
    with the version you tested.
-5. Add `windsurf` to `.driftgate/driftgate.yaml` and run `driftgate sync` — this repository
+5. Add `windsurf` to `.rulegate/rulegate.yaml` and run `rulegate sync` — this repository
    dogfoods every adapter it ships. Commit the generated file with your change.
 
 ## Done when

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contextFor, detectFixture } from '@driftgate/adapter-kit/testing';
+import { contextFor, detectFixture } from '@rulegate/adapter-kit/testing';
 import { windsurf } from '../src/index.js';
 
 describe('windsurf detect()', () => {

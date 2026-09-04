@@ -9,7 +9,7 @@ import {
   type McpServer,
   type ReferenceParse,
   type SecretValue,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 
 /**
  * The workspace file. VS Code also keeps a user-profile `mcp.json`, reachable only through
@@ -38,7 +38,7 @@ const SERVERS_KEY = 'servers';
  * configuration, and its variables reference defines `${env:Name}`.
  *
  * The vendor's own recommendation for a credential is `${input:id}` with an `inputs`
- * array, and Driftgate deliberately does not generate that: an input **prompts the user**,
+ * array, and Rulegate deliberately does not generate that: an input **prompts the user**,
  * which is not what a canonical `env:NAME` reference means. Recorded as an `info` note
  * rather than left as an unexplained gap.
  *
@@ -57,7 +57,7 @@ function secretMap(map: Readonly<Record<string, SecretValue>>): Record<string, J
 
 function serverJson(server: McpServer): JsonValue {
   // Unknown keys first, interpreted keys second — see the same comment in the Claude Code
-  // writer. A preserved key must never be able to override one Driftgate computed.
+  // writer. A preserved key must never be able to override one Rulegate computed.
   const body: Record<string, JsonValue> = { ...server.unknown };
 
   const { transport } = server;

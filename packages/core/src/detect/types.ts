@@ -1,4 +1,4 @@
-import type { DriftgateError } from '../model/errors.js';
+import type { RulegateError } from '../model/errors.js';
 import type { PrecedenceEntry } from '../adapter/docs.js';
 import type { ToolId } from '../model/ids.js';
 
@@ -39,7 +39,7 @@ export interface ToolDetection {
    */
   readonly global: readonly GlobalFileStatus[];
   /** Set when this adapter's `detect()` threw or its `apiVersion` is unreadable. */
-  readonly failed?: DriftgateError;
+  readonly failed?: RulegateError;
 }
 
 export interface DetectionReport {

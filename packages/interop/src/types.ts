@@ -1,12 +1,12 @@
-import type { AdapterContext, RuleDocument } from '@driftgate/adapter-kit';
+import type { AdapterContext, RuleDocument } from '@rulegate/adapter-kit';
 
 /**
  * A read-only importer for a *competing* rule-sync tool.
  *
  * **Deliberately not an `Adapter`, and never in `ADAPTERS`.** An adapter is a thing
- * Driftgate generates for; ruler and rulesync are things it takes over *from*. Registering
- * one would put `ruler` in `driftgate.yaml`'s tool list, in `doctor`'s table, and in the
- * `tools:` selector every rule is divided by — asserting that Driftgate maintains a ruler
+ * Rulegate generates for; ruler and rulesync are things it takes over *from*. Registering
+ * one would put `ruler` in `rulegate.yaml`'s tool list, in `doctor`'s table, and in the
+ * `tools:` selector every rule is divided by — asserting that Rulegate maintains a ruler
  * config, which it must never do. Interop is one-way by construction: there is no `write`
  * on this interface, so there is nothing to call.
  *
@@ -28,7 +28,7 @@ export interface InteropResult {
    * Paths this tool **generates**, observed rather than assumed.
    *
    * This is the field that makes interop work at all. ruler and rulesync produce the very
-   * files Driftgate's adapters import from — `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*` —
+   * files Rulegate's adapters import from — `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*` —
    * so importing both sides writes every rule twice: once from the source of truth and once
    * from its own generated output. These paths are hidden from the adapter pass.
    *

@@ -4,7 +4,7 @@ import {
   formatFixtureReport,
   readExpected,
   renderFixture,
-} from '@driftgate/adapter-kit/testing';
+} from '@rulegate/adapter-kit/testing';
 import { claudeCode } from '../src/index.js';
 
 /**

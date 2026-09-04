@@ -1,4 +1,4 @@
-import { DriftgateError } from '../model/errors.js';
+import { RulegateError } from '../model/errors.js';
 import { ADAPTER_API_VERSION } from '../adapter/context.js';
 import { compareCodepoint } from '../render/order.js';
 import { joinPosix } from '../fs/paths.js';
@@ -36,7 +36,7 @@ export interface DetectInput {
  * Which tools does this repository use, and what user-level files will they also load?
  *
  * Reads only. Writes nothing, anywhere — that is not merely true today, it is the point:
- * detection runs on repositories that have not adopted Driftgate, and is the first thing
+ * detection runs on repositories that have not adopted Rulegate, and is the first thing
  * `init` (T019) does. A tool that modified a repo while deciding whether it could help
  * would be unusable for exactly that.
  */
@@ -76,10 +76,10 @@ async function detectOne(adapter: Adapter, input: OneInput): Promise<ToolDetecti
       detected: false,
       evidence: [],
       global,
-      failed: new DriftgateError({
+      failed: new RulegateError({
         code: 'E_ADAPTER_API_VERSION',
         message: `adapter \`${adapter.name}\` targets adapter API v${String(adapter.apiVersion)}, but this build speaks v${String(ADAPTER_API_VERSION)}`,
-        hint: `upgrade the adapter, or pin driftgate to a version that speaks v${String(adapter.apiVersion)}`,
+        hint: `upgrade the adapter, or pin rulegate to a version that speaks v${String(adapter.apiVersion)}`,
       }),
     };
   }
@@ -104,9 +104,9 @@ async function detectOne(adapter: Adapter, input: OneInput): Promise<ToolDetecti
       evidence: [],
       global,
       failed:
-        cause instanceof DriftgateError
+        cause instanceof RulegateError
           ? cause
-          : new DriftgateError({
+          : new RulegateError({
               code: 'E_ADAPTER_FAILED',
               message: `adapter \`${adapter.name}\` failed during detection: ${describe(cause)}`,
               cause,

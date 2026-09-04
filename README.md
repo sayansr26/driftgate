@@ -1,28 +1,29 @@
-# Driftgate
+# Rulegate
 
 <!-- hero GIF (T035): edit one canonical rule → five tool configs update → a hand-edit fails CI with a diff -->
 
 **One source of truth for your AI coding agents — and proof it stayed true.**
 
-Driftgate generates `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.cursor/rules/*.mdc` and
-`.github/copilot-instructions.md` from one canonical `.driftgate/` directory. Other tools
-do that much. What Driftgate adds is the half that makes it trustworthy:
+Rulegate generates `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.cursor/rules/*.mdc` and
+`.github/copilot-instructions.md` from one canonical `.rulegate/` directory. Other tools
+do that much. What Rulegate adds is the half that makes it trustworthy:
 
-- **`driftgate check`** — regenerate every artifact **in memory**, diff it against disk,
+- **`rulegate check`** — regenerate every artifact **in memory**, diff it against disk,
   exit 1 with a unified diff when they differ. Read-only by construction. This is the
   command you put in CI: it catches the **drift** that appears the moment somebody edits a
   generated file by hand, or forgets to re-run `sync`.
-- **`driftgate doctor`** — which tools this repository is configured for, which files each
+- **`rulegate doctor`** — which tools this repository is configured for, which files each
   one will actually load, in what order, and roughly what they cost in tokens.
-- **`driftgate sync`** — the generation itself, sharing one rendering path with `check`,
+- **`rulegate sync`** — the generation itself, sharing one rendering path with `check`,
   so `check` structurally cannot lie about what `sync` would write.
 
 **Zero network calls. Zero telemetry.** Not a setting — a test that fails the build if a
 network primitive appears anywhere in shipped source, including every dependency.
 
-> **Status: pre-release.** The adapter API is frozen (`docs/adapter-api-v1.md`), five
+> **Status: pre-release.** The adapter API is frozen (`docs/adapter-api-v1.md`), ten
 > adapters ship, and this repository generates its own agent config with them. It is not
-> on npm yet; until it is, run it from a clone.
+> on npm yet; until it is, run it from a clone — the `npx` line below starts working at
+> the first release.
 
 ## The problem
 
@@ -43,18 +44,18 @@ nothing tells you.
 ## Quickstart
 
 ```bash
-npx driftgate init     # import existing configs into .driftgate/ (prints a plan first)
-npx driftgate sync     # generate every enabled tool's config
-npx driftgate check    # verify they match — exit 1 on drift. Put this in CI.
+npx rulegate init     # import existing configs into .rulegate/ (prints a plan first)
+npx rulegate sync     # generate every enabled tool's config
+npx rulegate check    # verify they match — exit 1 on drift. Put this in CI.
 ```
 
 `init` writes nothing without `--yes`, backs up every file it takes ownership of into
-`.driftgate/backup/`, and `driftgate restore` puts them back.
+`.rulegate/backup/`, and `rulegate restore` puts them back.
 
 ### What `check` catches
 
 ```text
-$ driftgate check
+$ rulegate check
 hand-edited  GEMINI.md
 @@ -167,5 +167,3 @@
    `memory-bank/05-progress-log.md` on every completion or phase gate. If they are not
@@ -64,7 +65,7 @@ hand-edited  GEMINI.md
 -hand edited line
 
 1 file out of sync.
-hint: re-apply your edit in .driftgate/, then delete the generated file so sync can rewrite it.
+hint: re-apply your edit in .rulegate/, then delete the generated file so sync can rewrite it.
 ```
 
 Exit codes are `0` ok, `1` drift or failure, `2` usage — because CI reads the code, not the
@@ -73,7 +74,7 @@ message, and a typo in a workflow file must never be reported as drift.
 ### What `doctor` shows
 
 ```text
-$ driftgate doctor
+$ rulegate doctor
 Claude Code  will load 12 files ~3,288 tokens
   CLAUDE.local.md        absent
   CLAUDE.md +10 nested   generated  ~2,922
@@ -93,19 +94,19 @@ Cursor  will load 5 files ~2,619 tokens
 That last warning is the kind of thing nobody has written down anywhere else: Copilot's
 three instruction mechanisms are **additive**, not an override chain, so enabling Copilot,
 Codex and Claude Code together sends Copilot the same rules three times. Every precedence
-claim Driftgate makes carries a source URL and the tool version it was verified against.
+claim Rulegate makes carries a source URL and the tool version it was verified against.
 
 `doctor` is read-only and **exits 0 even when it warns** — `check` owns exit 1, and a
 command that reports a correct permanent condition as a CI failure is one people mute.
 
 ## If you hand-edit a generated file
 
-You will, and Driftgate does not punish it. `sync` refuses to overwrite the file and offers
+You will, and Rulegate does not punish it. `sync` refuses to overwrite the file and offers
 two ways out:
 
 ```sh
-driftgate sync --import   # recover the edit into .driftgate/ (prints the merge; --yes to apply)
-driftgate sync --force    # discard it, after copying the original to .driftgate/backup/
+rulegate sync --import   # recover the edit into .rulegate/ (prints the merge; --yes to apply)
+rulegate sync --force    # discard it, after copying the original to .rulegate/backup/
 ```
 
 `--import` reverses the edit through the same adapter that generated the file. It refuses,
@@ -115,19 +116,19 @@ anything and both sides are shown instead.
 
 ## Gate drift on a pull request
 
-The GitHub Action runs `driftgate check` and marks every drifted region **inline on the
+The GitHub Action runs `rulegate check` and marks every drifted region **inline on the
 pull request diff**, so a reviewer sees which lines are wrong without opening the log.
 
 ```yaml
-# .github/workflows/driftgate.yml
-name: driftgate
+# .github/workflows/rulegate.yml
+name: rulegate
 on: [pull_request]
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: driftgate-dev/driftgate/action@v1
+      - uses: sayansr26/rulegate/action@v1
 ```
 
 | input               | default           |                                             |
@@ -141,9 +142,9 @@ is read-only and needs no permissions beyond the default `contents: read`.
 
 ## Catch drift before it is committed
 
-`driftgate check --staged` verifies the **git index** instead of the working tree, which is
+`rulegate check --staged` verifies the **git index** instead of the working tree, which is
 what a commit hook needs: it answers "if this commit lands, will the generated files still
-match `.driftgate/`?" Both sides come from the index, so an edit you have not staged yet
+match `.rulegate/`?" Both sides come from the index, so an edit you have not staged yet
 never blocks a commit, and staged artifacts that are stale never slip through one.
 
 With [pre-commit](https://pre-commit.com):
@@ -151,21 +152,21 @@ With [pre-commit](https://pre-commit.com):
 ```yaml
 # .pre-commit-config.yaml
 repos:
-  - repo: https://github.com/driftgate-dev/driftgate
+  - repo: https://github.com/sayansr26/rulegate
     rev: v0.1.0
     hooks:
-      - id: driftgate-check
+      - id: rulegate-check
 ```
 
 With husky:
 
 ```sh
 # .husky/pre-commit
-npx driftgate check --staged
+npx rulegate check --staged
 ```
 
 It adds well under 500 ms to a commit, and it is read-only like every other form of
-`check` — a failing hook tells you to run `driftgate sync`, it does not run it for you.
+`check` — a failing hook tells you to run `rulegate sync`, it does not run it for you.
 
 Outside a git working tree `--staged` **refuses** rather than quietly checking the working
 tree instead. Being told a commit was verified against an index nobody read is worse than
@@ -173,7 +174,7 @@ being told it could not be verified.
 
 ## How it compares
 
-|                                                               | ruler   | rulesync | symlinks / `@import` | **Driftgate** |
+|                                                               | ruler   | rulesync | symlinks / `@import` | **Rulegate**  |
 | ------------------------------------------------------------- | ------- | -------- | -------------------- | ------------- |
 | Generate rules for many tools                                 | ✅      | ✅       | crude                | ✅            |
 | MCP servers, skills                                           | ✅      | ✅       | ❌                   | planned       |
@@ -182,14 +183,14 @@ being told it could not be verified.
 | Never overwrites a file it did not generate                   | partial | partial  | n/a                  | ✅ enforced   |
 | Tools supported                                               | 30+     | 30+      | —                    | 5, API frozen |
 
-Incumbents are generators. Driftgate is a control plane: **generate ▸ verify ▸ inspect**.
+Incumbents are generators. Rulegate is a control plane: **generate ▸ verify ▸ inspect**.
 The tool count is the honest gap, and it is the one thing outside contributors can close
 fastest — which is why the scaffold below exists.
 
 ## Add an adapter in about 20 lines
 
 ```bash
-driftgate adapter new kiro --yes    # from a clone of this repo
+rulegate adapter new kiro --yes    # from a clone of this repo
 pnpm install && pnpm test           # green as generated
 ```
 
@@ -206,10 +207,10 @@ seeded as `good first adapter` issues, each naming the files that tool really re
 
 ## Generated output is not formatter territory
 
-Every path Driftgate generates belongs in your formatter's ignore file. A formatter and a
+Every path Rulegate generates belongs in your formatter's ignore file. A formatter and a
 generator cannot both own a file: reformat a generated one and the next `sync` correctly
-reports it as hand-edited and refuses to write it — which looks, reasonably, like Driftgate
-being broken. Format `.driftgate/rules/` instead and re-run `sync`. This repository keeps
+reports it as hand-edited and refuses to write it — which looks, reasonably, like Rulegate
+being broken. Format `.rulegate/rules/` instead and re-run `sync`. This repository keeps
 its own generated paths in `.prettierignore` for exactly that reason.
 
 ## Guarantees
@@ -219,9 +220,9 @@ and 22:
 
 - **Never writes over a file it did not generate.** `state.json` is the only record of
   ownership; `--force` may take ownership, but only after copying the original to
-  `.driftgate/backup/`.
+  `.rulegate/backup/`.
 - **Never deletes a file it did not generate**, and refuses to delete an orphan whose bytes
-  changed since Driftgate wrote them.
+  changed since Rulegate wrote them.
 - **Deterministic output** — byte-identical across runs, platforms and Node versions.
   Nondeterminism is a P0 bug (`docs/determinism.md`), because it is what would make `check`
   cry wolf.

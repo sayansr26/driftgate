@@ -9,7 +9,7 @@ import {
   type McpServer,
   type ReferenceParse,
   type SecretValue,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 
 /** Project scope. `~/.claude.json` holds the local and user scopes and is never written. */
 export const MCP_FILE = '.mcp.json';
@@ -20,7 +20,7 @@ export const MCP_FILE = '.mcp.json';
  *
  * Cursor spells the same thing `${env:NAME}`, which is why this lives in the adapter rather
  * than in the kit: the renderer speaks the destination's language, exactly as the `.mdc`
- * and `.instructions.md` frontmatter dialects do. Emitting Driftgate's own `env:NAME` would
+ * and `.instructions.md` frontmatter dialects do. Emitting Rulegate's own `env:NAME` would
  * hand the server a credential that is the literal string `env:NAME`.
  *
  * Source: https://code.claude.com/docs/en/mcp (read 2026-09-04).

@@ -1,14 +1,21 @@
 {
-  "name": "driftgate",
+  "name": "rulegate",
   "version": "0.0.0",
   "description": "One source of truth for your AI coding agents. Sync, verify, and inspect agent config.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sayansr26/rulegate.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/sayansr26/rulegate#readme",
+  "bugs": "https://github.com/sayansr26/rulegate/issues",
   "engines": {
     "node": ">=20"
   },
   "bin": {
-    "driftgate": "./dist/bin.js"
+    "rulegate": "./dist/bin.js"
   },
   "exports": {
     ".": {
@@ -24,18 +31,18 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@driftgate/adapter-aider": "workspace:*",
-    "@driftgate/adapter-claude-code": "workspace:*",
-    "@driftgate/adapter-cline": "workspace:*",
-    "@driftgate/adapter-codex": "workspace:*",
-    "@driftgate/adapter-copilot": "workspace:*",
-    "@driftgate/adapter-cursor": "workspace:*",
-    "@driftgate/adapter-gemini": "workspace:*",
-    "@driftgate/adapter-roo-code": "workspace:*",
-    "@driftgate/adapter-windsurf": "workspace:*",
-    "@driftgate/adapter-zed": "workspace:*",
-    "@driftgate/interop": "workspace:*",
-    "@driftgate/core": "workspace:*",
+    "@rulegate/adapter-aider": "workspace:*",
+    "@rulegate/adapter-claude-code": "workspace:*",
+    "@rulegate/adapter-cline": "workspace:*",
+    "@rulegate/adapter-codex": "workspace:*",
+    "@rulegate/adapter-copilot": "workspace:*",
+    "@rulegate/adapter-cursor": "workspace:*",
+    "@rulegate/adapter-gemini": "workspace:*",
+    "@rulegate/adapter-roo-code": "workspace:*",
+    "@rulegate/adapter-windsurf": "workspace:*",
+    "@rulegate/adapter-zed": "workspace:*",
+    "@rulegate/interop": "workspace:*",
+    "@rulegate/core": "workspace:*",
     "commander": "^12.1.0",
     "picocolors": "^1.1.1"
   }

@@ -12,26 +12,26 @@
     "baseUrl": ".",
     "paths": {
       // The CLI is the one workspace package with an unscoped name, which is how it came
-      // to be missed here while every `@driftgate/*` package was mapped. `action/`
+      // to be missed here while every `@rulegate/*` package was mapped. `action/`
       // imports it by that published name, so without this line the Action's source is
       // the only shipped code eslint type-checks against a `dist/` a clean clone does not
       // have — and every symbol reached through it, down to `Hunk.oldStart`, lints as
       // `any`.
-      "driftgate": ["packages/cli/src/index.ts"],
-      "@driftgate/core": ["packages/core/src/index.ts"],
-      "@driftgate/adapter-kit": ["packages/adapter-kit/src/index.ts"],
-      "@driftgate/adapter-kit/testing": ["packages/adapter-kit/src/testing/index.ts"],
-      "@driftgate/adapter-claude-code": ["packages/adapters/claude-code/src/index.ts"],
-      "@driftgate/adapter-codex": ["packages/adapters/codex/src/index.ts"],
-      "@driftgate/adapter-copilot": ["packages/adapters/copilot/src/index.ts"],
-      "@driftgate/adapter-cline": ["packages/adapters/cline/src/index.ts"],
-      "@driftgate/adapter-aider": ["packages/adapters/aider/src/index.ts"],
-      "@driftgate/adapter-cursor": ["packages/adapters/cursor/src/index.ts"],
-      "@driftgate/adapter-roo-code": ["packages/adapters/roo-code/src/index.ts"],
-      "@driftgate/adapter-zed": ["packages/adapters/zed/src/index.ts"],
-      "@driftgate/interop": ["packages/interop/src/index.ts"],
-      "@driftgate/adapter-windsurf": ["packages/adapters/windsurf/src/index.ts"],
-      "@driftgate/adapter-gemini": ["packages/adapters/gemini/src/index.ts"]
+      "rulegate": ["packages/cli/src/index.ts"],
+      "@rulegate/core": ["packages/core/src/index.ts"],
+      "@rulegate/adapter-kit": ["packages/adapter-kit/src/index.ts"],
+      "@rulegate/adapter-kit/testing": ["packages/adapter-kit/src/testing/index.ts"],
+      "@rulegate/adapter-claude-code": ["packages/adapters/claude-code/src/index.ts"],
+      "@rulegate/adapter-codex": ["packages/adapters/codex/src/index.ts"],
+      "@rulegate/adapter-copilot": ["packages/adapters/copilot/src/index.ts"],
+      "@rulegate/adapter-cline": ["packages/adapters/cline/src/index.ts"],
+      "@rulegate/adapter-aider": ["packages/adapters/aider/src/index.ts"],
+      "@rulegate/adapter-cursor": ["packages/adapters/cursor/src/index.ts"],
+      "@rulegate/adapter-roo-code": ["packages/adapters/roo-code/src/index.ts"],
+      "@rulegate/adapter-zed": ["packages/adapters/zed/src/index.ts"],
+      "@rulegate/interop": ["packages/interop/src/index.ts"],
+      "@rulegate/adapter-windsurf": ["packages/adapters/windsurf/src/index.ts"],
+      "@rulegate/adapter-gemini": ["packages/adapters/gemini/src/index.ts"]
     }
   },
   "include": [

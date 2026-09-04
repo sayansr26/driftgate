@@ -32,7 +32,7 @@ actually read it in `retrieved`.)_
 
 ## The part that needs care
 
-Continue's frontmatter maps almost one-to-one onto Driftgate's canonical fields, which makes
+Continue's frontmatter maps almost one-to-one onto Rulegate's canonical fields, which makes
 this the cleanest adapter on the list — and makes `alwaysApply` the only real decision. A
 rule with no `globs` is `alwaysApply: true`; a rule with globs should carry them and leave
 `alwaysApply` out, so Continue's documented default applies. Write down why in a comment:
@@ -41,8 +41,8 @@ the three-state default is exactly the kind of thing a later contributor will "s
 ## Steps
 
 ```bash
-driftgate adapter new continue          # prints the plan
-driftgate adapter new continue --yes    # applies it
+rulegate adapter new continue          # prints the plan
+rulegate adapter new continue --yes    # applies it
 pnpm install && pnpm test           # green as generated
 ```
 
@@ -54,7 +54,7 @@ pnpm install && pnpm test           # green as generated
    dated `1970-01-01` so an unverified claim cannot be mistaken for a verified one.
 4. Run Continue against the generated config and confirm it actually loads. Say so in the PR,
    with the version you tested.
-5. Add `continue` to `.driftgate/driftgate.yaml` and run `driftgate sync` — this repository
+5. Add `continue` to `.rulegate/rulegate.yaml` and run `rulegate sync` — this repository
    dogfoods every adapter it ships. Commit the generated file with your change.
 
 ## Done when

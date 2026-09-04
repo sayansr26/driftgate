@@ -33,7 +33,7 @@ describe('RFC-0001 covers the canonical format', () => {
   it('carries a worked example a reader can hand-author from', async () => {
     const rfc = await readFile(rfcPath, 'utf8');
     expect(rfc).toMatch(/##\s*14\.\s*Worked example/);
-    expect(rfc).toContain('driftgate.yaml');
+    expect(rfc).toContain('rulegate.yaml');
     expect(rfc).toContain('CLAUDE.md');
     // The filename comes from the rule id, prefix and all. The RFC said `style.mdc` for
     // a rule at `rules/10-style.md` for the whole of M0, and this assertion pinned the
@@ -60,23 +60,23 @@ describe('RFC-0001 covers the canonical format', () => {
 
   /**
    * The strongest available proxy for "a second reader can hand-author a valid
-   * .driftgate/ from the RFC alone": the RFC's own worked example is fed to the real
+   * .rulegate/ from the RFC alone": the RFC's own worked example is fed to the real
    * parser. If the spec and the implementation ever drift apart, this fails — which is
    * the failure mode a prose-only spec hides for months.
    */
   it('has a worked example that actually parses', async () => {
     const files = new Map([
-      ['.driftgate/driftgate.yaml', 'schemaVersion: 1\ntools:\n  - claude-code\n  - cursor\n'],
+      ['.rulegate/rulegate.yaml', 'schemaVersion: 1\ntools:\n  - claude-code\n  - cursor\n'],
       [
-        '.driftgate/rules/10-style.md',
+        '.rulegate/rules/10-style.md',
         '---\ndescription: Style\norder: 10\n---\n\nUse tabs. Never `any`.\n',
       ],
       [
-        '.driftgate/rules/20-testing.md',
+        '.rulegate/rules/20-testing.md',
         '---\ndescription: Testing\norder: 20\n---\n\nVitest. Colocate tests beside the code they cover.\n',
       ],
       [
-        '.driftgate/rules/30-frontend.md',
+        '.rulegate/rules/30-frontend.md',
         "---\ndescription: Frontend\nglobs:\n  - 'src/components/**/*.tsx'\norder: 30\n---\n\nPrefer server components.\n",
       ],
     ]);
@@ -84,7 +84,7 @@ describe('RFC-0001 covers the canonical format', () => {
     const result = await parse({ fs: new MemoryFileSystem(files) });
 
     expect(result.errors).toEqual([]);
-    expect(result.mode).toBe('driftgate-dir');
+    expect(result.mode).toBe('rulegate-dir');
     expect(result.canonical.manifest.tools.map((t) => t.id)).toEqual(['claude-code', 'cursor']);
     expect(result.canonical.rules.map((r) => r.id)).toEqual([
       '10-style',
@@ -99,8 +99,8 @@ describe('RFC-0001 covers the canonical format', () => {
 
   it('rejects the unquoted-glob trap it warns about, with the promised hint', async () => {
     const files = new Map([
-      ['.driftgate/driftgate.yaml', 'schemaVersion: 1\ntools: [cursor]\n'],
-      ['.driftgate/rules/a.md', '---\nglobs: *.ts\n---\n\nBody.\n'],
+      ['.rulegate/rulegate.yaml', 'schemaVersion: 1\ntools: [cursor]\n'],
+      ['.rulegate/rules/a.md', '---\nglobs: *.ts\n---\n\nBody.\n'],
     ]);
 
     const result = await parse({ fs: new MemoryFileSystem(files) });

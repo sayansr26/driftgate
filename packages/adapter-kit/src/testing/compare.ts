@@ -1,4 +1,4 @@
-import { compareCodepoint } from '@driftgate/core';
+import { compareCodepoint } from '@rulegate/core';
 import { formatDifference } from './diff.js';
 
 /**

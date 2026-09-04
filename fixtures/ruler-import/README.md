@@ -6,9 +6,9 @@ A repository mid-migration from **ruler**: `.ruler/` holds the sources, and `AGE
 The fixture exists to pin two behaviours that pull in opposite directions.
 
 **The generated copies must not be imported.** They are the same rules again, so without
-masking every rule lands in `.driftgate/` three times — once from the source the user edits
+masking every rule lands in `.rulegate/` three times — once from the source the user edits
 and once from each generated file. `AGENTS.md` and `CLAUDE.md` both carry ruler's
-`<!-- Source: … -->` markers, which is how Driftgate knows ruler wrote them.
+`<!-- Source: … -->` markers, which is how Rulegate knows ruler wrote them.
 
 **`GEMINI.md` must survive.** It is a filename ruler is *known* to write and it carries no
 marker, because a person wrote it. Masking it because a `.ruler/` directory happens to exist

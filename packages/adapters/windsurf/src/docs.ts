@@ -1,4 +1,4 @@
-import type { AdapterDocs, SourceLink } from '@driftgate/adapter-kit';
+import type { AdapterDocs, SourceLink } from '@rulegate/adapter-kit';
 
 /**
  * The vendor page, and the URL that was actually read.
@@ -20,7 +20,7 @@ const RULES_DOCS: SourceLink = {
  *
  * Ordered highest-precedence first. `.devin/rules/` leads because the vendor states it
  * takes precedence over `.windsurf/rules/`, with the latter kept for backward
- * compatibility — so in a repository that has both, **Driftgate's output is shadowed** and
+ * compatibility — so in a repository that has both, **Rulegate's output is shadowed** and
  * `doctor` has to be able to say so.
  */
 export const docs: AdapterDocs = {
@@ -39,7 +39,7 @@ export const docs: AdapterDocs = {
       managed: false,
       nesting: 'all-merged',
       description:
-        'Devin Desktop workspace rules. Documented as taking precedence over .windsurf/rules. Driftgate reads these on import so a Devin user does not lose them, and never writes them: the directory belongs to a different product.',
+        'Devin Desktop workspace rules. Documented as taking precedence over .windsurf/rules. Rulegate reads these on import so a Devin user does not lose them, and never writes them: the directory belongs to a different product.',
       source: RULES_DOCS,
     },
     {
@@ -49,7 +49,7 @@ export const docs: AdapterDocs = {
       managed: true,
       nesting: 'all-merged',
       description:
-        'Workspace rules, one file per rule, each with a trigger: frontmatter key. Discovered in subdirectories and in parent directories up to the git root. This is what Driftgate generates.',
+        'Workspace rules, one file per rule, each with a trigger: frontmatter key. Discovered in subdirectories and in parent directories up to the git root. This is what Rulegate generates.',
       source: RULES_DOCS,
     },
     {
@@ -58,7 +58,7 @@ export const docs: AdapterDocs = {
       role: 'instructions',
       managed: false,
       description:
-        'Legacy single-file rules at the workspace root, superseded by .windsurf/rules. Driftgate imports it and never writes it.',
+        'Legacy single-file rules at the workspace root, superseded by .windsurf/rules. Rulegate imports it and never writes it.',
       source: RULES_DOCS,
     },
     {
@@ -76,7 +76,7 @@ export const docs: AdapterDocs = {
       role: 'instructions',
       managed: false,
       description:
-        'User-level rules, always applied, no frontmatter. Outside the repository, so Driftgate reports it and never writes it.',
+        'User-level rules, always applied, no frontmatter. Outside the repository, so Rulegate reports it and never writes it.',
       source: RULES_DOCS,
     },
   ],
@@ -87,19 +87,19 @@ export const docs: AdapterDocs = {
     // anyway with the mismatch stated: a cap nobody recorded and a cap that is slightly
     // conservative are not the same thing, and only the second can be corrected.
     maxBytesPerFile: 12000,
-    note: 'Windsurf documents 12,000 characters per workspace rule file and 6,000 for the global one. Driftgate measures bytes, so a rule using non-ASCII characters may be reported over the limit while still being under it.',
+    note: 'Windsurf documents 12,000 characters per workspace rule file and 6,000 for the global one. Rulegate measures bytes, so a rule using non-ASCII characters may be reported over the limit while still being under it.',
   },
   notes: [
     {
       level: 'warn',
       message:
-        'Multiple glob patterns are undocumented. The vendor shows a single bare pattern (globs: **/*.test.ts) and does not say how several are separated; Driftgate joins them with commas, matching Cursor .mdc and community practice. A rule whose scoping matters and that carries more than one pattern is worth checking in Windsurf before relying on it.',
+        'Multiple glob patterns are undocumented. The vendor shows a single bare pattern (globs: **/*.test.ts) and does not say how several are separated; Rulegate joins them with commas, matching Cursor .mdc and community practice. A rule whose scoping matters and that carries more than one pattern is worth checking in Windsurf before relying on it.',
       source: RULES_DOCS,
     },
     {
       level: 'warn',
       message:
-        '.devin/rules takes precedence over .windsurf/rules. In a repository that has both, the files Driftgate generates are shadowed by a directory it deliberately does not write.',
+        '.devin/rules takes precedence over .windsurf/rules. In a repository that has both, the files Rulegate generates are shadowed by a directory it deliberately does not write.',
       source: RULES_DOCS,
     },
     {

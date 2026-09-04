@@ -36,7 +36,7 @@ import type { DoctorWarning, ToolDiagnosis } from './types.js';
  * is per **rule** — is this rule reaching the model from more than one file? —  which is
  * what `Artifact.provenance.ruleIds` answers directly.
  *
- * A file with no provenance (a global file, an unmanaged one, anything Driftgate did not
+ * A file with no provenance (a global file, an unmanaged one, anything Rulegate did not
  * generate) is keyed by its content hash instead, which is the only signal available for it
  * and is still correct for the identical-concatenation case.
  */
@@ -165,7 +165,7 @@ export function symlinkWarnings(paths: readonly string[]): DoctorWarning[] {
   return paths.map((path) => ({
     code: 'W_SYMLINK' as const,
     paths: [path],
-    message: `${path} is a symlink. Pointing one tool's config at another's is the workaround Driftgate replaces: it checks out as a plain file on Windows, and it makes two files that check as in sync because they are one file.`,
+    message: `${path} is a symlink. Pointing one tool's config at another's is the workaround Rulegate replaces: it checks out as a plain file on Windows, and it makes two files that check as in sync because they are one file.`,
   }));
 }
 
@@ -193,7 +193,7 @@ export function toolNoteWarnings(tool: ToolDiagnosis, docs: AdapterDocs): Doctor
  * Files nothing reads.
  *
  * Two senses, and both are needed. `comparison.orphaned` is the *record* sense:
- * `state.json` says Driftgate generated it and no enabled adapter produces it now. The
+ * `state.json` says Rulegate generated it and no enabled adapter produces it now. The
  * shape sense catches what the record sense structurally cannot — T073's bug is that the
  * failing run *drops* the state entry, so by the time anyone looks, `state.json` no longer
  * mentions the file it abandoned. Only a scan of the disk finds those.
@@ -206,7 +206,7 @@ export function toolNoteWarnings(tool: ToolDiagnosis, docs: AdapterDocs): Doctor
  * `options.ignore` narrows the *shape* sense only (T081). Some directories hold instruction
  * files as data — a golden fixture tree above all, where a `CLAUDE.md` is test input rather
  * than a rule anything loads — and there is no way to tell that from the file. The record
- * sense is never narrowed: `state.json` says Driftgate wrote those, and a tool that can be
+ * sense is never narrowed: `state.json` says Rulegate wrote those, and a tool that can be
  * configured to stop mentioning a file it owns is one config line from forgetting it.
  */
 export async function orphanWarnings(

@@ -1,5 +1,5 @@
 import { LineCounter, parseDocument, type Document, type Node } from 'yaml';
-import { DriftgateError } from '../model/errors.js';
+import { RulegateError } from '../model/errors.js';
 import type { SourceRef } from '../model/ids.js';
 
 export interface YamlParse {
@@ -22,7 +22,7 @@ export function parseYaml(
   text: string,
   file: string,
   lineOffset = 0,
-): { ok: true; value: YamlParse } | { ok: false; error: DriftgateError } {
+): { ok: true; value: YamlParse } | { ok: false; error: RulegateError } {
   const lineCounter = new LineCounter();
   const doc = parseDocument(text, { lineCounter, keepSourceTokens: true });
 
@@ -38,7 +38,7 @@ export function parseYaml(
     const hint = yamlSyntaxHint(text, fatal.message);
     return {
       ok: false,
-      error: new DriftgateError({
+      error: new RulegateError({
         code: 'E_YAML_SYNTAX',
         message: fatal.message.replace(/\s+at line \d+, column \d+.*$/s, ''),
         source: posAt(fatal.pos[0]),

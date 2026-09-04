@@ -1,9 +1,9 @@
-import { DriftgateError } from '../model/errors.js';
+import { RulegateError } from '../model/errors.js';
 import {
   CANONICAL_SCHEMA_VERSION,
   DEFAULT_MANIFEST_OPTIONS,
   type Canonical,
-  type DriftgateManifest,
+  type RulegateManifest,
 } from '../model/canonical.js';
 import {
   AGENTS_MD,
@@ -22,7 +22,7 @@ import type { McpServer } from '../model/mcp.js';
 import type { RuleDocument } from '../model/rule.js';
 import type { ReadOnlyFileSystem } from '../fs/types.js';
 
-export type CanonicalMode = 'driftgate-dir' | 'rules-only' | 'bare-agents-md';
+export type CanonicalMode = 'rulegate-dir' | 'rules-only' | 'bare-agents-md';
 
 export interface ParseInput {
   readonly fs: ReadOnlyFileSystem;
@@ -32,15 +32,15 @@ export interface ParseInput {
 
 export interface ParseResult {
   readonly canonical: Canonical;
-  readonly errors: readonly DriftgateError[];
-  readonly warnings: readonly DriftgateError[];
+  readonly errors: readonly RulegateError[];
+  readonly warnings: readonly RulegateError[];
   readonly mode: CanonicalMode | 'none';
   /** Every file read, repo-relative POSIX, sorted. Feeds `doctor` and state. */
   readonly sourceFiles: readonly string[];
 }
 
 /**
- * Read `.driftgate/` (or a bare AGENTS.md) into the canonical model.
+ * Read `.rulegate/` (or a bare AGENTS.md) into the canonical model.
  *
  * This never throws for anything a user could have written. It accumulates, so three
  * broken rule files produce three messages in one run rather than a game of
@@ -48,18 +48,18 @@ export interface ParseResult {
  */
 export async function parse(input: ParseInput): Promise<ParseResult> {
   const { fs } = input;
-  const errors: DriftgateError[] = [];
-  const warnings: DriftgateError[] = [];
+  const errors: RulegateError[] = [];
+  const warnings: RulegateError[] = [];
   const sourceFiles: string[] = [];
 
   const manifestRaw = await fs.tryReadFile(MANIFEST_PATH);
   const ruleFiles = (await fs.glob(RULES_GLOB)).filter((p) => p.startsWith(`${RULES_DIR}/`));
 
   let mode: CanonicalMode | 'none';
-  let manifest: DriftgateManifest;
+  let manifest: RulegateManifest;
 
   if (manifestRaw !== undefined) {
-    mode = 'driftgate-dir';
+    mode = 'rulegate-dir';
     sourceFiles.push(MANIFEST_PATH);
     const parsed = parseManifest(manifestRaw);
     manifest = parsed.manifest;
@@ -69,11 +69,11 @@ export async function parse(input: ParseInput): Promise<ParseResult> {
     mode = 'rules-only';
     manifest = syntheticManifest(RULES_DIR, input.knownTools ?? [], []);
     warnings.push(
-      new DriftgateError({
+      new RulegateError({
         code: 'E_MANIFEST_INVALID',
         message: `no ${MANIFEST_PATH}; assuming every detected tool is enabled`,
         source: { file: RULES_DIR },
-        hint: `run: driftgate init  (or create ${MANIFEST_PATH})`,
+        hint: `run: rulegate init  (or create ${MANIFEST_PATH})`,
       }),
     );
   } else if (await fs.exists(AGENTS_MD)) {
@@ -86,11 +86,11 @@ export async function parse(input: ParseInput): Promise<ParseResult> {
     return {
       canonical: emptyResultCanonical(),
       errors: [
-        new DriftgateError({
+        new RulegateError({
           code: 'E_NO_CANONICAL_SOURCE',
-          message: 'no canonical source found (.driftgate/ or AGENTS.md)',
+          message: 'no canonical source found (.rulegate/ or AGENTS.md)',
           source: { file: '.' },
-          hint: 'run: driftgate init',
+          hint: 'run: rulegate init',
         }),
       ],
       warnings,
@@ -118,7 +118,7 @@ export async function parse(input: ParseInput): Promise<ParseResult> {
     errors.push(...detectIdConflicts(ruleFiles));
   }
 
-  // MCP lives beside the rules, so it is read in every mode that has a `.driftgate/`.
+  // MCP lives beside the rules, so it is read in every mode that has a `.rulegate/`.
   // A bare `AGENTS.md` repository has nowhere to put it and is not searched.
   const mcpServers: McpServer[] = [];
   if (mode !== 'bare-agents-md') {
@@ -155,16 +155,16 @@ export async function parse(input: ParseInput): Promise<ParseResult> {
  * registry (tests, `doctor` on an unknown repo) stays permissive.
  */
 function checkKnownTools(
-  manifest: DriftgateManifest,
+  manifest: RulegateManifest,
   knownTools: readonly string[] | undefined,
-): DriftgateError[] {
+): RulegateError[] {
   if (knownTools === undefined || knownTools.length === 0) return [];
-  const out: DriftgateError[] = [];
+  const out: RulegateError[] = [];
   for (const tool of manifest.tools) {
     if (knownTools.includes(tool.id)) continue;
     const guess = suggest(tool.id, knownTools);
     out.push(
-      new DriftgateError({
+      new RulegateError({
         code: 'E_UNKNOWN_TOOL',
         message: `no adapter named \`${tool.id}\``,
         source: tool.source,
@@ -183,17 +183,17 @@ function checkKnownTools(
  * NFD spellings of the same accented name. Silently keeping the last one read would
  * make output depend on filesystem order, so this is an error.
  */
-function detectIdConflicts(paths: readonly string[]): DriftgateError[] {
+function detectIdConflicts(paths: readonly string[]): RulegateError[] {
   const byId = new Map<string, string[]>();
   for (const path of paths) {
     const id = deriveRuleId(path);
     byId.set(id, [...(byId.get(id) ?? []), path]);
   }
-  const out: DriftgateError[] = [];
+  const out: RulegateError[] = [];
   for (const [id, files] of byId) {
     if (files.length < 2) continue;
     out.push(
-      new DriftgateError({
+      new RulegateError({
         code: 'E_RULE_ID_CONFLICT',
         message: `rule id \`${id}\` is claimed by ${files.join(' and ')}`,
         source: { file: files[0]! },
@@ -208,7 +208,7 @@ function syntheticManifest(
   file: string,
   knownTools: readonly string[],
   canonicalSources: readonly string[],
-): DriftgateManifest {
+): RulegateManifest {
   return {
     schemaVersion: CANONICAL_SCHEMA_VERSION,
     tools: knownTools.map((id) => ({ id, enabled: true, options: {}, source: { file } })),

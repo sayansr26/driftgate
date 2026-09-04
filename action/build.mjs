@@ -7,7 +7,7 @@ import { build } from 'esbuild';
  *
  * A published Action gets no `npm install`: the runner checks the repository out and runs
  * `dist/main.js` as it stands. It bundles the CLI through its `exports` map, so the input
- * is `packages/cli/dist` and this must run after `pnpm build`. `driftgate` and its six workspace packages resolve only
+ * is `packages/cli/dist` and this must run after `pnpm build`. `rulegate` and its six workspace packages resolve only
  * through the pnpm workspace symlink, so the tsc output that served the in-repo composite
  * cannot work for a consumer. Everything is bundled and the result is committed.
  *
@@ -61,7 +61,7 @@ if (process.argv.includes('--check')) {
     process.exit(0);
   }
   console.error('action/dist/main.js is stale: it does not match a fresh build of action/src.');
-  console.error('run: pnpm --filter @driftgate/action build   and commit the result');
+  console.error('run: pnpm --filter @rulegate/action build   and commit the result');
   process.exit(1);
 }
 

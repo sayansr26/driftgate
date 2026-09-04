@@ -22,7 +22,7 @@ const canonical: Canonical = {
     tools: [],
     options: DEFAULT_MANIFEST_OPTIONS,
     canonicalSources: [],
-    source: { file: '.driftgate/driftgate.yaml' },
+    source: { file: '.rulegate/rulegate.yaml' },
   },
   rules: [],
   mcpServers: [],

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { MemoryFileSystem } from '../src/io/memory.js';
 import { computePlan } from '../src/pipeline/plan.js';
-import { codex } from '@driftgate/adapter-codex';
-import { claudeCode } from '@driftgate/adapter-claude-code';
+import { codex } from '@rulegate/adapter-codex';
+import { claudeCode } from '@rulegate/adapter-claude-code';
 
 /**
  * T083. One server Codex cannot express must not take down the whole run.
@@ -15,12 +15,12 @@ import { claudeCode } from '@driftgate/adapter-claude-code';
  * expressible.
  */
 const MANIFEST = [
-  '.driftgate/driftgate.yaml',
+  '.rulegate/rulegate.yaml',
   'schemaVersion: 1\ntools:\n  - claude-code\n  - codex\n',
 ] as const;
 
 const SERVERS = [
-  '.driftgate/mcp/servers.yaml',
+  '.rulegate/mcp/servers.yaml',
   [
     'schemaVersion: 1',
     'servers:',
@@ -35,7 +35,7 @@ const SERVERS = [
 ] as const;
 
 const RULE = [
-  '.driftgate/rules/10-style.md',
+  '.rulegate/rules/10-style.md',
   '---\ndescription: Style\n---\n\nTwo spaces.\n',
 ] as const;
 

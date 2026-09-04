@@ -2,20 +2,20 @@
 
 # Adapters
 
-Driftgate ships 10 adapters. Each one is a pure module — it reads, it returns values, and it never writes to disk or touches the network. See [writing an adapter](writing-an-adapter.md).
+Rulegate ships 10 adapters. Each one is a pure module — it reads, it returns values, and it never writes to disk or touches the network. See [writing an adapter](writing-an-adapter.md).
 
 | Tool | Id | Coverage | Status | Maintainer | Verified against | Precedence |
 |---|---|---|---|---|---|---|
-| Aider | `aider` | rules | not stated | Driftgate maintainers | Aider docs as published 2026-09-04 (2026-09-04) | [which files it reads](tools/aider.md) |
-| Claude Code | `claude-code` | rules, MCP | not stated | Driftgate maintainers | 2.x (2026-09-01) | [which files it reads](tools/claude-code.md) |
-| Cline | `cline` | rules | not stated | Driftgate maintainers | Cline docs as published 2026-09-04 (2026-09-04) | [which files it reads](tools/cline.md) |
-| Codex CLI | `codex` | rules, MCP | not stated | Driftgate maintainers | CLI docs as published 2026-09-02 (2026-09-02) | [which files it reads](tools/codex.md) |
-| GitHub Copilot | `copilot` | rules, MCP | not stated | Driftgate maintainers | GitHub Docs and VS Code docs as published 2026-09-02 (2026-09-02) | [which files it reads](tools/copilot.md) |
-| Cursor | `cursor` | rules, MCP | not stated | Driftgate maintainers | 1.x (2026-09-01) | [which files it reads](tools/cursor.md) |
-| Gemini CLI | `gemini` | rules | not stated | Driftgate maintainers | CLI docs as published 2026-09-02 (2026-09-02) | [which files it reads](tools/gemini.md) |
-| Roo Code | `roo-code` | rules, MCP | not stated | Driftgate maintainers | Roo Code docs as published 2026-09-04 (2026-09-04) | [which files it reads](tools/roo-code.md) |
-| Windsurf | `windsurf` | rules | not stated | Driftgate maintainers | Cascade docs as published 2026-09-04 (2026-09-04) | [which files it reads](tools/windsurf.md) |
-| Zed | `zed` | rules | not stated | Driftgate maintainers | Zed docs as published 2026-09-04 (2026-09-04) | [which files it reads](tools/zed.md) |
+| Aider | `aider` | rules | not stated | Rulegate maintainers | Aider docs as published 2026-09-04 (2026-09-04) | [which files it reads](tools/aider.md) |
+| Claude Code | `claude-code` | rules, MCP | not stated | Rulegate maintainers | 2.x (2026-09-01) | [which files it reads](tools/claude-code.md) |
+| Cline | `cline` | rules | not stated | Rulegate maintainers | Cline docs as published 2026-09-04 (2026-09-04) | [which files it reads](tools/cline.md) |
+| Codex CLI | `codex` | rules, MCP | not stated | Rulegate maintainers | CLI docs as published 2026-09-02 (2026-09-02) | [which files it reads](tools/codex.md) |
+| GitHub Copilot | `copilot` | rules, MCP | not stated | Rulegate maintainers | GitHub Docs and VS Code docs as published 2026-09-02 (2026-09-02) | [which files it reads](tools/copilot.md) |
+| Cursor | `cursor` | rules, MCP | not stated | Rulegate maintainers | 1.x (2026-09-01) | [which files it reads](tools/cursor.md) |
+| Gemini CLI | `gemini` | rules | not stated | Rulegate maintainers | CLI docs as published 2026-09-02 (2026-09-02) | [which files it reads](tools/gemini.md) |
+| Roo Code | `roo-code` | rules, MCP | not stated | Rulegate maintainers | Roo Code docs as published 2026-09-04 (2026-09-04) | [which files it reads](tools/roo-code.md) |
+| Windsurf | `windsurf` | rules | not stated | Rulegate maintainers | Cascade docs as published 2026-09-04 (2026-09-04) | [which files it reads](tools/windsurf.md) |
+| Zed | `zed` | rules | not stated | Rulegate maintainers | Zed docs as published 2026-09-04 (2026-09-04) | [which files it reads](tools/zed.md) |
 
 Coverage is read from each adapter’s own `docs.files`: a row says `MCP` exactly when that adapter declares a managed file with `role: "mcp"`. Nothing here is hand-maintained.
 

@@ -4,15 +4,15 @@
  * and run `init` -> `sync` -> `check` on a throwaway repository (T029).
  *
  * This is the only thing that exercises the *published* artifact rather than the source
- * tree: `pnpm test` aliases `@driftgate/*` to source, and even the `DRIFTGATE_TEST_DIST=1`
+ * tree: `pnpm test` aliases `@rulegate/*` to source, and even the `RULEGATE_TEST_DIST=1`
  * lane runs `dist/` from inside the workspace, where a missing file in `files` or a wrong
  * path in `exports` still resolves. A package that installs but cannot be imported is a
  * launch-day failure, and it is invisible until somebody installs it.
  *
- * `npx driftgate` proper cannot be smoked before the package exists on the registry
+ * `npx rulegate` proper cannot be smoked before the package exists on the registry
  * (T037): the CLI depends on six workspace packages that nobody can download yet. What
  * this does instead is the same install through npm — tarballs, `overrides` pinning each
- * `@driftgate/*` to its tarball, `node_modules/.bin/driftgate` — which is the identical
+ * `@rulegate/*` to its tarball, `node_modules/.bin/rulegate` — which is the identical
  * resolution path with the registry swapped out.
  *
  * Spawning processes is why this lives in `scripts/` rather than in `packages/`:
@@ -32,23 +32,23 @@ const isWindows = process.platform === 'win32';
 const bin = (name) => (isWindows ? `${name}.cmd` : name);
 
 const PACKAGES = [
-  'driftgate',
-  '@driftgate/core',
-  '@driftgate/adapter-kit',
-  '@driftgate/adapter-claude-code',
-  '@driftgate/adapter-codex',
-  '@driftgate/adapter-copilot',
-  '@driftgate/adapter-cline',
-  '@driftgate/adapter-aider',
-  '@driftgate/adapter-cursor',
-  '@driftgate/adapter-roo-code',
-  '@driftgate/adapter-zed',
-  '@driftgate/interop',
-  '@driftgate/adapter-windsurf',
-  '@driftgate/adapter-gemini',
+  'rulegate',
+  '@rulegate/core',
+  '@rulegate/adapter-kit',
+  '@rulegate/adapter-claude-code',
+  '@rulegate/adapter-codex',
+  '@rulegate/adapter-copilot',
+  '@rulegate/adapter-cline',
+  '@rulegate/adapter-aider',
+  '@rulegate/adapter-cursor',
+  '@rulegate/adapter-roo-code',
+  '@rulegate/adapter-zed',
+  '@rulegate/interop',
+  '@rulegate/adapter-windsurf',
+  '@rulegate/adapter-gemini',
 ];
 
-/** `@driftgate/adapter-claude-code` -> `driftgate-adapter-claude-code-0.0.0.tgz`. */
+/** `@rulegate/adapter-claude-code` -> `rulegate-adapter-claude-code-0.0.0.tgz`. */
 const tarballName = (name) => `${name.replace('@', '').replace('/', '-')}-0.0.0.tgz`;
 
 const failures = [];
@@ -59,7 +59,7 @@ function check(ok, what, detail = '') {
 
 /**
  * `shell: true` on Windows is not a convenience: since Node 20.12, spawning a `.cmd`
- * without a shell throws EINVAL, and `pnpm`, `npm` and the installed `driftgate` are all
+ * without a shell throws EINVAL, and `pnpm`, `npm` and the installed `rulegate` are all
  * `.cmd` shims there. Arguments that contain a space are quoted, because passing them
  * through a shell is what makes that possible in the first place.
  */
@@ -74,7 +74,7 @@ function run(cmd, args, options = {}) {
   };
 }
 
-const work = mkdtempSync(path.join(tmpdir(), 'driftgate-smoke-'));
+const work = mkdtempSync(path.join(tmpdir(), 'rulegate-smoke-'));
 const tarballs = path.join(work, 'tarballs');
 const project = path.join(work, 'project');
 const repo = path.join(work, 'repo');
@@ -96,7 +96,7 @@ try {
     check(existsSync(path.join(tarballs, tarballName(name))), `packed ${name}`);
   }
 
-  // 2. Install, resolving every `@driftgate/*` to its tarball rather than to the registry.
+  // 2. Install, resolving every `@rulegate/*` to its tarball rather than to the registry.
   const overrides = Object.fromEntries(
     PACKAGES.map((name) => [
       name,
@@ -107,10 +107,10 @@ try {
     path.join(project, 'package.json'),
     `${JSON.stringify(
       {
-        name: 'driftgate-smoke',
+        name: 'rulegate-smoke',
         private: true,
         version: '1.0.0',
-        dependencies: { driftgate: overrides['driftgate'] },
+        dependencies: { rulegate: overrides['rulegate'] },
         overrides,
       },
       null,
@@ -123,8 +123,8 @@ try {
   const installSeconds = (Date.now() - installStart) / 1000;
   check(install.code === 0, 'npm install from tarballs', install.stderr.trim().slice(0, 600));
 
-  const driftgate = path.join(project, 'node_modules', '.bin', bin('driftgate'));
-  const dg = (args, cwd = repo) => run(driftgate, args, { cwd });
+  const rulegate = path.join(project, 'node_modules', '.bin', bin('rulegate'));
+  const dg = (args, cwd = repo) => run(rulegate, args, { cwd });
 
   // 3. A cold run of the installed binary. NFR2 asks for under 10 seconds; the install
   //    itself is reported rather than asserted, since it is npm's clock, not ours.
@@ -135,8 +135,8 @@ try {
   check(coldSeconds < 10, `cold start under 10s (${coldSeconds.toFixed(2)}s)`);
   console.log(`      install took ${installSeconds.toFixed(1)}s`);
 
-  // 4. A repository that has never heard of Driftgate: two tools' native config, no
-  //    `.driftgate/`. This is `init`'s whole reason to exist.
+  // 4. A repository that has never heard of Rulegate: two tools' native config, no
+  //    `.rulegate/`. This is `init`'s whole reason to exist.
   writeFileSync(
     path.join(repo, 'CLAUDE.md'),
     '# House rules\n\n## Style\n\nPrefer small modules.\n',
@@ -148,11 +148,11 @@ try {
 
   const plan = dg(['init']);
   check(plan.code === 0, 'init prints a plan', plan.stdout.trim().split('\n').slice(-1)[0]);
-  check(!existsSync(path.join(repo, '.driftgate')), 'init writes nothing without --yes');
+  check(!existsSync(path.join(repo, '.rulegate')), 'init writes nothing without --yes');
 
   const init = dg(['init', '--yes']);
   check(init.code === 0, 'init --yes', init.stderr.trim().slice(0, 400));
-  check(existsSync(path.join(repo, '.driftgate/driftgate.yaml')), 'init created the manifest');
+  check(existsSync(path.join(repo, '.rulegate/rulegate.yaml')), 'init created the manifest');
 
   const sync = dg(['sync']);
   check(sync.code === 0, 'sync', sync.stderr.trim().slice(0, 400));

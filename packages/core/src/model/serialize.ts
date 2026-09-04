@@ -10,10 +10,10 @@ import type { RuleDocument } from './rule.js';
 import type { JsonValue } from './ids.js';
 
 /**
- * Canonical model -> the on-disk `.driftgate/` representation, as path -> contents.
+ * Canonical model -> the on-disk `.rulegate/` representation, as path -> contents.
  *
  * Used by the round-trip test, and by `init` (T019) to write canonical after import.
- * Defaults are omitted rather than written out: a hand-authored `.driftgate/` should
+ * Defaults are omitted rather than written out: a hand-authored `.rulegate/` should
  * look like something a person would write, and the parser restores defaults anyway,
  * so the model still round-trips.
  */
@@ -70,7 +70,7 @@ function serializeRule(rule: RuleDocument): string {
   else if (fm.tools.kind === 'exclude') doc['tools'] = { exclude: [...fm.tools.tools] };
   if (fm.order !== DEFAULT_RULE_ORDER) doc['order'] = fm.order;
 
-  // Unknown keys are re-emitted verbatim so that a round trip through Driftgate never
+  // Unknown keys are re-emitted verbatim so that a round trip through Rulegate never
   // costs a user content it did not understand.
   for (const key of Object.keys(fm.unknown).sort(compareCodepoint)) {
     doc[key] = fm.unknown[key] as JsonValue;
@@ -84,7 +84,7 @@ function serializeRule(rule: RuleDocument): string {
 }
 
 /**
- * Canonical MCP servers -> `.driftgate/mcp/servers.yaml` (T043, RFC-0001 §11).
+ * Canonical MCP servers -> `.rulegate/mcp/servers.yaml` (T043, RFC-0001 §11).
  *
  * Defaults are omitted, like the manifest's: `scope: project`, `enabled: true` and
  * `tools` meaning every tool are what you get by saying nothing, and writing them out

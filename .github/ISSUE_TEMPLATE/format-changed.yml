@@ -1,5 +1,5 @@
 name: Format changed — an adapter is now wrong
-description: A tool changed its config format and Driftgate generates something it no longer reads.
+description: A tool changed its config format and Rulegate generates something it no longer reads.
 title: 'format-changed: <tool>'
 labels: [format-changed, P0]
 body:
@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         **This jumps the queue.** An adapter that generates a file the tool silently ignores
-        is worse than no adapter: `driftgate check` reports the repository as in sync while
+        is worse than no adapter: `rulegate check` reports the repository as in sync while
         the rules reach nothing.
   - type: input
     id: adapter

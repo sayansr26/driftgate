@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { importContextFor } from '@driftgate/adapter-kit/testing';
+import { importContextFor } from '@rulegate/adapter-kit/testing';
 import { codex } from '../src/index.js';
 import { importConfigToml, renderConfigToml } from '../src/mcp.js';
 import { parseToml } from '../src/toml-read.js';
@@ -81,7 +81,7 @@ describe('importConfigToml — T048', () => {
   });
 
   it('warns that non-MCP tables will not survive the first sync', () => {
-    // Driftgate owns this whole file once it writes it. Saying so during `init` is the
+    // Rulegate owns this whole file once it writes it. Saying so during `init` is the
     // difference between a warning and a surprise.
     const { warnings } = importConfigToml(
       '[tui]\ntheme = "dark"\n\n[mcp_servers.s]\ncommand = "x"\n',
@@ -96,7 +96,7 @@ describe('codex read() — the AGENTS.md guard is for rules only (T048)', () => 
   it('imports MCP servers even when AGENTS.md is the canonical source', async () => {
     // The mirror of the write-side bug T046 found. `read()` returned early whenever
     // AGENTS.md was canonical — correct for rules, and it would have silently suppressed
-    // MCP import on every repository that adopts Driftgate through a bare AGENTS.md,
+    // MCP import on every repository that adopts Rulegate through a bare AGENTS.md,
     // which is this tool's most common first contact.
     const ctx = importContextFor('codex-mcp-import/input');
     const result = await codex.read({

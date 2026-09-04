@@ -22,7 +22,7 @@ _(read 2026-09-04; re-read it before you file the precedence data, and put the d
 actually read it in `retrieved`.)_
 
 **MCP is out of scope for this adapter.** Cline documents no project-level MCP config file:
-servers live in user-level storage outside any repository, and Driftgate never writes there.
+servers live in user-level storage outside any repository, and Rulegate never writes there.
 The adapter emits no MCP artifact and records the global rules path as unmanaged instead.
 
 ## What to build
@@ -36,15 +36,15 @@ The adapter emits no MCP artifact and records the global rules path as unmanaged
 
 Cline reads `.cursorrules`, `.windsurfrules` **and** `AGENTS.md` on top of its own
 directory. That means enabling `cline` alongside `codex` sends Cline the same rules twice —
-exactly the situation `driftgate doctor`'s duplicate-load warning exists for. Record those
+exactly the situation `rulegate doctor`'s duplicate-load warning exists for. Record those
 files in `docs.files` with `managed: false` so the warning fires on its own; do not write
 them from this adapter.
 
 ## Steps
 
 ```bash
-driftgate adapter new cline          # prints the plan
-driftgate adapter new cline --yes    # applies it
+rulegate adapter new cline          # prints the plan
+rulegate adapter new cline --yes    # applies it
 pnpm install && pnpm test           # green as generated
 ```
 
@@ -56,7 +56,7 @@ pnpm install && pnpm test           # green as generated
    dated `1970-01-01` so an unverified claim cannot be mistaken for a verified one.
 4. Run Cline against the generated config and confirm it actually loads. Say so in the PR,
    with the version you tested.
-5. Add `cline` to `.driftgate/driftgate.yaml` and run `driftgate sync` — this repository
+5. Add `cline` to `.rulegate/rulegate.yaml` and run `rulegate sync` — this repository
    dogfoods every adapter it ships. Commit the generated file with your change.
 
 ## Done when

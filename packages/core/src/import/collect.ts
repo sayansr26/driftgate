@@ -1,4 +1,4 @@
-import { DriftgateError } from '../model/errors.js';
+import { RulegateError } from '../model/errors.js';
 import { ADAPTER_API_VERSION } from '../adapter/context.js';
 import { emptyCanonical } from '../model/canonical.js';
 import type { Adapter } from '../adapter/adapter.js';
@@ -13,7 +13,7 @@ export interface CollectOptions {
   readonly adapters: readonly Adapter[];
   /**
    * Defaults to an empty model, which is what `init` has: it runs on a repository with no
-   * `.driftgate/`, so there is nothing to parse. Pass a real one only to honour an
+   * `.rulegate/`, so there is nothing to parse. Pass a real one only to honour an
    * existing manifest's `canonicalSources`.
    */
   readonly canonical?: Canonical;
@@ -23,7 +23,7 @@ export interface CollectOptions {
 export interface CollectResult {
   /** One entry per adapter, including adapters that found nothing. */
   readonly sources: readonly ImportSource[];
-  readonly errors: readonly DriftgateError[];
+  readonly errors: readonly RulegateError[];
 }
 
 /**
@@ -42,7 +42,7 @@ export interface CollectResult {
 export async function collectImports(options: CollectOptions): Promise<CollectResult> {
   const canonical = options.canonical ?? emptyCanonical({ file: '<import>' });
   const sources: ImportSource[] = [];
-  const errors: DriftgateError[] = [];
+  const errors: RulegateError[] = [];
 
   for (const adapter of options.adapters) {
     try {
@@ -69,9 +69,9 @@ export async function collectImports(options: CollectOptions): Promise<CollectRe
         mcpWarnings: [],
       });
       errors.push(
-        error instanceof DriftgateError
+        error instanceof RulegateError
           ? error
-          : new DriftgateError({
+          : new RulegateError({
               code: 'E_ADAPTER_FAILED',
               message: `adapter \`${adapter.name}\` failed while importing: ${String(error)}`,
               cause: error,

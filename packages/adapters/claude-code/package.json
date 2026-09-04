@@ -1,9 +1,19 @@
 {
-  "name": "@driftgate/adapter-claude-code",
+  "name": "@rulegate/adapter-claude-code",
   "version": "0.0.0",
-  "description": "Driftgate adapter for claude-code.",
+  "description": "Rulegate adapter for claude-code.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sayansr26/rulegate.git",
+    "directory": "packages/adapters/claude-code"
+  },
+  "homepage": "https://github.com/sayansr26/rulegate#readme",
+  "bugs": "https://github.com/sayansr26/rulegate/issues",
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=20"
   },
@@ -22,6 +32,6 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@driftgate/adapter-kit": "workspace:*"
+    "@rulegate/adapter-kit": "workspace:*"
   }
 }

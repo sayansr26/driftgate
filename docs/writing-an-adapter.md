@@ -1,6 +1,6 @@
 # Writing an adapter
 
-An adapter teaches Driftgate one tool: which files that tool reads, in what order, how to
+An adapter teaches Rulegate one tool: which files that tool reads, in what order, how to
 render canonical rules into its format, and how to read that format back. It is a pure
 module — `{ name, apiVersion, detect, read, write, docs }` — that returns artifacts and
 never touches the disk.
@@ -19,12 +19,12 @@ become `src/docs.ts`, which is the part of an adapter that has value beyond this
 1. **Which files does the tool read?** All of them: project, nested, user-level.
 2. **What happens when two of them apply?** Does the nearest one _replace_ the others
    (`override`), or are they all sent (`additive`)? Getting this backwards makes
-   `driftgate doctor` lie.
+   `rulegate doctor` lie.
 3. **What is the format?** Plain Markdown, Markdown with frontmatter, or something that
    merely resembles a format you know. Assume nothing here; see §2.
 
 If the tool has no published documentation for its config files, say so in the issue and
-stop. Driftgate's precedence data carries a source URL and a verified-against version for
+stop. Rulegate's precedence data carries a source URL and a verified-against version for
 every claim, and a guess cannot have one.
 
 ## 1. Scaffold
@@ -32,8 +32,8 @@ every claim, and a guess cannot have one.
 From a checkout of this repository:
 
 ```bash
-driftgate adapter new kiro          # prints the plan; writes nothing
-driftgate adapter new kiro --yes    # applies it
+rulegate adapter new kiro          # prints the plan; writes nothing
+rulegate adapter new kiro --yes    # applies it
 pnpm install && pnpm test           # green as generated
 ```
 
@@ -89,7 +89,7 @@ caught otherwise:
   emitted YAML sequence parses cleanly and matches nothing.
 
 The scaffold puts a generated golden there so the suite is green on arrival. Replace it.
-The input side (`fixtures/<tool>/input/`) is a small `.driftgate/` — a manifest and three
+The input side (`fixtures/<tool>/input/`) is a small `.rulegate/` — a manifest and three
 rules, one of them scoped to another tool — and rarely needs changing.
 
 ## 3. `detect`
@@ -113,8 +113,8 @@ Detect on things a user of that tool really has — its config directory, its in
 file — and nothing that another tool also creates.
 
 The two fixture repos under `fixtures/<tool>-detect/` are whole repositories, usually
-without a `.driftgate/` at all, because `detect()` runs on repositories that have not
-adopted Driftgate. `positive/` must be detected, `negative/` must not.
+without a `.rulegate/` at all, because `detect()` runs on repositories that have not
+adopted Rulegate. `positive/` must be detected, `negative/` must not.
 
 ## 4. `write`
 
@@ -169,7 +169,7 @@ silent one.
 ## 5. `read`
 
 `read()` turns the tool's native files back into canonical rules, and it is what
-`driftgate init` uses to adopt a repository that has never used Driftgate. It must be
+`rulegate init` uses to adopt a repository that has never used Rulegate. It must be
 **lossless** — losing a line of somebody's instructions during import is the trust-fatal
 failure this project rates highest.
 
@@ -185,7 +185,7 @@ async function read(ctx: AdapterContext): Promise<Partial<Canonical>> {
 ```
 
 `importConcatenated` is two-tier, and the generated-by marker decides which tier applies. A
-file Driftgate wrote is split at its headings — the exact inverse of `renderConcatenated`,
+file Rulegate wrote is split at its headings — the exact inverse of `renderConcatenated`,
 proved by a `write()` → `read()` round trip. A file it did not write is imported **whole**,
 because in somebody's hand-written instructions a heading is prose structure rather than a
 rule boundary, and splitting on it silently reorders their instructions and attaches the
@@ -217,7 +217,7 @@ export const docs: AdapterDocs = {
       pattern: 'GEMINI.md',                // POSIX, relative, literal or glob
       scope: 'project',                    // 'project' | 'global' | 'nested'
       role: 'instructions',                // 'instructions' | 'mcp' | 'skills' | 'settings'
-      managed: true,                       // does Driftgate generate this path?
+      managed: true,                       // does Rulegate generate this path?
       nesting: 'all-merged',               // 'nearest-wins' | 'all-merged' | 'root-only'
       description: '…',
       source: { url: '…', title: '…', retrieved: '2026-09-02' },
@@ -256,7 +256,7 @@ every `managed` claim matches a golden fixture in both directions.
 ## 7. Test
 
 The scaffold's three test files call the harness, which lives at
-`@driftgate/adapter-kit/testing` — a separate entry point from the contract, because it
+`@rulegate/adapter-kit/testing` — a separate entry point from the contract, because it
 reads the filesystem and adapters must not.
 
 | Helper                                       | Asserts                                        |
@@ -280,7 +280,7 @@ tests that passed while catching nothing, and every one of them looked right.
 
 ## 8. Verify in the real tool, and say that you did
 
-Install the tool, run `driftgate sync` in a repository it is configured for, and confirm the
+Install the tool, run `rulegate sync` in a repository it is configured for, and confirm the
 generated file is actually loaded and actually obeyed. Record what you checked and against
 which version in the PR, and put the version in `verifiedAgainst`.
 
@@ -290,8 +290,8 @@ Only this step proves your reading was right.
 ## 9. Dogfood it
 
 This repository generates its own agent config with every adapter it ships. Add your tool id
-to `.driftgate/driftgate.yaml`, run `driftgate sync`, and commit the generated file with your
-change. CI runs `driftgate check` here, so from then on your adapter's output is verified on
+to `.rulegate/rulegate.yaml`, run `rulegate sync`, and commit the generated file with your
+change. CI runs `rulegate check` here, so from then on your adapter's output is verified on
 every push — including on Windows, which is where deterministic rendering breaks.
 
 ## Checklist
@@ -303,5 +303,5 @@ every push — including on Windows, which is where deterministic rendering brea
 - [ ] `read` lossless; round trip passes
 - [ ] `src/docs.ts` complete, every claim carrying a URL you read and a date
 - [ ] Verified in the real tool, version recorded
-- [ ] Added to `.driftgate/driftgate.yaml`, artifacts committed
+- [ ] Added to `.rulegate/rulegate.yaml`, artifacts committed
 - [ ] `pnpm verify` clean, and each new guard mutated once

@@ -3,7 +3,7 @@ import type { DirEntry, ReadOnlyFileSystem } from './types.js';
 /**
  * A read-only view of a filesystem with some paths hidden.
  *
- * Interop needs this because ruler and rulesync **generate the very files Driftgate's
+ * Interop needs this because ruler and rulesync **generate the very files Rulegate's
  * adapters import from**. Run both passes over the same tree and every rule arrives twice:
  * once from `.ruler/*.md`, the source a user actually edits, and once from the `AGENTS.md`
  * ruler built out of it. Masking the observed outputs during the adapter pass keeps the

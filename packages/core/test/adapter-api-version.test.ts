@@ -32,8 +32,8 @@ async function planWith(adapters: readonly Adapter[]): ReturnType<typeof compute
   // E_UNKNOWN_TOOL and the assertions are about the version guard alone.
   const tools = adapters.map((a) => `  - ${a.name}`).join('\n');
   const fs = new MemoryFileSystem([
-    ['.driftgate/driftgate.yaml', `schemaVersion: 1\ntools:\n${tools}\n`],
-    ['.driftgate/rules/10-a.md', 'Body.\n'],
+    ['.rulegate/rulegate.yaml', `schemaVersion: 1\ntools:\n${tools}\n`],
+    ['.rulegate/rules/10-a.md', 'Body.\n'],
   ]);
   return computePlan({ repoRoot: '/repo', fs, adapters });
 }

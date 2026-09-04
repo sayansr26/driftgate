@@ -2,13 +2,13 @@
 
 # Which files does Cline read?
 
-Driftgate adapter id: `cline` · Verified against Cline docs as published 2026-09-04 on 2026-09-04 · [Homepage](https://cline.bot)
+Rulegate adapter id: `cline` · Verified against Cline docs as published 2026-09-04 on 2026-09-04 · [Homepage](https://cline.bot)
 
 Every file below that is present is **sent to the model**, all together. The order ranks specificity rather than authority — nothing here overrides anything else.
 
 ## Precedence
 
-| # | Path | Scope | Role | Driftgate writes it | Nesting |
+| # | Path | Scope | Role | Rulegate writes it | Nesting |
 |---|---|---|---|---|---|
 | 1 | `.clinerules/*.md` | project | instructions | yes | root only |
 | 2 | `.cursorrules` | project | instructions | no | root only |
@@ -20,7 +20,7 @@ Every file below that is present is **sent to the model**, all together. The ord
 
 ### `.clinerules/*.md`
 
-Workspace rules. Cline processes all .md and .txt files inside .clinerules/ and combines them. This is what Driftgate generates; it writes .md only, and imports both extensions.
+Workspace rules. Cline processes all .md and .txt files inside .clinerules/ and combines them. This is what Rulegate generates; it writes .md only, and imports both extensions.
 
 Source: [Cline — Cline Rules](https://docs.cline.bot/features/cline-rules) — retrieved 2026-09-04
 
@@ -32,7 +32,7 @@ Source: [Cline — Cline Rules](https://docs.cline.bot/features/cline-rules) —
 
 ### `.windsurfrules`
 
-Cline reads Windsurf’s legacy rules file as well as its own. Driftgate never writes it. The vendor documents no rank among the workspace formats.
+Cline reads Windsurf’s legacy rules file as well as its own. Rulegate never writes it. The vendor documents no rank among the workspace formats.
 
 Source: [Cline — Cline Rules](https://docs.cline.bot/features/cline-rules) — retrieved 2026-09-04
 
@@ -44,7 +44,7 @@ Source: [Cline — Cline Rules](https://docs.cline.bot/features/cline-rules) —
 
 ### `~/Documents/Cline/Rules`
 
-User-level rules, combined with workspace rules. Workspace rules take precedence when the two conflict — the one ranking the vendor does document. Outside the repository, so Driftgate reports it and never writes it.
+User-level rules, combined with workspace rules. Workspace rules take precedence when the two conflict — the one ranking the vendor does document. Outside the repository, so Rulegate reports it and never writes it.
 
 Source: [Cline — Cline Rules](https://docs.cline.bot/features/cline-rules) — retrieved 2026-09-04
 
@@ -54,7 +54,7 @@ Cline publishes no size cap for rule files.
 
 ## Notes
 
-- **warn** — Cline reads .cursorrules, .windsurfrules and AGENTS.md in addition to .clinerules/. These are additive, not an override chain, so enabling cline alongside codex, cursor or windsurf sends Cline the same canonical rules more than once. `driftgate doctor` counts the cost per repository (W_DUPLICATE_LOAD); this note records why it happens.
+- **warn** — Cline reads .cursorrules, .windsurfrules and AGENTS.md in addition to .clinerules/. These are additive, not an override chain, so enabling cline alongside codex, cursor or windsurf sends Cline the same canonical rules more than once. `rulegate doctor` counts the cost per repository (W_DUPLICATE_LOAD); this note records why it happens.
   Source: [Cline — Cline Rules](https://docs.cline.bot/features/cline-rules) — retrieved 2026-09-04
 - **info** — The vendor documents no precedence among the four workspace formats — only that workspace rules beat global ones. The order in this file leads with Cline’s own directory and asserts nothing further.
   Source: [Cline — Cline Rules](https://docs.cline.bot/features/cline-rules) — retrieved 2026-09-04

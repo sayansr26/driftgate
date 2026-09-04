@@ -2,13 +2,13 @@
 
 # Which files does Gemini CLI read?
 
-Driftgate adapter id: `gemini` · Verified against CLI docs as published 2026-09-02 on 2026-09-02 · [Homepage](https://google-gemini.github.io/gemini-cli/)
+Rulegate adapter id: `gemini` · Verified against CLI docs as published 2026-09-02 on 2026-09-02 · [Homepage](https://google-gemini.github.io/gemini-cli/)
 
 Every file below that is present is **sent to the model**, all together. The order ranks specificity rather than authority — nothing here overrides anything else.
 
 ## Precedence
 
-| # | Path | Scope | Role | Driftgate writes it | Nesting |
+| # | Path | Scope | Role | Rulegate writes it | Nesting |
 |---|---|---|---|---|---|
 | 1 | `**/GEMINI.md` | nested | instructions | no | all-merged |
 | 2 | `GEMINI.md` | project | instructions | yes | all-merged |
@@ -19,19 +19,19 @@ Every file below that is present is **sent to the model**, all together. The ord
 
 ### `**/GEMINI.md`
 
-Component-level context. Gemini scans directories below the working directory, honouring .gitignore and .geminiignore, and appends what it finds. Driftgate writes only the root file; a nested one is somebody else’s.
+Component-level context. Gemini scans directories below the working directory, honouring .gitignore and .geminiignore, and appends what it finds. Rulegate writes only the root file; a nested one is somebody else’s.
 
 Source: [Gemini CLI — Provide context with GEMINI.md files](https://google-gemini.github.io/gemini-cli/docs/cli/gemini-md.html) — retrieved 2026-09-02
 
 ### `GEMINI.md`
 
-The file Driftgate generates. Gemini walks from the working directory up to the project root (the directory holding .git) collecting these, then concatenates them — a nested file adds to this one rather than replacing it.
+The file Rulegate generates. Gemini walks from the working directory up to the project root (the directory holding .git) collecting these, then concatenates them — a nested file adds to this one rather than replacing it.
 
 Source: [Gemini CLI — Provide context with GEMINI.md files](https://google-gemini.github.io/gemini-cli/docs/cli/gemini-md.html) — retrieved 2026-09-02
 
 ### `~/.gemini/GEMINI.md`
 
-User-wide context applied to every project, read before any repository file. Read-only context for `doctor`: Driftgate never writes outside the repository.
+User-wide context applied to every project, read before any repository file. Read-only context for `doctor`: Rulegate never writes outside the repository.
 
 Source: [Gemini CLI — Provide context with GEMINI.md files](https://google-gemini.github.io/gemini-cli/docs/cli/gemini-md.html) — retrieved 2026-09-02
 
@@ -47,7 +47,7 @@ No byte cap is documented in the Gemini CLI documentation cited above. Gemini co
 
 ## Notes
 
-- **warn** — Gemini reads AGENTS.md only if `context.fileName` in .gemini/settings.json says so — it is a configured alias, not a built-in fallback. A repository that has set it and also enables the codex adapter gives Gemini the same rules twice, once from GEMINI.md and once from AGENTS.md. Driftgate does not read settings.json, so it cannot warn about this per-repo; `doctor` reports the setting rather than guessing.
+- **warn** — Gemini reads AGENTS.md only if `context.fileName` in .gemini/settings.json says so — it is a configured alias, not a built-in fallback. A repository that has set it and also enables the codex adapter gives Gemini the same rules twice, once from GEMINI.md and once from AGENTS.md. Rulegate does not read settings.json, so it cannot warn about this per-repo; `doctor` reports the setting rather than guessing.
   Source: [Gemini CLI — Provide context with GEMINI.md files](https://google-gemini.github.io/gemini-cli/docs/cli/gemini-md.html) — retrieved 2026-09-02
 - **info** — Gemini has no per-glob rule mechanism, so a glob-scoped canonical rule is rendered with an "Applies to:" line stating its scope in prose. Lossy, but visibly so; dropping the scope silently would turn a component-only rule into a repo-wide one.
 - **info** — Everything found is concatenated into every prompt, so context files are a running token cost rather than a lookup. `/memory show` in the CLI prints the combined text, and the footer counts the loaded files.

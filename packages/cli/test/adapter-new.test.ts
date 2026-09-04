@@ -10,7 +10,7 @@ import {
   selects,
   sortRules,
   withHtmlMarker,
-} from '@driftgate/core';
+} from '@rulegate/core';
 import { runAdapterNew } from '../src/commands/adapter/index.js';
 import { registerInRegistry } from '../src/commands/adapter/register.js';
 import { ExitCode } from '../src/ui/exit.js';
@@ -45,7 +45,7 @@ let stdout: string[];
 let stderr: string[];
 
 beforeEach(async () => {
-  repo = await mkdtemp(path.join(tmpdir(), 'driftgate-scaffold-'));
+  repo = await mkdtemp(path.join(tmpdir(), 'rulegate-scaffold-'));
   for (const file of PATCHED) {
     await mkdir(path.join(repo, path.dirname(file)), { recursive: true });
     await cp(path.join(repoRoot, file), path.join(repo, file));
@@ -76,7 +76,7 @@ const exists = (rel: string): Promise<boolean> =>
     () => false,
   );
 
-describe('driftgate adapter new — refusals', () => {
+describe('rulegate adapter new — refusals', () => {
   it('rejects an id that is not a package directory name', async () => {
     for (const bad of ['Kiro', 'my tool', 'tool/../etc', '-kiro', '']) {
       expect(await runAdapterNew({ cwd: repo, tool: bad })).toBe(ExitCode.Usage);
@@ -91,10 +91,10 @@ describe('driftgate adapter new — refusals', () => {
   });
 
   it('refuses to run outside a checkout of the monorepo', async () => {
-    const elsewhere = await mkdtemp(path.join(tmpdir(), 'driftgate-elsewhere-'));
+    const elsewhere = await mkdtemp(path.join(tmpdir(), 'rulegate-elsewhere-'));
     try {
       expect(await runAdapterNew({ cwd: elsewhere, tool: 'kiro' })).toBe(ExitCode.Usage);
-      expect(stderr.join('')).toContain('not a checkout of the driftgate monorepo');
+      expect(stderr.join('')).toContain('not a checkout of the rulegate monorepo');
     } finally {
       await rm(elsewhere, { recursive: true, force: true });
     }
@@ -116,20 +116,20 @@ describe('driftgate adapter new — refusals', () => {
   });
 });
 
-describe('driftgate adapter new — the plan', () => {
+describe('rulegate adapter new — the plan', () => {
   it('writes nothing without --yes', async () => {
     expect(await runAdapterNew({ cwd: repo, tool: 'kiro' })).toBe(ExitCode.Ok);
 
     const output = stdout.join('');
     expect(output).toContain('would create  packages/adapters/kiro/src/index.ts');
     expect(output).toContain('would register in  packages/cli/src/registry.ts');
-    expect(output).toContain('driftgate adapter new kiro --yes');
+    expect(output).toContain('rulegate adapter new kiro --yes');
     expect(await exists('packages/adapters/kiro/package.json')).toBe(false);
     expect(await read('packages/cli/src/registry.ts')).not.toContain('kiro');
   });
 });
 
-describe('driftgate adapter new --yes', () => {
+describe('rulegate adapter new --yes', () => {
   beforeEach(async () => {
     expect(await runAdapterNew({ cwd: repo, tool: 'kiro', yes: true })).toBe(ExitCode.Ok);
   });
@@ -143,7 +143,7 @@ describe('driftgate adapter new --yes', () => {
       'packages/adapters/kiro/test/detect.test.ts',
       'packages/adapters/kiro/test/write.test.ts',
       'packages/adapters/kiro/test/read.test.ts',
-      'fixtures/kiro/input/.driftgate/driftgate.yaml',
+      'fixtures/kiro/input/.rulegate/rulegate.yaml',
       'fixtures/kiro/expected/KIRO.md',
       'fixtures/kiro-detect/positive/KIRO.md',
       'fixtures/kiro-detect/negative/README.md',
@@ -156,7 +156,7 @@ describe('driftgate adapter new --yes', () => {
 
   it('registers the adapter in all four places, in sorted position', async () => {
     const registry = await read('packages/cli/src/registry.ts');
-    expect(registry).toContain("import { kiro } from '@driftgate/adapter-kiro';");
+    expect(registry).toContain("import { kiro } from '@rulegate/adapter-kiro';");
 
     // Asserted as *sorted position*, not as a pinned roster. The literal list was
     // roster-bound: every new shipped adapter broke this test for a reason that had
@@ -169,10 +169,10 @@ describe('driftgate adapter new --yes', () => {
     expect([...names].sort()).toEqual(names);
 
     expect(await read('packages/cli/package.json')).toContain(
-      '"@driftgate/adapter-kiro": "workspace:*"',
+      '"@rulegate/adapter-kiro": "workspace:*"',
     );
     expect(await read('vitest.config.ts')).toContain(
-      "'@driftgate/adapter-kiro': src('./packages/adapters/kiro/src/index.ts')",
+      "'@rulegate/adapter-kiro': src('./packages/adapters/kiro/src/index.ts')",
     );
     // RFC-0001 §4.1 is asserted against the registry by `rfc-output.test.ts`, so an
     // unpatched table is a failing suite rather than a documentation nit.
@@ -183,7 +183,7 @@ describe('driftgate adapter new --yes', () => {
     const pkg = JSON.parse(await read('packages/cli/package.json')) as {
       dependencies: Record<string, string>;
     };
-    expect(pkg.dependencies['@driftgate/adapter-kiro']).toBe('workspace:*');
+    expect(pkg.dependencies['@rulegate/adapter-kiro']).toBe('workspace:*');
 
     const rfc = (await read('docs/rfc-0001-canonical-format.md')).split('\n');
     const table = rfc.slice(rfc.findIndex((l) => /^\|\s*Id\s*\|/.test(l)));
@@ -223,9 +223,9 @@ describe('driftgate adapter new --yes', () => {
 describe('the registry patch', () => {
   it('is idempotent in shape: importing and listing stay in one sorted order', () => {
     const source = [
-      "import { gemini } from '@driftgate/adapter-gemini';",
-      "import { codex } from '@driftgate/adapter-codex';",
-      "import type { Adapter } from '@driftgate/core';",
+      "import { gemini } from '@rulegate/adapter-gemini';",
+      "import { codex } from '@rulegate/adapter-codex';",
+      "import type { Adapter } from '@rulegate/core';",
       '',
       'export const ADAPTERS: readonly Adapter[] = [gemini, codex];',
       '',
@@ -233,10 +233,10 @@ describe('the registry patch', () => {
 
     expect(registerInRegistry(source, 'kiro')).toBe(
       [
-        "import { codex } from '@driftgate/adapter-codex';",
-        "import { gemini } from '@driftgate/adapter-gemini';",
-        "import { kiro } from '@driftgate/adapter-kiro';",
-        "import type { Adapter } from '@driftgate/core';",
+        "import { codex } from '@rulegate/adapter-codex';",
+        "import { gemini } from '@rulegate/adapter-gemini';",
+        "import { kiro } from '@rulegate/adapter-kiro';",
+        "import type { Adapter } from '@rulegate/core';",
         '',
         'export const ADAPTERS: readonly Adapter[] = [codex, gemini, kiro];',
         '',

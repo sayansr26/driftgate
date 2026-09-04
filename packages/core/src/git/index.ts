@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { DriftgateError } from '../model/errors.js';
+import { RulegateError } from '../model/errors.js';
 import { compareCodepoint } from '../render/order.js';
 import { normalizeText } from '../render/eol.js';
 import { escapesRoot, normalizeRelative } from '../fs/paths.js';
@@ -63,7 +63,7 @@ export class StagedFileSystem implements ReadOnlyFileSystem {
   async readFile(relPath: string): Promise<string> {
     const text = await this.tryReadFile(relPath);
     if (text === undefined) {
-      throw new DriftgateError({
+      throw new RulegateError({
         code: 'E_GIT_NOT_STAGED',
         message: `${relPath} is not in the git index`,
         source: { file: relPath },
@@ -90,7 +90,7 @@ export class StagedFileSystem implements ReadOnlyFileSystem {
    */
   readFileRaw(relPath: string): Promise<Uint8Array> {
     return Promise.reject(
-      new DriftgateError({
+      new RulegateError({
         code: 'E_GIT_NOT_STAGED',
         message: `reading raw bytes from the git index is not supported (${relPath})`,
         hint: 'this is a read-only staged view; run the command without --staged to read the working tree',
@@ -137,7 +137,7 @@ export class StagedFileSystem implements ReadOnlyFileSystem {
 
   #rel(relPath: string): string {
     if (escapesRoot(relPath)) {
-      throw new DriftgateError({
+      throw new RulegateError({
         code: 'E_PATH_ESCAPE',
         message: `path escapes the repository root: ${relPath}`,
         source: { file: relPath },
@@ -166,7 +166,7 @@ export class StagedFileSystem implements ReadOnlyFileSystem {
     if (!(await this.#files()).has(rel)) return undefined;
     try {
       // `:./` resolves the path against the process's cwd rather than the repository root,
-      // which is what makes this correct when Driftgate's root is a subdirectory of git's.
+      // which is what makes this correct when Rulegate's root is a subdirectory of git's.
       const raw = await run(['cat-file', 'blob', `:./${rel}`], this.#cwd);
       // The same normalization `NodeFileSystem.readFile` applies. Without it a CRLF file
       // staged on Windows would compare unequal to the identical file read from disk, and
@@ -190,7 +190,7 @@ function run(args: readonly string[], cwd: string): Promise<string> {
     // that keeps a future edit from adding a fourth subcommand without touching the
     // declared list — including one that reaches the network.
     return Promise.reject(
-      new DriftgateError({
+      new RulegateError({
         code: 'E_GIT_FAILED',
         message: `refusing to run git ${String(subcommand)}`,
       }),

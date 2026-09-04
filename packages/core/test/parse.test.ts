@@ -21,20 +21,20 @@ describe('valid input', () => {
   it('parses a manifest and rules', async () => {
     const result = await parse({
       fs: new MemoryFileSystem([
-        ['.driftgate/driftgate.yaml', 'schemaVersion: 1\ntools: [claude-code, cursor]\n'],
-        ['.driftgate/rules/10-style.md', '---\ndescription: Style\norder: 10\n---\n\nUse tabs.\n'],
-        ['.driftgate/rules/20-tests.md', '---\ndescription: Testing\n---\n\nVitest.\n'],
+        ['.rulegate/rulegate.yaml', 'schemaVersion: 1\ntools: [claude-code, cursor]\n'],
+        ['.rulegate/rules/10-style.md', '---\ndescription: Style\norder: 10\n---\n\nUse tabs.\n'],
+        ['.rulegate/rules/20-tests.md', '---\ndescription: Testing\n---\n\nVitest.\n'],
       ]),
       knownTools: KNOWN_TOOLS,
     });
 
     expect(result.errors).toEqual([]);
-    expect(result.mode).toBe('driftgate-dir');
+    expect(result.mode).toBe('rulegate-dir');
     expect(result.canonical.rules).toHaveLength(2);
     expect(result.sourceFiles).toEqual([
-      '.driftgate/driftgate.yaml',
-      '.driftgate/rules/10-style.md',
-      '.driftgate/rules/20-tests.md',
+      '.rulegate/rulegate.yaml',
+      '.rulegate/rules/10-style.md',
+      '.rulegate/rules/20-tests.md',
     ]);
   });
 
@@ -42,10 +42,10 @@ describe('valid input', () => {
     const ok = await parse({
       fs: new MemoryFileSystem([
         [
-          '.driftgate/driftgate.yaml',
+          '.rulegate/rulegate.yaml',
           'schemaVersion: 1\ntools: [cursor]\noptions:\n  ignore:\n    - fixtures/**\n',
         ],
-        ['.driftgate/rules/a.md', 'Body.\n'],
+        ['.rulegate/rules/a.md', 'Body.\n'],
       ]),
       knownTools: KNOWN_TOOLS,
     });
@@ -56,8 +56,8 @@ describe('valid input', () => {
     // suppressed anything would hide the finding from every repo that never set it.
     const bare = await parse({
       fs: new MemoryFileSystem([
-        ['.driftgate/driftgate.yaml', 'schemaVersion: 1\ntools: [cursor]\n'],
-        ['.driftgate/rules/a.md', 'Body.\n'],
+        ['.rulegate/rulegate.yaml', 'schemaVersion: 1\ntools: [cursor]\n'],
+        ['.rulegate/rules/a.md', 'Body.\n'],
       ]),
       knownTools: KNOWN_TOOLS,
     });
@@ -66,24 +66,24 @@ describe('valid input', () => {
     const bad = await parse({
       fs: new MemoryFileSystem([
         [
-          '.driftgate/driftgate.yaml',
+          '.rulegate/rulegate.yaml',
           'schemaVersion: 1\ntools: [cursor]\noptions:\n  ignore:\n    - 7\n',
         ],
-        ['.driftgate/rules/a.md', 'Body.\n'],
+        ['.rulegate/rules/a.md', 'Body.\n'],
       ]),
       knownTools: KNOWN_TOOLS,
     });
     expect(bad.errors).toHaveLength(1);
     expect(bad.errors[0]?.message).toContain('options.ignore[0]');
-    expect(bad.errors[0]?.source?.file).toBe('.driftgate/driftgate.yaml');
+    expect(bad.errors[0]?.source?.file).toBe('.rulegate/rulegate.yaml');
     expect(bad.errors[0]?.source?.line).toBe(5);
   });
 
   it('accepts a rule with no frontmatter at all', async () => {
     const result = await parse({
       fs: new MemoryFileSystem([
-        ['.driftgate/driftgate.yaml', 'schemaVersion: 1\ntools: [cursor]\n'],
-        ['.driftgate/rules/plain.md', 'Just prose, no frontmatter.\n'],
+        ['.rulegate/rulegate.yaml', 'schemaVersion: 1\ntools: [cursor]\n'],
+        ['.rulegate/rules/plain.md', 'Just prose, no frontmatter.\n'],
       ]),
       knownTools: KNOWN_TOOLS,
     });
@@ -113,14 +113,14 @@ describe('valid input', () => {
 
   it('warns but proceeds when rules exist without a manifest', async () => {
     const result = await parse({
-      fs: new MemoryFileSystem([['.driftgate/rules/a.md', 'Body.\n']]),
+      fs: new MemoryFileSystem([['.rulegate/rules/a.md', 'Body.\n']]),
       knownTools: KNOWN_TOOLS,
     });
 
     expect(result.mode).toBe('rules-only');
     expect(result.errors).toEqual([]);
     expect(result.warnings).toHaveLength(1);
-    expect(result.warnings[0]?.hint).toContain('driftgate init');
+    expect(result.warnings[0]?.hint).toContain('rulegate init');
   });
 
   it('reports a missing canonical source with a next step', async () => {
@@ -128,7 +128,7 @@ describe('valid input', () => {
 
     expect(result.mode).toBe('none');
     expect(result.errors[0]?.code).toBe('E_NO_CANONICAL_SOURCE');
-    expect(result.errors[0]?.hint).toBe('run: driftgate init');
+    expect(result.errors[0]?.hint).toBe('run: rulegate init');
   });
 });
 
@@ -199,10 +199,10 @@ describe('malformed input', () => {
   it('accumulates every error in one run rather than stopping at the first', async () => {
     const result = await parse({
       fs: new MemoryFileSystem([
-        ['.driftgate/driftgate.yaml', 'schemaVersion: 1\ntools: [cursor]\n'],
-        ['.driftgate/rules/a.md', '---\norder: high\n---\n\nA.\n'],
-        ['.driftgate/rules/b.md', '---\norder: low\n---\n\nB.\n'],
-        ['.driftgate/rules/c.md', '---\ndescription: 5\n---\n\nC.\n'],
+        ['.rulegate/rulegate.yaml', 'schemaVersion: 1\ntools: [cursor]\n'],
+        ['.rulegate/rules/a.md', '---\norder: high\n---\n\nA.\n'],
+        ['.rulegate/rules/b.md', '---\norder: low\n---\n\nB.\n'],
+        ['.rulegate/rules/c.md', '---\ndescription: 5\n---\n\nC.\n'],
       ]),
       knownTools: KNOWN_TOOLS,
     });
@@ -210,9 +210,9 @@ describe('malformed input', () => {
     // Three broken files should produce three messages, not a game of whack-a-mole.
     expect(result.errors).toHaveLength(3);
     expect(result.errors.map((e) => e.source?.file).sort()).toEqual([
-      '.driftgate/rules/a.md',
-      '.driftgate/rules/b.md',
-      '.driftgate/rules/c.md',
+      '.rulegate/rules/a.md',
+      '.rulegate/rules/b.md',
+      '.rulegate/rules/c.md',
     ]);
   });
 
@@ -220,11 +220,11 @@ describe('malformed input', () => {
     // Exercised in memory: APFS normalizes filenames on lookup and silently merges
     // these two, so the collision is unreproducible on macOS but real on ext4. That
     // platform split is precisely why ids are NFC-normalized.
-    const nfc = '.driftgate/rules/café.md';
-    const nfd = '.driftgate/rules/café.md';
+    const nfc = '.rulegate/rules/café.md';
+    const nfd = '.rulegate/rules/café.md';
     const result = await parse({
       fs: new MemoryFileSystem([
-        ['.driftgate/driftgate.yaml', 'schemaVersion: 1\ntools: [cursor]\n'],
+        ['.rulegate/rulegate.yaml', 'schemaVersion: 1\ntools: [cursor]\n'],
         [nfc, 'Composed.\n'],
         [nfd, 'Decomposed.\n'],
       ]),

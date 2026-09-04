@@ -1,4 +1,4 @@
-import { MARKER_TEXT, type Adapter } from '@driftgate/core';
+import { MARKER_TEXT, type Adapter } from '@rulegate/core';
 import { compareFixture, formatFixtureReport } from './compare.js';
 import {
   importContextFor,
@@ -113,7 +113,7 @@ export async function expectContentCovered(
       // and Windsurf's `trigger` are both *computed* from whether the rule has globs, so
       // `read()` deliberately drops them and the next render recomputes them. Recovering
       // one would put a value in canonical nobody wrote, which is how `sync` starts
-      // reporting drift against text Driftgate invented (T019).
+      // reporting drift against text Rulegate invented (T019).
       if (/^(alwaysApply|trigger)\s*:/.test(line)) continue;
       // A frontmatter key with nothing after it — Cursor's empty `globs:` — carries no
       // content to lose. It is the *absence* of globs, and the import represents that

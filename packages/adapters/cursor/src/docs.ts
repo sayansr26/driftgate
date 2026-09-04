@@ -1,4 +1,4 @@
-import type { AdapterDocs } from '@driftgate/adapter-kit';
+import type { AdapterDocs } from '@rulegate/adapter-kit';
 
 const MCP_DOCS = {
   url: 'https://cursor.com/docs/context/mcp',
@@ -35,7 +35,7 @@ export const docs: AdapterDocs = {
       role: 'instructions',
       managed: true,
       description:
-        'Legacy single-file rules, superseded by .cursor/rules. Driftgate writes it only when `options.legacy` is true.',
+        'Legacy single-file rules, superseded by .cursor/rules. Rulegate writes it only when `options.legacy` is true.',
       source: RULES_DOCS,
     },
     {
@@ -44,7 +44,7 @@ export const docs: AdapterDocs = {
       role: 'instructions',
       managed: false,
       description:
-        'User-level rules applied across projects. Read-only context for `doctor`; Driftgate never writes outside the repository.',
+        'User-level rules applied across projects. Read-only context for `doctor`; Rulegate never writes outside the repository.',
       source: RULES_DOCS,
     },
     {
@@ -53,7 +53,7 @@ export const docs: AdapterDocs = {
       role: 'mcp',
       managed: true,
       description:
-        'Project MCP servers. The file Driftgate generates from .driftgate/mcp/servers.yaml.',
+        'Project MCP servers. The file Rulegate generates from .rulegate/mcp/servers.yaml.',
       source: MCP_DOCS,
     },
     {
@@ -62,7 +62,7 @@ export const docs: AdapterDocs = {
       role: 'mcp',
       managed: false,
       description:
-        'User-level MCP servers, available in every project. Read-only context for `doctor`; Driftgate never writes outside the repository.',
+        'User-level MCP servers, available in every project. Read-only context for `doctor`; Rulegate never writes outside the repository.',
       source: MCP_DOCS,
     },
   ],

@@ -1,6 +1,6 @@
 import {
   ADAPTER_API_VERSION,
-  DriftgateError,
+  RulegateError,
   basenamePosix,
   claimRuleId,
   detected,
@@ -19,7 +19,7 @@ import {
   type DetectResult,
   type ImportResult,
   type RuleDocument,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 import { parseRule, renderFrontmatter } from './frontmatter.js';
 import { docs } from './docs.js';
 
@@ -110,7 +110,7 @@ function write(ctx: AdapterContext): Promise<readonly Artifact[]> {
     const path = `${RULES_DIR}/${slugForId(rule.id)}.md`;
     const previous = claimed.get(path);
     if (previous !== undefined) {
-      throw new DriftgateError({
+      throw new RulegateError({
         code: 'E_ARTIFACT_PATH_CONFLICT',
         message: `rules \`${previous}\` and \`${rule.id}\` both render to ${path}`,
         source: rule.source,

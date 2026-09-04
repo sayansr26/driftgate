@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   ADAPTER_API_VERSION,
-  DRIFTGATE_DIR,
+  RULEGATE_DIR,
   MANIFEST_PATH,
   NodeFileSystem,
   emptyCanonical,
@@ -11,7 +11,7 @@ import {
   serializeCanonical,
   type Adapter,
   type AdapterContext,
-} from '@driftgate/core';
+} from '@rulegate/core';
 
 /**
  * A small fixture runner shared by the adapters.
@@ -29,7 +29,7 @@ export async function contextFor(fixtureDir: string, adapter: Adapter): Promise<
   const fs = new NodeFileSystem(repoRoot);
   const result = await parse({ fs });
   // A missing canonical source is expected here rather than exceptional: `detect()`
-  // runs on repositories that have not adopted Driftgate yet — that is the first step
+  // runs on repositories that have not adopted Rulegate yet — that is the first step
   // of `init`. Any other parse error is a broken fixture.
   const fatal = result.errors.filter((e) => e.code !== 'E_NO_CANONICAL_SOURCE');
   if (fatal.length > 0) {
@@ -101,9 +101,9 @@ export function fixturePath(fixtureDir: string): string {
  * The import fixture layout: `fixtures/<tool>-import/{input,expected}`.
  *
  * A third shape, because import asks a third question. `input/` is a repository with
- * the tool's *native* files and no `.driftgate/` — the state a real repo is in before
- * anyone has heard of Driftgate — and `expected/` holds the canonical rules the import
- * must produce, serialized exactly as `init` would write them under `.driftgate/`.
+ * the tool's *native* files and no `.rulegate/` — the state a real repo is in before
+ * anyone has heard of Rulegate — and `expected/` holds the canonical rules the import
+ * must produce, serialized exactly as `init` would write them under `.rulegate/`.
  */
 export function importFixture(tool: string): { readonly input: string; readonly expected: string } {
   return { input: `${tool}-import/input`, expected: `${tool}-import/expected` };
@@ -117,7 +117,7 @@ export function importFixture(tool: string): { readonly input: string; readonly 
  * instruction file is `AGENTS.md` enters bare-AGENTS.md mode and lists that file in
  * `canonicalSources` — so a parsed context makes the Codex adapter's self-reference guard
  * fire and `read()` return nothing at all. Correct for `sync`, wrong for `init`: a user
- * running `init` is asking for a `.driftgate/`, and handing them back "your AGENTS.md is
+ * running `init` is asking for a `.rulegate/`, and handing them back "your AGENTS.md is
  * already canonical, there is nothing to do" is a refusal dressed as a result. The guard
  * still protects the case it was written for, a manifest that declares the file canonical.
  */
@@ -136,7 +136,7 @@ export function importContextFor(fixtureDir: string): AdapterContext {
  * Run an adapter's `read()` over `fixtures/<tool>-import/input` and serialize the result.
  *
  * The comparison is made against serialized canonical rather than against an in-memory
- * model because the bytes are what a user ends up reading in `.driftgate/rules/`, and a
+ * model because the bytes are what a user ends up reading in `.rulegate/rules/`, and a
  * golden a reviewer cannot read is a golden nobody checks. The manifest is dropped:
  * `read()` returns rules, and assembling a manifest is `init`'s job (T019).
  */
@@ -151,7 +151,7 @@ export async function importFixtureRules(
   const out = new Map<string, string>();
   for (const [file, contents] of serializeCanonical(canonical)) {
     if (file === MANIFEST_PATH) continue;
-    out.set(file.slice(`${DRIFTGATE_DIR}/`.length), contents);
+    out.set(file.slice(`${RULEGATE_DIR}/`.length), contents);
   }
   return out;
 }

@@ -15,13 +15,13 @@ export { ADAPTERS, ADAPTER_NAMES } from './registry.js';
  * What the GitHub Action (T053) needs to turn a `CheckResult` into inline annotations,
  * re-exported here rather than depended on directly.
  *
- * `action/` declares exactly one dependency, `driftgate`, so that the set of packages
- * allowed to import `@driftgate/core` stays `cli` and `adapter-kit` — the boundary that
+ * `action/` declares exactly one dependency, `rulegate`, so that the set of packages
+ * allowed to import `@rulegate/core` stays `cli` and `adapter-kit` — the boundary that
  * keeps core's deliberately wide surface (it carries no compatibility guarantee) out of
  * anything else's import graph.
  */
-export { diffLines, type DiffLine, type Hunk } from '@driftgate/core';
-export type { VerifyEntry, VerifyReport, VerifyStatus } from '@driftgate/core';
+export { diffLines, type DiffLine, type Hunk } from '@rulegate/core';
+export type { VerifyEntry, VerifyReport, VerifyStatus } from '@rulegate/core';
 export {
   HINT_HAND_EDITED,
   HINT_IMPORT,

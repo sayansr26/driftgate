@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import path from 'node:path';
-import { NodeFileSystem, collectImports, dedupeImported, type ImportSource } from '@driftgate/core';
-import { fixturesRoot } from '@driftgate/adapter-kit/testing';
+import { NodeFileSystem, collectImports, dedupeImported, type ImportSource } from '@rulegate/core';
+import { fixturesRoot } from '@rulegate/adapter-kit/testing';
 import { ADAPTERS } from '../src/registry.js';
 
 /**

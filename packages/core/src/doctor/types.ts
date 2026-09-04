@@ -1,9 +1,9 @@
-import type { DriftgateError } from '../model/errors.js';
+import type { RulegateError } from '../model/errors.js';
 import type { FileResolution, PrecedenceEntry, SourceLink } from '../adapter/docs.js';
 import type { ToolId } from '../model/ids.js';
 
 /**
- * What Driftgate knows about one file a tool will read.
+ * What Rulegate knows about one file a tool will read.
  *
  * `absent`, `unmanaged` and `not-probed` are three different answers and are deliberately
  * kept apart. `compareToDisk` already separates `untracked` from `unmanaged` for the same
@@ -12,12 +12,12 @@ import type { ToolId } from '../model/ids.js';
  * confidently wrong in the place a user most needs it right.
  */
 export type FileSyncStatus =
-  /** Driftgate generates it, it is on disk, and the bytes match what we would render. */
+  /** Rulegate generates it, it is on disk, and the bytes match what we would render. */
   | 'generated'
-  /** Driftgate generates it, it is on disk, and the bytes differ: hand-edited. */
+  /** Rulegate generates it, it is on disk, and the bytes differ: hand-edited. */
   | 'drifted'
   /**
-   * Driftgate generates it, the bytes are still the ones we wrote, and the canonical
+   * Rulegate generates it, the bytes are still the ones we wrote, and the canonical
    * source has moved on: `sync` would rewrite it. Distinct from `drifted` because the
    * recovery differs — nothing of the user's is at stake, they just have not run `sync`.
    *
@@ -26,9 +26,9 @@ export type FileSyncStatus =
    * `generated` while `check` called it `stale` (T079).
    */
   | 'stale'
-  /** Driftgate would generate it and it is not on disk. */
+  /** Rulegate would generate it and it is not on disk. */
   | 'missing'
-  /** The tool reads it, Driftgate does not generate it, and it exists. */
+  /** The tool reads it, Rulegate does not generate it, and it exists. */
   | 'unmanaged'
   /** The declared pattern matches nothing. */
   | 'absent'
@@ -97,7 +97,7 @@ export interface ToolDiagnosis {
   /** The vendor's own name for the tool, from `AdapterDocs.toolName`. */
   readonly toolName: string;
   readonly detected: boolean;
-  /** Enabled in `.driftgate/driftgate.yaml`. A tool can be detected and not enabled. */
+  /** Enabled in `.rulegate/rulegate.yaml`. A tool can be detected and not enabled. */
   readonly enabled: boolean;
   /** Repo-relative POSIX, sorted — straight from the adapter's `DetectResult`. */
   readonly evidence: readonly string[];
@@ -112,7 +112,7 @@ export interface ToolDiagnosis {
   readonly loadedBytes: number;
   readonly loadedTokens: number;
   /** Set when the adapter's `detect()` threw or its `apiVersion` is unreadable. */
-  readonly failed?: DriftgateError;
+  readonly failed?: RulegateError;
 }
 
 export type DoctorWarningCode =
@@ -148,7 +148,7 @@ export interface DoctorReport {
    * Does this repository have a canonical source at all?
    *
    * `false` is an ordinary answer, not a failure. Reporting on a repository that has never
-   * adopted Driftgate is `doctor`'s primary job and the first thing `init` will ask of it.
+   * adopted Rulegate is `doctor`'s primary job and the first thing `init` will ask of it.
    */
   readonly adopted: boolean;
   /** False when no global filesystem was supplied. "Did not look" is not "found nothing". */
@@ -158,5 +158,5 @@ export interface DoctorReport {
   /** Sorted by code, then tool, then first path. */
   readonly warnings: readonly DoctorWarning[];
   /** Fatal problems only. A missing canonical source is not one of them. */
-  readonly errors: readonly DriftgateError[];
+  readonly errors: readonly RulegateError[];
 }

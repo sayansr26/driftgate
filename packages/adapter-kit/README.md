@@ -1,10 +1,10 @@
-# @driftgate/adapter-kit
+# @rulegate/adapter-kit
 
-The public contract for Driftgate adapters.
+The public contract for Rulegate adapters.
 An adapter turns one canonical set of AI-agent instructions into one tool's native config,
 and it is a pure module: `{ detect, read, write, docs }`, no network, no writes.
 
-**This package is the contract. `@driftgate/core` is not** — it is published because this
+**This package is the contract. `@rulegate/core` is not** — it is published because this
 package depends on it, but it carries no compatibility guarantee, and adapter source may not
 import it.
 
@@ -20,13 +20,13 @@ import {
   type Adapter,
   type AdapterContext,
   type Artifact,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 ```
 
 Two entry points:
 
-- **`@driftgate/adapter-kit`** — the frozen contract.
-- **`@driftgate/adapter-kit/testing`** — the fixture harness, for tests only. It reads the
+- **`@rulegate/adapter-kit`** — the frozen contract.
+- **`@rulegate/adapter-kit/testing`** — the fixture harness, for tests only. It reads the
   filesystem, which is why it is not part of the contract entry.
 
 ## Stability

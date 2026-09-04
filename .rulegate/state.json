@@ -1,0 +1,161 @@
+{
+  "artifacts": [
+    {
+      "adapter": "cline",
+      "hash": "sha256:f759459b8b18e41194e8c1699f122c74c9c2e35bc1e039f3bece803f9f8bfe87",
+      "kind": "rules",
+      "path": ".clinerules/10-project.md"
+    },
+    {
+      "adapter": "cline",
+      "hash": "sha256:136d92b4e320e4e0e8bc3b19213d370c83bc9bd2520244ab7db986d7ce5ee1a7",
+      "kind": "rules",
+      "path": ".clinerules/20-architecture.md"
+    },
+    {
+      "adapter": "cline",
+      "hash": "sha256:0321dc8a377faf001da79cb339ae67f95f53a0232e400982655b100b4b4b1adc",
+      "kind": "rules",
+      "path": ".clinerules/30-invariants.md"
+    },
+    {
+      "adapter": "cline",
+      "hash": "sha256:aa44360c7acf235a27478e0eca956cfa76d6a8eab31c44f12367be156828e402",
+      "kind": "rules",
+      "path": ".clinerules/40-commands.md"
+    },
+    {
+      "adapter": "cline",
+      "hash": "sha256:20176c7754902cc4baec168f6b3baff5d58d6d2d9ea9d5091c1ad8ed0aa86988",
+      "kind": "rules",
+      "path": ".clinerules/50-conventions.md"
+    },
+    {
+      "adapter": "cursor",
+      "hash": "sha256:00f82d0ec7d7dd921b6d65de383c698efa49591c655a7a85fbc2488ebd63cdc5",
+      "kind": "rules",
+      "path": ".cursor/rules/10-project.mdc"
+    },
+    {
+      "adapter": "cursor",
+      "hash": "sha256:32782c89d29acfee839215bbad4a44c23c1a6134f8ea25ea50e049c6b313c8fd",
+      "kind": "rules",
+      "path": ".cursor/rules/20-architecture.mdc"
+    },
+    {
+      "adapter": "cursor",
+      "hash": "sha256:64d6903ad07927b10705597bb2e951a956929ada3c253e06339ad64bea700a13",
+      "kind": "rules",
+      "path": ".cursor/rules/30-invariants.mdc"
+    },
+    {
+      "adapter": "cursor",
+      "hash": "sha256:d5c5620adfdbbea39cf4b93bbea1072ba3c4576e0afd7cc7e5da0a4efde453a7",
+      "kind": "rules",
+      "path": ".cursor/rules/40-commands.mdc"
+    },
+    {
+      "adapter": "cursor",
+      "hash": "sha256:952593c4293842bc38666b4b06ea5888539318cf8038eb20c9949cabe9bb1a41",
+      "kind": "rules",
+      "path": ".cursor/rules/50-conventions.mdc"
+    },
+    {
+      "adapter": "copilot",
+      "hash": "sha256:690df02a632398c7eab17b5f81c112c99bb75a8e0fb86c4ab67c27fea3a2f580",
+      "kind": "rules",
+      "path": ".github/copilot-instructions.md"
+    },
+    {
+      "adapter": "roo-code",
+      "hash": "sha256:f759459b8b18e41194e8c1699f122c74c9c2e35bc1e039f3bece803f9f8bfe87",
+      "kind": "rules",
+      "path": ".roo/rules/001-10-project.md"
+    },
+    {
+      "adapter": "roo-code",
+      "hash": "sha256:136d92b4e320e4e0e8bc3b19213d370c83bc9bd2520244ab7db986d7ce5ee1a7",
+      "kind": "rules",
+      "path": ".roo/rules/002-20-architecture.md"
+    },
+    {
+      "adapter": "roo-code",
+      "hash": "sha256:0321dc8a377faf001da79cb339ae67f95f53a0232e400982655b100b4b4b1adc",
+      "kind": "rules",
+      "path": ".roo/rules/003-30-invariants.md"
+    },
+    {
+      "adapter": "roo-code",
+      "hash": "sha256:aa44360c7acf235a27478e0eca956cfa76d6a8eab31c44f12367be156828e402",
+      "kind": "rules",
+      "path": ".roo/rules/004-40-commands.md"
+    },
+    {
+      "adapter": "roo-code",
+      "hash": "sha256:20176c7754902cc4baec168f6b3baff5d58d6d2d9ea9d5091c1ad8ed0aa86988",
+      "kind": "rules",
+      "path": ".roo/rules/005-50-conventions.md"
+    },
+    {
+      "adapter": "zed",
+      "hash": "sha256:690df02a632398c7eab17b5f81c112c99bb75a8e0fb86c4ab67c27fea3a2f580",
+      "kind": "rules",
+      "path": ".rules"
+    },
+    {
+      "adapter": "windsurf",
+      "hash": "sha256:91ed1600691495814eb26238b576fa2ea43ad980274044b92bd3b82aea118623",
+      "kind": "rules",
+      "path": ".windsurf/rules/10-project.md"
+    },
+    {
+      "adapter": "windsurf",
+      "hash": "sha256:cfbd7f09995a2bb62f9deb11d47cdbd6f25deb62e6ee1d6e5357d87615c9190f",
+      "kind": "rules",
+      "path": ".windsurf/rules/20-architecture.md"
+    },
+    {
+      "adapter": "windsurf",
+      "hash": "sha256:42bf0a1ddbc55c72b1c9766ebab035dab624a688a959af0a146deb061e57fad7",
+      "kind": "rules",
+      "path": ".windsurf/rules/30-invariants.md"
+    },
+    {
+      "adapter": "windsurf",
+      "hash": "sha256:b176181ea45fca38fb9bb90584e509860dc35f0f00128dc00ff8354372171857",
+      "kind": "rules",
+      "path": ".windsurf/rules/40-commands.md"
+    },
+    {
+      "adapter": "windsurf",
+      "hash": "sha256:c41f7b43aac383ae89352c30933d91367b71f99f6c600d6beec89742c56e9471",
+      "kind": "rules",
+      "path": ".windsurf/rules/50-conventions.md"
+    },
+    {
+      "adapter": "codex",
+      "hash": "sha256:690df02a632398c7eab17b5f81c112c99bb75a8e0fb86c4ab67c27fea3a2f580",
+      "kind": "rules",
+      "path": "AGENTS.md"
+    },
+    {
+      "adapter": "claude-code",
+      "hash": "sha256:690df02a632398c7eab17b5f81c112c99bb75a8e0fb86c4ab67c27fea3a2f580",
+      "kind": "rules",
+      "path": "CLAUDE.md"
+    },
+    {
+      "adapter": "aider",
+      "hash": "sha256:690df02a632398c7eab17b5f81c112c99bb75a8e0fb86c4ab67c27fea3a2f580",
+      "kind": "rules",
+      "path": "CONVENTIONS.md"
+    },
+    {
+      "adapter": "gemini",
+      "hash": "sha256:690df02a632398c7eab17b5f81c112c99bb75a8e0fb86c4ab67c27fea3a2f580",
+      "kind": "rules",
+      "path": "GEMINI.md"
+    }
+  ],
+  "schemaVersion": 1
+}

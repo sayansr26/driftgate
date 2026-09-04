@@ -65,7 +65,7 @@ const threeRuleModel: Canonical = {
         globs: [],
         tools: { kind: 'exclude', tools: ['copilot'] },
         order: DEFAULT_RULE_ORDER,
-        // A key Driftgate has never heard of. It must survive the round trip.
+        // A key Rulegate has never heard of. It must survive the round trip.
         unknown: { experimentalMode: 'agent-requested', weight: 3 },
       },
       source: { file: ruleIdToPath('30-experimental') },
@@ -90,7 +90,7 @@ describe('canonical round trip', () => {
     const result = await parseFrom(serializeCanonical(threeRuleModel));
 
     expect(result.errors).toEqual([]);
-    expect(result.mode).toBe('driftgate-dir');
+    expect(result.mode).toBe('rulegate-dir');
     expect(stripSources(result.canonical)).toEqual(stripSources(threeRuleModel));
   });
 
@@ -98,7 +98,7 @@ describe('canonical round trip', () => {
     const result = await parseFrom(serializeCanonical(threeRuleModel));
     const experimental = result.canonical.rules.find((r) => r.id === '30-experimental');
 
-    // The losslessness guarantee (T017) depends on this: a key Driftgate drops is a
+    // The losslessness guarantee (T017) depends on this: a key Rulegate drops is a
     // key the user silently loses on their next sync.
     expect(experimental?.frontmatter.unknown).toEqual({
       experimentalMode: 'agent-requested',

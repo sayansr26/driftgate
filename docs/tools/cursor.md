@@ -2,13 +2,13 @@
 
 # Which files does Cursor read?
 
-Driftgate adapter id: `cursor` · Verified against 1.x on 2026-09-01 · [Homepage](https://docs.cursor.com)
+Rulegate adapter id: `cursor` · Verified against 1.x on 2026-09-01 · [Homepage](https://docs.cursor.com)
 
 Every file below that is present is **sent to the model**; when two of them conflict, the one nearer the top wins. A file that loses a conflict still costs its tokens.
 
 ## Precedence
 
-| # | Path | Scope | Role | Driftgate writes it | Nesting |
+| # | Path | Scope | Role | Rulegate writes it | Nesting |
 |---|---|---|---|---|---|
 | 1 | `.cursor/rules/*.mdc` | project | instructions | yes | nearest-wins |
 | 2 | `.cursorrules` | project | instructions | yes | root only |
@@ -26,25 +26,25 @@ Source: [Cursor — Rules](https://docs.cursor.com/context/rules) — retrieved 
 
 ### `.cursorrules`
 
-Legacy single-file rules, superseded by .cursor/rules. Driftgate writes it only when `options.legacy` is true.
+Legacy single-file rules, superseded by .cursor/rules. Rulegate writes it only when `options.legacy` is true.
 
 Source: [Cursor — Rules](https://docs.cursor.com/context/rules) — retrieved 2026-09-01
 
 ### `~/.cursor/rules`
 
-User-level rules applied across projects. Read-only context for `doctor`; Driftgate never writes outside the repository.
+User-level rules applied across projects. Read-only context for `doctor`; Rulegate never writes outside the repository.
 
 Source: [Cursor — Rules](https://docs.cursor.com/context/rules) — retrieved 2026-09-01
 
 ### `.cursor/mcp.json`
 
-Project MCP servers. The file Driftgate generates from .driftgate/mcp/servers.yaml.
+Project MCP servers. The file Rulegate generates from .rulegate/mcp/servers.yaml.
 
 Source: [Cursor — Model Context Protocol](https://cursor.com/docs/context/mcp) — retrieved 2026-09-04
 
 ### `~/.cursor/mcp.json`
 
-User-level MCP servers, available in every project. Read-only context for `doctor`; Driftgate never writes outside the repository.
+User-level MCP servers, available in every project. Read-only context for `doctor`; Rulegate never writes outside the repository.
 
 Source: [Cursor — Model Context Protocol](https://cursor.com/docs/context/mcp) — retrieved 2026-09-04
 

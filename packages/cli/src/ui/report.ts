@@ -1,5 +1,5 @@
 import pc from 'picocolors';
-import type { DriftgateError } from '@driftgate/core';
+import type { RulegateError } from '@rulegate/core';
 
 /** The subset of picocolors this CLI uses, resolved once per run. */
 export type Colors = ReturnType<typeof pc.createColors>;
@@ -47,7 +47,7 @@ export function createOutput(opts: { quiet?: boolean; color?: boolean } = {}): O
   };
 }
 
-export function formatErrors(errors: readonly DriftgateError[]): string {
+export function formatErrors(errors: readonly RulegateError[]): string {
   return errors.map((e) => e.format()).join('\n');
 }
 

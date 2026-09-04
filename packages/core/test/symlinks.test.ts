@@ -3,10 +3,10 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NodeFileSystem } from '../src/io/node.js';
-import { DriftgateError } from '../src/model/errors.js';
+import { RulegateError } from '../src/model/errors.js';
 
 /**
- * Symlinks, and the two things Driftgate got wrong about them (T069).
+ * Symlinks, and the two things Rulegate got wrong about them (T069).
  *
  * Both are **platform-independent bugs** found while auditing for Windows, which is the
  * useful half of that audit: path separators and CRLF were already handled everywhere, and
@@ -15,14 +15,14 @@ import { DriftgateError } from '../src/model/errors.js';
  *
  * Skipped where the platform refuses to create a symlink — Windows without developer mode
  * — because a test that silently passes on an unprivileged runner is worse than one that
- * says it was skipped. `DRIFTGATE_REQUIRE_SYMLINKS=1` turns the skip into a failure, which
+ * says it was skipped. `RULEGATE_REQUIRE_SYMLINKS=1` turns the skip into a failure, which
  * is how CI asserts the coverage actually ran somewhere.
  */
 let repo: string;
 let canSymlink = true;
 
 beforeEach(async () => {
-  repo = await mkdtemp(path.join(tmpdir(), 'driftgate-symlink-'));
+  repo = await mkdtemp(path.join(tmpdir(), 'rulegate-symlink-'));
   try {
     await writeFile(path.join(repo, '.probe'), 'x');
     await symlink(path.join(repo, '.probe'), path.join(repo, '.probe-link'));
@@ -37,7 +37,7 @@ afterEach(async () => {
 
 function guard(): boolean {
   if (canSymlink) return true;
-  if (process.env['DRIFTGATE_REQUIRE_SYMLINKS'] === '1') {
+  if (process.env['RULEGATE_REQUIRE_SYMLINKS'] === '1') {
     throw new Error('symlinks are required here but could not be created');
   }
   return false;
@@ -65,7 +65,7 @@ describe('glob and symlinked directories', () => {
     // purely lexical, so a link out of the tree produces repo-relative paths whose real
     // targets are anywhere at all — and `writeFile` would then follow the same link. That
     // would make "sync never writes outside the repo" false while every path looked legal.
-    const outside = await mkdtemp(path.join(tmpdir(), 'driftgate-outside-'));
+    const outside = await mkdtemp(path.join(tmpdir(), 'rulegate-outside-'));
     try {
       await writeFile(path.join(outside, 'secret.mdc'), 'not ours');
       await mkdir(path.join(repo, '.cursor'), { recursive: true });
@@ -102,7 +102,7 @@ describe('writeFile and copyFile never follow a symlink', () => {
     if (!guard()) return;
     // The sharper of the two. `runInit` passes `force: true`, so on a repository where
     // CLAUDE.md is a link to AGENTS.md, `init --yes` wrote a render straight through the
-    // link and silently rewrote the target — a file Driftgate had not planned to touch.
+    // link and silently rewrote the target — a file Rulegate had not planned to touch.
     await writeFile(path.join(repo, 'AGENTS.md'), 'original\n');
     await symlink(path.join(repo, 'AGENTS.md'), path.join(repo, 'CLAUDE.md'));
 
@@ -139,13 +139,13 @@ describe('writeFile and copyFile never follow a symlink', () => {
  * making it fail honestly showed that Windows reports an over-long path as ENOENT, so the
  * mapping had never once fired on the platform whose limit it names.
  *
- * So the platform-dependent half is separated from the half Driftgate owns: the mappings
+ * So the platform-dependent half is separated from the half Rulegate owns: the mappings
  * are stubbed and must hold identically everywhere, while the one test that asks a real
  * filesystem to refuse something is allowed to skip — out loud — where it will not.
  */
 describe('long paths', () => {
   it('maps a platform path refusal onto a named error with a hint', async () => {
-    // The errno is stubbed on purpose. This is the half Driftgate owns — ENAMETOOLONG in,
+    // The errno is stubbed on purpose. This is the half Rulegate owns — ENAMETOOLONG in,
     // E_PATH_TOO_LONG plus a hint out — and it is the half that must be identical on every
     // platform, so it must not depend on talking a real filesystem into refusing anything.
     const fs = new NodeFileSystem(repo);
@@ -155,11 +155,11 @@ describe('long paths', () => {
 
     const refusal = await fs.writeFile('rule.md', 'x').catch((e: unknown) => e);
 
-    expect(refusal).toBeInstanceOf(DriftgateError);
+    expect(refusal).toBeInstanceOf(RulegateError);
     expect(refusal).toMatchObject({ code: 'E_PATH_TOO_LONG' });
     // The hint is the whole point of the mapping; an error without it is the bare errno
     // again, wearing a nicer name.
-    expect((refusal as DriftgateError).hint).toBeTruthy();
+    expect((refusal as RulegateError).hint).toBeTruthy();
   });
 
   it('maps the bare ENOENT Windows reports for an over-long path', async () => {
@@ -174,7 +174,7 @@ describe('long paths', () => {
 
     const refusal = await fs.writeFile(`${'a'.repeat(300)}/rule.md`, 'x').catch((e: unknown) => e);
 
-    expect(refusal).toBeInstanceOf(DriftgateError);
+    expect(refusal).toBeInstanceOf(RulegateError);
     expect(refusal).toMatchObject({ code: 'E_PATH_TOO_LONG' });
   });
 
@@ -189,7 +189,7 @@ describe('long paths', () => {
 
     const refusal = await fs.writeFile('rule.md', 'x').catch((e: unknown) => e);
 
-    expect(refusal).not.toBeInstanceOf(DriftgateError);
+    expect(refusal).not.toBeInstanceOf(RulegateError);
     expect(refusal).toMatchObject({ code: 'ENOENT' });
   });
 
@@ -204,6 +204,6 @@ describe('long paths', () => {
     const refusal = await fs.writeFile(`${deep}/rule.md`, 'x').catch((e: unknown) => e);
 
     skip(refusal === undefined, 'this platform accepts a path no other one would');
-    expect(refusal).toBeInstanceOf(DriftgateError);
+    expect(refusal).toBeInstanceOf(RulegateError);
   });
 });

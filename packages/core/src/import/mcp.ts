@@ -48,7 +48,7 @@ export type ReferenceParse =
  * Read one native reference spelling.
  *
  * Each adapter supplies its own: `${NAME}` for Claude Code, `${env:NAME}` for Cursor and
- * VS Code, a separate *key* entirely for Codex. Driftgate's own `env:NAME` is accepted by
+ * VS Code, a separate *key* entirely for Codex. Rulegate's own `env:NAME` is accepted by
  * all of them, because a hand-written file is a thing people have.
  */
 export type ParseReference = (raw: string) => ReferenceParse | undefined;
@@ -75,7 +75,7 @@ export function unrepresentableReference(raw: string): { readonly why: string } 
   return undefined;
 }
 
-/** `env:NAME` — Driftgate's own spelling, valid in a hand-written native file. */
+/** `env:NAME` — Rulegate's own spelling, valid in a hand-written native file. */
 export function canonicalReference(raw: string): ReferenceParse | undefined {
   const ref = parseEnvRef(raw);
   return ref === undefined ? undefined : { kind: 'ref', ref };
@@ -255,7 +255,7 @@ export function importMcpJson(contents: string, options: ImportMcpJsonOptions): 
   const out: McpServer[] = [];
   // Sorted so the import does not depend on key order in somebody's file.
   for (const id of Object.keys(servers).sort()) {
-    if (id === '//') continue; // Driftgate's own generated marker.
+    if (id === '//') continue; // Rulegate's own generated marker.
     const body = servers[id];
     if (!isObject(body)) {
       warnings.push(`${options.file}: server \`${id}\` is not an object; skipped`);

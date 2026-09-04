@@ -1,5 +1,5 @@
 /**
- * The adapter test harness — `@driftgate/adapter-kit/testing`.
+ * The adapter test harness — `@rulegate/adapter-kit/testing`.
  *
  * A separate entry point from the contract itself, on purpose. This code reads the
  * filesystem and constructs a concrete `NodeFileSystem`; the contract entry must not, or

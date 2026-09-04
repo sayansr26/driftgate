@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contextFor, detectFixture } from '@driftgate/adapter-kit/testing';
+import { contextFor, detectFixture } from '@rulegate/adapter-kit/testing';
 import { rooCode } from '../src/index.js';
 
 describe('roo-code detect()', () => {

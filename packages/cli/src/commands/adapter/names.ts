@@ -30,6 +30,6 @@ export function toolNames(id: string): ToolNames {
     artifact,
     constant: `${id.toUpperCase().replace(/-/g, '_')}_MD`,
     dotDir: `.${id}`,
-    packageName: `@driftgate/adapter-${id}`,
+    packageName: `@rulegate/adapter-${id}`,
   };
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { gemini } from '../src/index.js';
-import { contextFor, detectFixture } from '@driftgate/adapter-kit/testing';
+import { contextFor, detectFixture } from '@rulegate/adapter-kit/testing';
 
 describe('gemini detect()', () => {
   it('finds Gemini and says what gave it away', async () => {

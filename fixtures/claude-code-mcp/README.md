@@ -2,7 +2,7 @@
 
 The MCP half of the Claude Code adapter (T046). Separate from `claude-code/` rather than
 folded into it because the input is deliberately rules-free: a repository whose only
-canonical content is `.driftgate/mcp/servers.yaml` is what catches a `write()` that returns
+canonical content is `.rulegate/mcp/servers.yaml` is what catches a `write()` that returns
 early when there is nothing to render as rules.
 
 `expected/.mcp.json` was hand-written from

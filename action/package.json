@@ -1,7 +1,7 @@
 {
-  "name": "@driftgate/action",
+  "name": "@rulegate/action",
   "version": "0.1.0",
-  "description": "GitHub Action wrapper for `driftgate check`.",
+  "description": "GitHub Action wrapper for `rulegate check`.",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -13,6 +13,6 @@
     "build:check": "node build.mjs --check"
   },
   "dependencies": {
-    "driftgate": "workspace:*"
+    "rulegate": "workspace:*"
   }
 }

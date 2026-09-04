@@ -9,8 +9,8 @@ let originalCwd: string;
 
 beforeEach(async () => {
   originalCwd = process.cwd();
-  repo = await mkdtemp(path.join(tmpdir(), 'driftgate-cwd-'));
-  await mkdir(path.join(repo, '.driftgate'), { recursive: true });
+  repo = await mkdtemp(path.join(tmpdir(), 'rulegate-cwd-'));
+  await mkdir(path.join(repo, '.rulegate'), { recursive: true });
   await mkdir(path.join(repo, 'packages/core'), { recursive: true });
 });
 

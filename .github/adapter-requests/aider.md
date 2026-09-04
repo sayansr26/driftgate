@@ -37,7 +37,7 @@ actually read it in `retrieved`.)_
 
 **Aider is the odd one on this list, and that is what makes it a good `doctor` case.** The
 file it reads is whatever `.aider.conf.yml` names, so a generated `CONVENTIONS.md` that the
-config never mentions is loaded by nothing — and Driftgate would report the repository as in
+config never mentions is loaded by nothing — and Rulegate would report the repository as in
 sync while Aider reads none of it.
 
 Do not write `.aider.conf.yml`: it is the user's file. Detect it, record in `docs` that the
@@ -48,8 +48,8 @@ copying.
 ## Steps
 
 ```bash
-driftgate adapter new aider          # prints the plan
-driftgate adapter new aider --yes    # applies it
+rulegate adapter new aider          # prints the plan
+rulegate adapter new aider --yes    # applies it
 pnpm install && pnpm test           # green as generated
 ```
 
@@ -61,7 +61,7 @@ pnpm install && pnpm test           # green as generated
    dated `1970-01-01` so an unverified claim cannot be mistaken for a verified one.
 4. Run Aider against the generated config and confirm it actually loads. Say so in the PR,
    with the version you tested.
-5. Add `aider` to `.driftgate/driftgate.yaml` and run `driftgate sync` — this repository
+5. Add `aider` to `.rulegate/rulegate.yaml` and run `rulegate sync` — this repository
    dogfoods every adapter it ships. Commit the generated file with your change.
 
 ## Done when

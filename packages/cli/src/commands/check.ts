@@ -12,7 +12,7 @@ import {
   type VerifyEntry,
   type VerifyReport,
   type VerifyStatus,
-} from '@driftgate/core';
+} from '@rulegate/core';
 import { ADAPTERS } from '../registry.js';
 import { createOutput, formatErrors, pluralize } from '../ui/report.js';
 import { renderDiff } from '../ui/diff.js';
@@ -89,7 +89,7 @@ export async function gatherCheck(options: CheckOptions): Promise<CheckResult> {
         repoRoot,
         messages: [
           '--staged needs a git working tree, and this is not one.',
-          'hint: run driftgate check without --staged to check the working tree',
+          'hint: run rulegate check without --staged to check the working tree',
         ],
       };
     }

@@ -42,8 +42,8 @@ tests, where `KIRO.md` is a **placeholder**, not a claim about Kiro. The real ar
 ## Steps
 
 ```bash
-driftgate adapter new kiro          # prints the plan
-driftgate adapter new kiro --yes    # applies it
+rulegate adapter new kiro          # prints the plan
+rulegate adapter new kiro --yes    # applies it
 pnpm install && pnpm test           # green as generated
 ```
 
@@ -55,7 +55,7 @@ pnpm install && pnpm test           # green as generated
    dated `1970-01-01` so an unverified claim cannot be mistaken for a verified one.
 4. Run Kiro against the generated config and confirm it actually loads. Say so in the PR,
    with the version you tested.
-5. Add `kiro` to `.driftgate/driftgate.yaml` and run `driftgate sync` — this repository
+5. Add `kiro` to `.rulegate/rulegate.yaml` and run `rulegate sync` — this repository
    dogfoods every adapter it ships. Commit the generated file with your change.
 
 ## Done when

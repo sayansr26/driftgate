@@ -1,6 +1,6 @@
-import { matchesGlob } from '@driftgate/core';
+import { matchesGlob } from '@rulegate/core';
 import { readExpected } from './fixture.js';
-import type { Adapter, AdapterDocs, SourceLink } from '@driftgate/core';
+import type { Adapter, AdapterDocs, SourceLink } from '@rulegate/core';
 
 /**
  * Validate one adapter's encoded precedence rules.

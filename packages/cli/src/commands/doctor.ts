@@ -3,13 +3,13 @@ import {
   buildDoctorReport,
   createHomeFileSystem,
   resolveRepoRoot,
-} from '@driftgate/core';
+} from '@rulegate/core';
 import { ADAPTERS } from '../registry.js';
 import { createOutput, formatErrors, formatTokens, pluralize } from '../ui/report.js';
 import { formatTable } from '../ui/table.js';
 import { ExitCode, type ExitCodeValue } from '../ui/exit.js';
 import type { Colors, Output } from '../ui/report.js';
-import type { DoctorReport, FileDiagnosis, ToolDiagnosis } from '@driftgate/core';
+import type { DoctorReport, FileDiagnosis, ToolDiagnosis } from '@rulegate/core';
 
 export interface DoctorOptions {
   readonly cwd: string;
@@ -82,7 +82,7 @@ function printReport(out: Output, report: DoctorReport): void {
 
   if (!report.adopted) {
     out.log('');
-    out.log(c.dim('no .driftgate/ here — reporting what these tools load today.'));
+    out.log(c.dim('no .rulegate/ here — reporting what these tools load today.'));
   }
 
   const present = report.tools.filter((t) => t.detected);
@@ -133,7 +133,7 @@ function listPaths(paths: readonly string[]): string[] {
 
 function summary(tool: ToolDiagnosis): string {
   const files = pluralize(tool.loadedCount, 'file');
-  const enabled = tool.enabled ? '' : ', not enabled in .driftgate/';
+  const enabled = tool.enabled ? '' : ', not enabled in .rulegate/';
   return `will load ${files} ${formatTokens(tool.loadedTokens)} tokens${enabled}`;
 }
 
@@ -168,7 +168,7 @@ function annotate(f: FileDiagnosis, tool: ToolDiagnosis): string {
   // T055. A global file's status reads `unmanaged`, which is the same word a project file
   // somebody else wrote gets — and the two are nothing alike. One is a file standing where
   // our output goes; the other is the user's own machine-wide context, outside the
-  // repository, which Driftgate reads to explain behaviour and will never write. Saying so
+  // repository, which Rulegate reads to explain behaviour and will never write. Saying so
   // on the row is the difference between "why is my agent behaving oddly" being answerable
   // from this table and not.
   //

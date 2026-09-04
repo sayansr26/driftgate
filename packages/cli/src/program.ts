@@ -13,7 +13,7 @@ export { ExitCode };
 
 export function buildProgram(): Command {
   const program = new Command()
-    .name('driftgate')
+    .name('rulegate')
     .description('One source of truth for your AI coding agents.')
     .version(readVersion())
     // No default: commander evaluates one at build time, which makes an explicit --cwd
@@ -38,7 +38,7 @@ export function buildProgram(): Command {
   program
     .command('init')
     .description(
-      'Import existing tool configs into .driftgate/ (prints a plan; writes nothing without --yes)',
+      'Import existing tool configs into .rulegate/ (prints a plan; writes nothing without --yes)',
     )
     .option('--yes', 'apply the plan instead of only printing it')
     .action(async (opts: { yes?: boolean }, cmd: Command) => {
@@ -56,16 +56,16 @@ export function buildProgram(): Command {
 
   program
     .command('sync')
-    .description('Regenerate every enabled tool config from .driftgate/')
+    .description('Regenerate every enabled tool config from .rulegate/')
     .option('--dry-run', 'report what would change without writing')
     .option(
       '--force',
-      'overwrite hand-edited and unowned files, backing each up to .driftgate/backup/ first',
+      'overwrite hand-edited and unowned files, backing each up to .rulegate/backup/ first',
     )
     // `--import` is the non-destructive half of the same problem: `--force` discards the
     // edit (after a backup), this recovers it. Both exist so that meeting a hand-edited
     // file is a choice rather than a dead end (T051, T075).
-    .option('--import', 'merge hand-edits on generated files back into .driftgate/')
+    .option('--import', 'merge hand-edits on generated files back into .rulegate/')
     .option('--yes', 'apply the merge --import printed')
     .action(
       async (
@@ -94,7 +94,7 @@ export function buildProgram(): Command {
   // process, and the pre-commit hook is its only consumer.
   program
     .command('check')
-    .description('Verify generated tool configs match .driftgate/ (read-only; exits 1 on drift)')
+    .description('Verify generated tool configs match .rulegate/ (read-only; exits 1 on drift)')
     .option('--staged', 'check the git index instead of the working tree (for pre-commit hooks)')
     .action(async (opts: { staged?: boolean }, cmd: Command) => {
       const globals = cmd.optsWithGlobals<{ cwd?: string; quiet?: boolean; color?: boolean }>();
@@ -114,7 +114,7 @@ export function buildProgram(): Command {
   program
     .command('restore')
     .description(
-      'Put back originals kept in .driftgate/backup/ (prints a plan; writes nothing without --yes)',
+      'Put back originals kept in .rulegate/backup/ (prints a plan; writes nothing without --yes)',
     )
     .argument('[path...]', 'restore only these repo-relative paths; omit for everything')
     .option('--yes', 'apply the plan instead of only printing it')
@@ -157,7 +157,7 @@ export function buildProgram(): Command {
   // into the repository being managed.
   const adapter = program
     .command('adapter')
-    .description('Adapter authoring helpers for contributors to the driftgate repo');
+    .description('Adapter authoring helpers for contributors to the rulegate repo');
 
   adapter
     .command('new')

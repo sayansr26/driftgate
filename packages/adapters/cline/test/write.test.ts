@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { Canonical } from '@driftgate/adapter-kit';
+import type { Canonical } from '@rulegate/adapter-kit';
 import {
   contextFor,
   expectFixtureMatch,
   expectIdempotent,
   renderFixture,
-} from '@driftgate/adapter-kit/testing';
+} from '@rulegate/adapter-kit/testing';
 import { cline, RULES_DIR } from '../src/index.js';
 
 describe('cline write()', () => {

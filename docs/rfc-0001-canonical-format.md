@@ -21,8 +21,8 @@ file: `CLAUDE.md`, `AGENTS.md`, `.cursor/rules/*.mdc`, `.github/copilot-instruct
 `GEMINI.md`. Keeping them in agreement by hand is tedious, and — more importantly —
 there is no way to _know_ when they have fallen out of agreement.
 
-Driftgate generates all of them from one source. This document specifies that source:
-the `.driftgate/` directory, its manifest, its rule files, and the guarantees the
+Rulegate generates all of them from one source. This document specifies that source:
+the `.rulegate/` directory, its manifest, its rule files, and the guarantees the
 format makes.
 
 ## 2. Design principles
@@ -41,8 +41,8 @@ format makes.
 ## 3. Directory layout
 
 ```
-.driftgate/
-  driftgate.yaml      manifest: enabled tools and options        v0
+.rulegate/
+  rulegate.yaml      manifest: enabled tools and options        v0
   rules/*.md          instructions, Markdown + YAML frontmatter  v0
   mcp/servers.yaml    MCP server definitions                     v0.2
   skills/             skill definitions                          reserved (v1)
@@ -53,11 +53,11 @@ format makes.
 `rules/` may nest: `rules/frontend/react.md` is valid and yields the rule id
 `frontend/react`.
 
-Everything under `.driftgate/` except `state.json` and `backup/` is hand-authored and
-belongs in version control. `state.json` is also committed — `driftgate check` needs it
+Everything under `.rulegate/` except `state.json` and `backup/` is hand-authored and
+belongs in version control. `state.json` is also committed — `rulegate check` needs it
 to detect hand-edits in CI — but see §10 on merge conflicts.
 
-## 4. `driftgate.yaml`
+## 4. `rulegate.yaml`
 
 ```yaml
 schemaVersion: 1
@@ -82,7 +82,7 @@ canonicalSources: []
 | `schemaVersion`    | integer  | no       | `1`     | Format version this file targets.                                                     | `E_MANIFEST_INVALID` |
 | `tools`            | list     | no       | `[]`    | Tools to generate for. See below.                                                     | `E_MANIFEST_INVALID` |
 | `options.marker`   | boolean  | no       | `true`  | Inject the generated-by marker where the format allows comments.                      | `E_MANIFEST_INVALID` |
-| `options.backup`   | boolean  | no       | `true`  | Copy originals to `.driftgate/backup/` before overwriting or deleting.                | `E_MANIFEST_INVALID` |
+| `options.backup`   | boolean  | no       | `true`  | Copy originals to `.rulegate/backup/` before overwriting or deleting.                 | `E_MANIFEST_INVALID` |
 | `options.ignore`   | string[] | no       | `[]`    | Repo-relative globs `doctor` does not treat as instruction files. See below.          | `E_MANIFEST_INVALID` |
 | `canonicalSources` | string[] | no       | `[]`    | Repo-relative paths that are canonical _input_. No adapter may write to them. See §8. | `E_MANIFEST_INVALID` |
 
@@ -90,8 +90,8 @@ canonicalSources: []
 thing: `doctor`'s scan for files that have the _shape_ of a tool instruction file and sit
 where no detected tool looks. That scan cannot tell a rule from test data, and a golden
 fixture tree full of `CLAUDE.md` files is data. It does **not** suppress a file recorded in
-`state.json`, and `sync` and `check` ignore the key entirely — a path Driftgate generated is
-Driftgate's whether or not the manifest mentions it, and a key that could hide one is a key
+`state.json`, and `sync` and `check` ignore the key entirely — a path Rulegate generated is
+Rulegate's whether or not the manifest mentions it, and a key that could hide one is a key
 that can make the tool forget what it owns.
 
 A `tools` entry is either a **bare string** (the tool id, enabled, no options) or a
@@ -124,7 +124,7 @@ the shipped ids are:
 | `zed`         | `ZED.md`                                                                    |
 
 The **authoritative** list is the adapter registry, not this table: `E_UNKNOWN_TOOL`
-enumerates every known id in its hint, so `driftgate sync` always tells you the true set.
+enumerates every known id in its hint, so `rulegate sync` always tells you the true set.
 An id for an adapter that does not exist yet is `E_UNKNOWN_TOOL` even with
 `enabled: false`, because the manifest is validated before anything is generated. Declare
 a tool when its adapter lands, not before.
@@ -134,7 +134,7 @@ a tool when its adapter lands, not before.
 Each file is Markdown with optional YAML frontmatter.
 
 **Rule id** is the path under `rules/`, minus the `.md` extension, with `/` separators
-and Unicode NFC normalization: `.driftgate/rules/frontend/react.md` → `frontend/react`.
+and Unicode NFC normalization: `.rulegate/rules/frontend/react.md` → `frontend/react`.
 
 NFC normalization is normative, not an implementation detail. macOS returns decomposed
 (NFD) filenames while Linux returns composed (NFC); without normalization a rule named
@@ -205,14 +205,14 @@ refusing to proceed.
 ### 6.2 Normative notes
 
 - **Quote globs beginning with `*`.** Bare `globs: *.ts` is a YAML _alias_, not a
-  string, and is a syntax error. Write `globs: ['*.ts']`. Driftgate detects this
+  string, and is a syntax error. Write `globs: ['*.ts']`. Rulegate detects this
   specific failure and emits the hint `quote glob patterns that start with '*'`.
 - `order` collisions are broken by `id` ascending, deterministically — never by
   filesystem order.
 - A single string is accepted where a list is expected (`globs: 'src/**'`).
 - **Any other top-level key is retained verbatim** and re-emitted on serialization.
   It is not an error. This is what makes the format forward-compatible: an experiment
-  today is not destroyed by a Driftgate that predates it.
+  today is not destroyed by a Rulegate that predates it.
 
 ## 7. `description` and rendering
 
@@ -224,16 +224,16 @@ Where a rule has no `description`, its `id` is used as the heading.
 
 ## 8. Bare `AGENTS.md` mode
 
-If there is no `.driftgate/`, a repository-root `AGENTS.md` is a valid canonical source.
+If there is no `.rulegate/`, a repository-root `AGENTS.md` is a valid canonical source.
 This satisfies US7 and means adoption costs nothing.
 
 Discovery order:
 
-1. `.driftgate/driftgate.yaml` exists → mode `driftgate-dir`.
-2. `.driftgate/rules/` exists without a manifest → mode `rules-only`, with a warning
+1. `.rulegate/rulegate.yaml` exists → mode `rulegate-dir`.
+2. `.rulegate/rules/` exists without a manifest → mode `rules-only`, with a warning
    that every detected tool is assumed enabled.
 3. Repository-root `AGENTS.md` → mode `bare-agents-md`.
-4. Otherwise `E_NO_CANONICAL_SOURCE`, hinting `run: driftgate init`.
+4. Otherwise `E_NO_CANONICAL_SOURCE`, hinting `run: rulegate init`.
 
 In `bare-agents-md` mode the whole file becomes one rule with id `agents`, and a
 synthetic manifest is created with every known tool enabled.
@@ -267,7 +267,7 @@ quirk. Concretely:
 5. **Marker.** Where the target format supports comments, output begins with:
 
    ```
-   <!-- generated by driftgate; edit .driftgate/ instead -->
+   <!-- generated by rulegate; edit .rulegate/ instead -->
    ```
 
    Formats that require other content first (Cursor's `.mdc`, whose frontmatter must
@@ -296,41 +296,41 @@ path.
 
 - **Hashes cover normalized content, not raw bytes.** Otherwise every Windows user with
   `core.autocrlf=true` would see every generated file report as hand-edited on every
-  checkout, and `driftgate check` would fail CI on Windows for every repository.
+  checkout, and `rulegate check` would fail CI on Windows for every repository.
 - **No timestamps or version stamps.** A `generatedAt` field would mean deleting and
-  regenerating `state.json` never reproduces the original, and every Driftgate upgrade
+  regenerating `state.json` never reproduces the original, and every Rulegate upgrade
   would produce a spurious diff in every repository.
 - **It is never authoritative.** A corrupt, truncated, or merge-conflicted `state.json`
   degrades to "no prior state" with a warning (`E_STATE_INVALID`) — never a crash.
-- **`driftgate check` reads it for ownership, not for the verdict.** `check` is clean
+- **`rulegate check` reads it for ownership, not for the verdict.** `check` is clean
   exactly when `sync` would write nothing and delete nothing. Whether a planned file is
   out of sync is decided by comparing disk to the render; `state.json` only decides what
   to call the difference (`stale`, `hand-edited`, or `unmanaged`) and which recorded
   files no adapter produces any more. An orphan still on disk is drift, because `sync`
   would delete it; an orphan already gone is not, because dropping its record changes
   nothing but this file.
-- **Merge conflicts:** resolve with `rm .driftgate/state.json && driftgate sync`. The
+- **Merge conflicts:** resolve with `rm .rulegate/state.json && rulegate sync`. The
   file is regenerable by construction, so nothing is lost — but the recovery is only
-  _uneventful_ while every generated file still matches what Driftgate would render. A
+  _uneventful_ while every generated file still matches what Rulegate would render. A
   generated file whose bytes still match is silently re-adopted. A **hand-edited** one is
-  not: with state gone there is nothing left to say Driftgate ever wrote it, so instead of
-  the `hand-edited` report you get `unmanaged` — "a file driftgate did not generate" —
+  not: with state gone there is nothing left to say Rulegate ever wrote it, so instead of
+  the `hand-edited` report you get `unmanaged` — "a file rulegate did not generate" —
   and `sync` refuses the path until you move it aside or pass `--force`, which copies the
-  original to `.driftgate/backup/` first. Reconcile hand-edits into `.driftgate/` before
+  original to `.rulegate/backup/` first. Reconcile hand-edits into `.rulegate/` before
   deleting state, not after. Do not install a git merge driver for it.
-- **Deleting it also forfeits every deletion Driftgate could still make.** `state.json` is
-  the only record of what Driftgate generated, and the deletion candidates are exactly the
+- **Deleting it also forfeits every deletion Rulegate could still make.** `state.json` is
+  the only record of what Rulegate generated, and the deletion candidates are exactly the
   paths it records that no enabled adapter produces any more. With the file gone, an
-  artifact whose rule you delete afterwards is not an orphan Driftgate can reclaim — it is
+  artifact whose rule you delete afterwards is not an orphan Rulegate can reclaim — it is
   a file nobody has any record of, and it stays on disk being loaded by the tool it was
-  written for. `driftgate doctor` still finds it by shape; `sync` cannot.
+  written for. `rulegate doctor` still finds it by shape; `sync` cannot.
 
 ## 11. `mcp/servers.yaml` (v0.2)
 
 Canonical MCP server definitions, generated into Claude Code's `.mcp.json`, Cursor's
 `.cursor/mcp.json`, VS Code/Copilot's `.vscode/mcp.json`, and Codex's `.codex/config.toml`.
 
-The file is optional. A repository with no `.driftgate/mcp/servers.yaml` has no MCP
+The file is optional. A repository with no `.rulegate/mcp/servers.yaml` has no MCP
 servers, which is not an error.
 
 ```yaml
@@ -357,7 +357,7 @@ servers:
 
 A **mapping**, not a list. The key is the server id, and it is the name every target
 format writes the server under, so a mapping makes a duplicate id impossible in the file
-itself rather than something Driftgate has to detect. Servers are rendered in codepoint
+itself rather than something Rulegate has to detect. Servers are rendered in codepoint
 order of their ids regardless of the order they appear in.
 
 | key         | type                       | default    | meaning                                            |
@@ -387,7 +387,7 @@ beside a `url` — is refused for the same reason.
 ### 11.3 Scope: `global` is read, never written
 
 `scope: global` describes a server the user has configured for themselves, machine-wide.
-Driftgate **reports** those and never generates them: `sync` writes nothing outside the
+Rulegate **reports** those and never generates them: `sync` writes nothing outside the
 repository (§9), and there is no lawful path for a user-level file to be written to.
 `doctor` shows them so that "why can my agent see that server" has an answer; `sync`
 skips them.
@@ -400,7 +400,7 @@ variable name. It is the **only** accepted value in `env` and `headers`. Anythin
 quoted the offending string would print the secret into CI logs, which is the failure
 this rule exists to prevent, committed to a different file.
 
-Driftgate refuses to write a literal secret under any flag, and warns when one is found
+Rulegate refuses to write a literal secret under any flag, and warns when one is found
 during import, converting it to a reference. Generated configs are git-committed; a
 literal token in one is the worst failure this tool could produce.
 
@@ -408,7 +408,7 @@ This is enforced in three places, not one, because the type system alone is not 
 the model's secret type is an environment reference rather than a string, so an adapter
 cannot be handed a literal; the parser refuses one, so it cannot enter the model; and a
 scan over generated output refuses to write one, so it cannot arrive through a key
-Driftgate does not interpret. The third exists because preserved unknown keys carry
+Rulegate does not interpret. The third exists because preserved unknown keys carry
 strings and are re-emitted verbatim.
 
 ### 11.5 What each tool gets (v0.2)
@@ -427,7 +427,7 @@ The servers are written under `mcpServers` by Claude Code and Cursor, under **`s
 by VS Code, and as `[mcp_servers.<id>]` tables by Codex.
 
 **An `env:NAME` reference is rewritten into the destination's own substitution syntax.**
-Driftgate's `env:` prefix is a canonical spelling, not a wire format — no tool expands it —
+Rulegate's `env:` prefix is a canonical spelling, not a wire format — no tool expands it —
 so writing it through unchanged would hand the server the literal text as its credential.
 The two spellings above are one character apart, which is why copying a generated
 `.mcp.json` into `.cursor/mcp.json` by hand produces a file that looks correct and does not
@@ -450,7 +450,7 @@ or a credential in any other header — **cannot be written there at all**.
 Such a server is **omitted from `.codex/config.toml`, and named in it**:
 
 ```toml
-# generated by driftgate; edit .driftgate/ instead
+# generated by rulegate; edit .rulegate/ instead
 
 # omitted: `github` — env.API_KEY reads a differently-named variable, and Codex has no
 #   variable substitution.
@@ -477,16 +477,16 @@ mapping that would silently produce a **wrong** answer is refused: a credential 
 arrives is a server that starts and fails to authenticate, which is a bug report filed
 against the wrong tool.
 
-**Driftgate owns the whole of `.codex/config.toml`.** Unlike the other three, it is not an
+**Rulegate owns the whole of `.codex/config.toml`.** Unlike the other three, it is not an
 MCP-only file — it is where every Codex setting lives — and there is no way to generate part
 of a file. The ordinary ownership rules make that safe rather than special: `state.json` is
-the only record of authorship (§10), so a `.codex/config.toml` Driftgate did not write is
+the only record of authorship (§10), so a `.codex/config.toml` Rulegate did not write is
 somebody else's and is refused until `--force` backs it up, and a setting added by hand
 afterwards is a hand-edit `sync --import` can recover.
 
 Generated MCP files carry the marker as a top-level `"//"` key (§5), since JSON has no
 comments. TOML does have comments, so `.codex/config.toml` carries the ordinary `#` form.
-Keys Driftgate does not interpret are re-emitted verbatim, which is the path a literal
+Keys Rulegate does not interpret are re-emitted verbatim, which is the path a literal
 secret could take into generated output — the reason for the third enforcement point in
 §11.4. TOML narrows what can be re-emitted at all: it has no `null`, and a nested table
 under an uninterpreted key would have to move to a different place in the file, so both are
@@ -494,7 +494,7 @@ refused rather than guessed at.
 
 ### 11.6 Import (v0.2)
 
-`driftgate init` reads each detected tool's MCP file back into `servers.yaml`. Four formats
+`rulegate init` reads each detected tool's MCP file back into `servers.yaml`. Four formats
 invert to one model, and the round trip is not total — these are the cases where it is not,
 and what happens in each.
 
@@ -509,7 +509,7 @@ from every tool config and break a setup that worked a moment earlier.
 The `tools:` selector is reconstructed from which tools defined the server, exactly as a
 rule's is. A tool whose format has no project-level MCP file — Gemini today — is not counted
 as a tool that declined: it was never asked, and counting it would narrow every imported
-server away from `all` for a reason about Driftgate's roster rather than the user's config.
+server away from `all` for a reason about Rulegate's roster rather than the user's config.
 
 **Refused rather than half-imported.** A server is dropped whole, with a message naming the
 file and the key, when it holds any of:
@@ -525,7 +525,7 @@ file and the key, when it holds any of:
 Every one of these follows §11.5's split: a loss that still works is a note, a loss that
 silently produces a wrong answer is a refusal. All of them are **warnings**, never errors —
 `init` writes nothing while errors are outstanding, and one odd server in somebody else's
-file must not make a new user's first command fail on a file Driftgate merely read.
+file must not make a new user's first command fail on a file Rulegate merely read.
 
 **A literal credential is converted, not refused.** It becomes a reference named after the
 key it was found under (`GITHUB_TOKEN: "ghp_…"` → `env:GITHUB_TOKEN`), and the message says
@@ -537,7 +537,7 @@ name would make the secret-handling feature itself refuse to render.
 **Codex is the awkward one on the way in too.** `env_vars = ["NAME"]` inverts to
 `env: { NAME: env:NAME }` and `bearer_token_env_var = "X"` to
 `headers: { Authorization: env:X }`. Tables outside `mcp_servers.*` are reported and not
-imported: Driftgate owns that whole file once it writes it (§11.5), so a `[tui]` table will
+imported: Rulegate owns that whole file once it writes it (§11.5), so a `[tui]` table will
 not survive the first `sync`, and saying so during `init` is the difference between a warning
 and a surprise.
 
@@ -567,21 +567,21 @@ costs nothing and loses nothing.
 | **Templating / variable interpolation**                          | Turns a config format into a language, with the escaping and debugging burden that follows.                                                                                | Demonstrated need that partials cannot meet.                    |
 | **Per-tool body overrides**                                      | The 90% case is per-tool _inclusion_, already covered by `tools`. Divergent bodies per tool undercut the premise that there is one source of truth.                        | Users are demonstrably forking rules by hand to work around it. |
 | **Priority weights beyond one integer**                          | `order` plus an id tiebreak is total and predictable. Multi-key precedence is harder to reason about and no more expressive.                                               | A concrete case `order` cannot express.                         |
-| **Nested `.driftgate/`** (monorepos)                             | Needs nearest-file-wins semantics matching how each _target_ tool resolves nesting — which must be researched per tool first.                                              | T061, after the precedence rules of T025 exist.                 |
+| **Nested `.rulegate/`** (monorepos)                              | Needs nearest-file-wins semantics matching how each _target_ tool resolves nesting — which must be researched per tool first.                                              | T061, after the precedence rules of T025 exist.                 |
 
 ## 14. Worked example
 
 Given this canonical source:
 
 ```
-.driftgate/
-  driftgate.yaml
+.rulegate/
+  rulegate.yaml
   rules/10-style.md
   rules/20-testing.md
   rules/30-frontend.md
 ```
 
-**`.driftgate/driftgate.yaml`**
+**`.rulegate/rulegate.yaml`**
 
 ```yaml
 schemaVersion: 1
@@ -590,7 +590,7 @@ tools:
   - cursor
 ```
 
-**`.driftgate/rules/10-style.md`**
+**`.rulegate/rules/10-style.md`**
 
 ```markdown
 ---
@@ -601,7 +601,7 @@ order: 10
 Use tabs. Never `any`.
 ```
 
-**`.driftgate/rules/20-testing.md`**
+**`.rulegate/rules/20-testing.md`**
 
 ```markdown
 ---
@@ -612,7 +612,7 @@ order: 20
 Vitest. Colocate tests beside the code they cover.
 ```
 
-**`.driftgate/rules/30-frontend.md`**
+**`.rulegate/rules/30-frontend.md`**
 
 ```markdown
 ---
@@ -625,12 +625,12 @@ order: 30
 Prefer server components.
 ```
 
-`driftgate sync` produces:
+`rulegate sync` produces:
 
 **`CLAUDE.md`** — concatenated, because Claude Code reads one file:
 
 ```markdown
-<!-- generated by driftgate; edit .driftgate/ instead -->
+<!-- generated by rulegate; edit .rulegate/ instead -->
 
 ## Style
 
@@ -658,7 +658,7 @@ description: Style
 globs:
 alwaysApply: true
 ---
-<!-- generated by driftgate; edit .driftgate/ instead -->
+<!-- generated by rulegate; edit .rulegate/ instead -->
 
 Use tabs. Never `any`.
 ```
@@ -671,7 +671,7 @@ description: Frontend
 globs: src/components/**/*.tsx
 alwaysApply: false
 ---
-<!-- generated by driftgate; edit .driftgate/ instead -->
+<!-- generated by rulegate; edit .rulegate/ instead -->
 
 Prefer server components.
 ```
@@ -690,5 +690,5 @@ default, changing rule id derivation, changing sort order, or changing the marke
 **Non-breaking** (no bump): adding an optional field with a default, adding a `tools`
 selector form, adding a reserved directory, or improving an error message.
 
-Driftgate refuses to parse a `schemaVersion` newer than it understands, and says which
+Rulegate refuses to parse a `schemaVersion` newer than it understands, and says which
 version it needs, rather than guessing at semantics it does not have.

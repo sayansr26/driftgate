@@ -9,7 +9,7 @@ import {
   type McpServer,
   type ReferenceParse,
   type SecretValue,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 
 /** Project scope. `~/.cursor/mcp.json` is the global one and is never written. */
 export const MCP_FILE = '.cursor/mcp.json';
@@ -35,7 +35,7 @@ function secretMap(map: Readonly<Record<string, SecretValue>>): Record<string, J
 
 function serverJson(server: McpServer): JsonValue {
   // Unknown keys first, interpreted keys second — see the same comment in the Claude Code
-  // writer. A preserved key must never be able to override one Driftgate computed.
+  // writer. A preserved key must never be able to override one Rulegate computed.
   const body: Record<string, JsonValue> = { ...server.unknown };
 
   const { transport } = server;

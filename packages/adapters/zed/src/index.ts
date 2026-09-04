@@ -13,7 +13,7 @@ import {
   type Artifact,
   type Canonical,
   type DetectResult,
-} from '@driftgate/adapter-kit';
+} from '@rulegate/adapter-kit';
 import { docs } from './docs.js';
 
 export const RULES_FILE = '.rules';
@@ -57,7 +57,7 @@ async function write(ctx: AdapterContext): Promise<readonly Artifact[]> {
   const { canonical } = ctx;
 
   // Generic guard: no adapter writes over a file that is canonical input. `.rules` is not
-  // a canonical source Driftgate discovers on its own, but a manifest may name one, and
+  // a canonical source Rulegate discovers on its own, but a manifest may name one, and
   // honouring it here costs nothing.
   if (isCanonicalSource(canonical.manifest, RULES_FILE)) return [];
 

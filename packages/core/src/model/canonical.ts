@@ -10,15 +10,15 @@ export interface ManifestOptions {
   readonly marker: boolean;
   /**
    * Only 'lf' in v0. The field exists so that v1 can add 'crlf' without a schema
-   * break; Driftgate itself always writes \n.
+   * break; Rulegate itself always writes \n.
    */
   readonly eol: 'lf';
-  /** Copy originals into `.driftgate/backup/` before overwriting (T020). */
+  /** Copy originals into `.rulegate/backup/` before overwriting (T020). */
   readonly backup: boolean;
   /**
    * Repo-relative POSIX globs `doctor` will not treat as instruction files (T081).
    *
-   * Narrow on purpose: it suppresses nothing Driftgate generates and nothing `state.json`
+   * Narrow on purpose: it suppresses nothing Rulegate generates and nothing `state.json`
    * records — those are ours, and hiding them is how a tool comes to forget a file it
    * owns. It exists for the directories that hold instruction *files as data*, a golden
    * fixture tree above all, where `CLAUDE.md` is test input rather than a rule anything
@@ -42,7 +42,7 @@ export interface ToolConfig {
   readonly source: SourceRef;
 }
 
-export interface DriftgateManifest {
+export interface RulegateManifest {
   readonly schemaVersion: number;
   /** Declared tools in authored order. Rendering order is decided by the renderer. */
   readonly tools: readonly ToolConfig[];
@@ -72,14 +72,14 @@ export interface DriftgateManifest {
  */
 export interface Canonical {
   readonly schemaVersion: number;
-  readonly manifest: DriftgateManifest;
+  readonly manifest: RulegateManifest;
   /** As parsed, unsorted. The renderer owns ordering — never rely on array order. */
   readonly rules: readonly RuleDocument[];
   readonly mcpServers: readonly McpServer[];
   readonly skills: readonly Skill[];
 }
 
-export function emptyManifest(source: SourceRef): DriftgateManifest {
+export function emptyManifest(source: SourceRef): RulegateManifest {
   return {
     schemaVersion: CANONICAL_SCHEMA_VERSION,
     tools: [],
@@ -99,15 +99,15 @@ export function emptyCanonical(source: SourceRef): Canonical {
   };
 }
 
-export function enabledTools(manifest: DriftgateManifest): readonly ToolId[] {
+export function enabledTools(manifest: RulegateManifest): readonly ToolId[] {
   return manifest.tools.filter((t) => t.enabled).map((t) => t.id);
 }
 
-export function toolConfig(manifest: DriftgateManifest, id: ToolId): ToolConfig | undefined {
+export function toolConfig(manifest: RulegateManifest, id: ToolId): ToolConfig | undefined {
   return manifest.tools.find((t) => t.id === id);
 }
 
 /** True when an adapter must not write to this path because it is canonical input. */
-export function isCanonicalSource(manifest: DriftgateManifest, relPath: string): boolean {
+export function isCanonicalSource(manifest: RulegateManifest, relPath: string): boolean {
   return manifest.canonicalSources.includes(relPath);
 }

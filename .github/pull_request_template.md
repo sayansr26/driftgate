@@ -5,12 +5,12 @@
 ## Checklist
 
 - [ ] `pnpm verify` is clean (lint, build, typecheck, test)
-- [ ] `DRIFTGATE_TEST_DIST=1 pnpm test` after `pnpm build`, if this touches packaging, the
+- [ ] `RULEGATE_TEST_DIST=1 pnpm test` after `pnpm build`, if this touches packaging, the
       CLI's exit codes, or an `exports` map
 - [ ] There is a test that **fails without this change** — not one that merely describes it
 - [ ] I mutated each new guard once: I deleted or inverted the line it protects, ran the
       suite, and that test went red
-- [ ] If a `.driftgate/rules/` file changed, `driftgate sync` was run and every regenerated
+- [ ] If a `.rulegate/rules/` file changed, `rulegate sync` was run and every regenerated
       artifact is committed alongside it
 - [ ] No generated file was edited by hand
 

@@ -2,7 +2,7 @@
 
 # Which files does your AI coding tool read?
 
-One page per tool Driftgate supports, generated from the precedence data each adapter carries. Every claim links to the vendor page it came from and the date that page was read.
+One page per tool Rulegate supports, generated from the precedence data each adapter carries. Every claim links to the vendor page it came from and the date that page was read.
 
 - [Aider](aider.md) — verified against Aider docs as published 2026-09-04 on 2026-09-04
 - [Claude Code](claude-code.md) — verified against 2.x on 2026-09-01

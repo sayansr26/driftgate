@@ -2,8 +2,8 @@ import fs from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { DriftgateError } from '../model/errors.js';
-import { DRIFTGATE_DIR } from '../model/paths.js';
+import { RulegateError } from '../model/errors.js';
+import { RULEGATE_DIR } from '../model/paths.js';
 import { escapesRoot, fromPosix, normalizeRelative, toPosix } from '../fs/paths.js';
 import { matchesGlob } from '../fs/glob.js';
 import { compareCodepoint } from '../render/order.js';
@@ -16,10 +16,10 @@ export class NodeFileSystem implements WritableFileSystem {
 
   private resolve(relPath: string): string {
     if (escapesRoot(relPath)) {
-      throw new DriftgateError({
+      throw new RulegateError({
         code: 'E_PATH_ESCAPE',
         message: `path escapes the repository root: ${relPath}`,
-        hint: 'Driftgate never reads or writes outside the repository.',
+        hint: 'Rulegate never reads or writes outside the repository.',
       });
     }
     return path.join(this.repoRoot, fromPosix(normalizeRelative(relPath)));
@@ -138,7 +138,7 @@ export class NodeFileSystem implements WritableFileSystem {
    * by a render aimed at `CLAUDE.md` — and `runInit` passes `force: true`, so `init --yes`
    * did it on a first run (T069).
    *
-   * Replacing the link is the right product behaviour: Driftgate exists to own that path.
+   * Replacing the link is the right product behaviour: Rulegate exists to own that path.
    * `restore` will put the bytes back as a regular file rather than as a link, which is
    * stated in `docs/determinism.md` rather than left to be discovered.
    */
@@ -188,8 +188,8 @@ export function resolveRepoRoot(cwd: string): string {
  *
  * Git, npm, cargo and eslint all resolve their root this way, and a developer spends most
  * of the day inside a subpackage rather than at the root. Without this, `sync` from
- * `packages/core` fails with `E_NO_CANONICAL_SOURCE` and hints `driftgate init` — advice
- * that would create a second, nested `.driftgate/`.
+ * `packages/core` fails with `E_NO_CANONICAL_SOURCE` and hints `rulegate init` — advice
+ * that would create a second, nested `.rulegate/`.
  *
  * `.git` is a *terminator*, not merely a candidate: the walk never looks above it. That is
  * what keeps "sync never writes outside the repo" true. It is matched as a file as well as
@@ -207,7 +207,7 @@ export function resolveRepoRoot(cwd: string): string {
  *
  * When nothing is found, the starting directory is returned unchanged — never `/`, never
  * the home directory — so the resulting `E_NO_CANONICAL_SOURCE` still describes where the
- * user is standing and `driftgate init` still creates `.driftgate/` there.
+ * user is standing and `rulegate init` still creates `.rulegate/` there.
  */
 export function findRepoRoot(startDir: string): string {
   const start = path.resolve(startDir);
@@ -215,14 +215,14 @@ export function findRepoRoot(startDir: string): string {
   let dir = start;
 
   for (;;) {
-    // A nearer `.driftgate/` wins. Nothing is merged across levels: nested canonical
+    // A nearer `.rulegate/` wins. Nothing is merged across levels: nested canonical
     // sources are T061, and this is exactly what `--cwd <subpackage>` already means.
-    if (probe(path.join(dir, DRIFTGATE_DIR))) return dir;
+    if (probe(path.join(dir, RULEGATE_DIR))) return dir;
     if (probe(path.join(dir, '.git'))) return dir;
 
     const parent = path.dirname(dir);
     // The home directory is examined like any other, but never ascended past: a stray
-    // `~/.driftgate` must not silently become the root of an unrelated project.
+    // `~/.rulegate` must not silently become the root of an unrelated project.
     if (parent === dir || dir === home) return start;
     dir = parent;
   }
@@ -334,7 +334,7 @@ function overrunsPathLimit(abs: string): boolean {
  *
  * Windows' 260-character limit surfaces as a bare errno naming no limit and suggesting no
  * action — and it makes `check` fail there while passing on Linux for the same repository,
- * which reads as a Driftgate bug rather than a platform one.
+ * which reads as a Rulegate bug rather than a platform one.
  */
 async function withPathErrors<T>(relPath: string, abs: string, run: () => Promise<T>): Promise<T> {
   try {
@@ -346,7 +346,7 @@ async function withPathErrors<T>(relPath: string, abs: string, run: () => Promis
       code === 'ERR_FS_EISDIR' ||
       (code === 'ENOENT' && overrunsPathLimit(abs))
     ) {
-      throw new DriftgateError({
+      throw new RulegateError({
         code: 'E_PATH_TOO_LONG',
         message: `the filesystem refused the path ${relPath} (${String(code)})`,
         hint: 'Windows limits paths to 260 characters unless long paths are enabled; shorten a rule id or move the repository nearer the drive root.',

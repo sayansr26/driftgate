@@ -1,9 +1,19 @@
 {
-  "name": "@driftgate/adapter-zed",
+  "name": "@rulegate/adapter-zed",
   "version": "0.0.0",
-  "description": "Driftgate adapter for zed.",
+  "description": "Rulegate adapter for zed.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sayansr26/rulegate.git",
+    "directory": "packages/adapters/zed"
+  },
+  "homepage": "https://github.com/sayansr26/rulegate#readme",
+  "bugs": "https://github.com/sayansr26/rulegate/issues",
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=20"
   },
@@ -22,6 +32,6 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@driftgate/adapter-kit": "workspace:*"
+    "@rulegate/adapter-kit": "workspace:*"
   }
 }

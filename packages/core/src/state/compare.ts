@@ -28,8 +28,8 @@ export interface DiskComparison {
    * In state but no longer produced by any adapter.
    *
    * This is the *only* source of deletion candidates anywhere in the codebase. That is
-   * what makes "never delete a file Driftgate did not generate" enforceable rather than
-   * aspirational: a path Driftgate never recorded can never reach a delete call.
+   * what makes "never delete a file Rulegate did not generate" enforceable rather than
+   * aspirational: a path Rulegate never recorded can never reach a delete call.
    */
   readonly orphaned: readonly string[];
 }

@@ -18,12 +18,12 @@ const fixtures = fileURLToPath(new URL('../../../fixtures/', import.meta.url));
  * scans the source for network primitives; this watches the runtime, so a dependency
  * that reaches out on its own would be caught here rather than trusted.
  */
-describe('driftgate check makes no network call', () => {
+describe('rulegate check makes no network call', () => {
   let repo: string;
   const spies: ReturnType<typeof vi.spyOn>[] = [];
 
   beforeEach(async () => {
-    repo = await mkdtemp(path.join(tmpdir(), 'driftgate-check-net-'));
+    repo = await mkdtemp(path.join(tmpdir(), 'rulegate-check-net-'));
     await cp(path.join(fixtures, 'cursor/input'), repo, { recursive: true });
     const trap = () => {
       throw new Error('network call attempted');

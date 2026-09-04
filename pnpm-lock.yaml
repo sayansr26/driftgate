@@ -38,112 +38,112 @@ importers:
 
   action:
     dependencies:
-      driftgate:
+      rulegate:
         specifier: workspace:*
         version: link:../packages/cli
 
   packages/adapter-kit:
     dependencies:
-      '@driftgate/core':
+      '@rulegate/core':
         specifier: workspace:*
         version: link:../core
 
   packages/adapters/aider:
     dependencies:
-      '@driftgate/adapter-kit':
+      '@rulegate/adapter-kit':
         specifier: workspace:*
         version: link:../../adapter-kit
 
   packages/adapters/claude-code:
     dependencies:
-      '@driftgate/adapter-kit':
+      '@rulegate/adapter-kit':
         specifier: workspace:*
         version: link:../../adapter-kit
 
   packages/adapters/cline:
     dependencies:
-      '@driftgate/adapter-kit':
+      '@rulegate/adapter-kit':
         specifier: workspace:*
         version: link:../../adapter-kit
 
   packages/adapters/codex:
     dependencies:
-      '@driftgate/adapter-kit':
+      '@rulegate/adapter-kit':
         specifier: workspace:*
         version: link:../../adapter-kit
 
   packages/adapters/copilot:
     dependencies:
-      '@driftgate/adapter-kit':
+      '@rulegate/adapter-kit':
         specifier: workspace:*
         version: link:../../adapter-kit
 
   packages/adapters/cursor:
     dependencies:
-      '@driftgate/adapter-kit':
+      '@rulegate/adapter-kit':
         specifier: workspace:*
         version: link:../../adapter-kit
 
   packages/adapters/gemini:
     dependencies:
-      '@driftgate/adapter-kit':
+      '@rulegate/adapter-kit':
         specifier: workspace:*
         version: link:../../adapter-kit
 
   packages/adapters/roo-code:
     dependencies:
-      '@driftgate/adapter-kit':
+      '@rulegate/adapter-kit':
         specifier: workspace:*
         version: link:../../adapter-kit
 
   packages/adapters/windsurf:
     dependencies:
-      '@driftgate/adapter-kit':
+      '@rulegate/adapter-kit':
         specifier: workspace:*
         version: link:../../adapter-kit
 
   packages/adapters/zed:
     dependencies:
-      '@driftgate/adapter-kit':
+      '@rulegate/adapter-kit':
         specifier: workspace:*
         version: link:../../adapter-kit
 
   packages/cli:
     dependencies:
-      '@driftgate/adapter-aider':
+      '@rulegate/adapter-aider':
         specifier: workspace:*
         version: link:../adapters/aider
-      '@driftgate/adapter-claude-code':
+      '@rulegate/adapter-claude-code':
         specifier: workspace:*
         version: link:../adapters/claude-code
-      '@driftgate/adapter-cline':
+      '@rulegate/adapter-cline':
         specifier: workspace:*
         version: link:../adapters/cline
-      '@driftgate/adapter-codex':
+      '@rulegate/adapter-codex':
         specifier: workspace:*
         version: link:../adapters/codex
-      '@driftgate/adapter-copilot':
+      '@rulegate/adapter-copilot':
         specifier: workspace:*
         version: link:../adapters/copilot
-      '@driftgate/adapter-cursor':
+      '@rulegate/adapter-cursor':
         specifier: workspace:*
         version: link:../adapters/cursor
-      '@driftgate/adapter-gemini':
+      '@rulegate/adapter-gemini':
         specifier: workspace:*
         version: link:../adapters/gemini
-      '@driftgate/adapter-roo-code':
+      '@rulegate/adapter-roo-code':
         specifier: workspace:*
         version: link:../adapters/roo-code
-      '@driftgate/adapter-windsurf':
+      '@rulegate/adapter-windsurf':
         specifier: workspace:*
         version: link:../adapters/windsurf
-      '@driftgate/adapter-zed':
+      '@rulegate/adapter-zed':
         specifier: workspace:*
         version: link:../adapters/zed
-      '@driftgate/core':
+      '@rulegate/core':
         specifier: workspace:*
         version: link:../core
-      '@driftgate/interop':
+      '@rulegate/interop':
         specifier: workspace:*
         version: link:../interop
       commander:
@@ -161,7 +161,7 @@ importers:
 
   packages/interop:
     dependencies:
-      '@driftgate/adapter-kit':
+      '@rulegate/adapter-kit':
         specifier: workspace:*
         version: link:../adapter-kit
 

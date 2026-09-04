@@ -1,0 +1,49 @@
+# Deliberately not in id order, and it makes no difference — which is itself the finding.
+# T046 expected this file to be the first golden that could see `selectMcpServers`' sort,
+# because TOML tables have no canonical order and nothing downstream re-sorts them. But
+# `parseMcpServers` sorts by id at parse time, so every fixture reaches every adapter
+# already ordered. The sort's guards are unit tests that reverse the input by hand; see
+# the note in `packages/adapters/codex/test/mcp.test.ts`.
+schemaVersion: 1
+servers:
+  zebra-stdio:
+    command: npx
+    args: ['-y', '@modelcontextprotocol/server-github']
+    # Codex has no variable substitution, so this cannot be written as a *value*. The
+    # reference maps to a different key entirely: `env_vars`, which whitelists the name
+    # for forwarding from Codex's own environment. It is only expressible because the
+    # variable name and the key are the same string.
+    env:
+      GITHUB_TOKEN: env:GITHUB_TOKEN
+
+  alpha-http:
+    url: https://mcp.example.com/mcp
+    # An `Authorization` header is the one header Codex can express, as
+    # `bearer_token_env_var`. The name is >= 16 characters on purpose: that is the input
+    # the T044 secret scan's false positive needs, since `bearer_token_env_var` flattens
+    # to a key containing both `bearer` and `token`.
+    headers:
+      Authorization: env:DOCS_API_KEY_PRODUCTION
+    # Not a key Rulegate interprets. Preserved verbatim (RFC-0001 §11.1) and re-emitted.
+    timeout: 600000
+
+  linear-sse:
+    url: https://mcp.linear.app/sse
+    # Codex documents only streamable HTTP. `sse` renders as a bare `url` here — lossy but
+    # still functional, so it is a `warn` note rather than a refusal, the same split
+    # Cursor's lost `type` gets.
+    transport: sse
+    headers:
+      Authorization: env:LINEAR_API_KEY
+
+  cursor-only:
+    command: ./scripts/cursor-helper
+    tools: [cursor]
+
+  disabled-server:
+    command: ./scripts/not-yet
+    enabled: false
+
+  user-global:
+    command: ./scripts/machine-wide
+    scope: global

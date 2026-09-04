@@ -42,8 +42,8 @@ same paths. Encode only what you can cite.
 ## Steps
 
 ```bash
-driftgate adapter new amazon-q          # prints the plan
-driftgate adapter new amazon-q --yes    # applies it
+rulegate adapter new amazon-q          # prints the plan
+rulegate adapter new amazon-q --yes    # applies it
 pnpm install && pnpm test           # green as generated
 ```
 
@@ -55,7 +55,7 @@ pnpm install && pnpm test           # green as generated
    dated `1970-01-01` so an unverified claim cannot be mistaken for a verified one.
 4. Run Amazon Q Developer against the generated config and confirm it actually loads. Say so in the PR,
    with the version you tested.
-5. Add `amazon-q` to `.driftgate/driftgate.yaml` and run `driftgate sync` — this repository
+5. Add `amazon-q` to `.rulegate/rulegate.yaml` and run `rulegate sync` — this repository
    dogfoods every adapter it ships. Commit the generated file with your change.
 
 ## Done when

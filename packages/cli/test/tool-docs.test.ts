@@ -51,9 +51,9 @@ describe('generated tool docs — T065', () => {
     }
   });
 
-  it('renders the "Driftgate writes it" column, which nothing else encodes', async () => {
+  it('renders the "Rulegate writes it" column, which nothing else encodes', async () => {
     // `managed` appears only as a table cell. Dropping the column would silently stop the
-    // page distinguishing a file Driftgate generates from one it merely reports — the whole
+    // page distinguishing a file Rulegate generates from one it merely reports — the whole
     // question a reader brings to these pages.
     for (const adapter of ADAPTERS) {
       const rendered = await page(adapter.name);
@@ -125,7 +125,7 @@ describe('generated adapter registry — T066', () => {
 
       const declaresMcp = adapter.docs.files.some((f) => f.managed && f.role === 'mcp');
       const fixture = declaresMcp ? `${adapter.name}-mcp` : adapter.name;
-      const { renderFixture } = await import('@driftgate/adapter-kit/testing');
+      const { renderFixture } = await import('@rulegate/adapter-kit/testing');
       const artifacts = await renderFixture(fixture, adapter).catch(() => undefined);
 
       if (artifacts === undefined) continue;

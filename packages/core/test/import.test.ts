@@ -25,7 +25,7 @@ describe('stripMarker', () => {
   });
 
   it('does not delete a line from the middle of a document that mentions the marker', () => {
-    // The user writing *about* Driftgate is not claiming Driftgate wrote the file. A
+    // The user writing *about* Rulegate is not claiming Rulegate wrote the file. A
     // substring search over the whole document would silently eat this line.
     const text = `## Notes\n\n<!-- ${MARKER_TEXT} -->\n\nnot the opening line\n`;
     expect(stripMarker(text)).toBe(text);
@@ -120,7 +120,7 @@ describe('importConcatenated', () => {
     expect(rules[0]?.frontmatter.tools).toEqual({ kind: 'all' });
   });
 
-  it('leaves `path` empty so init writes the rule under .driftgate/, not back over the source', () => {
+  it('leaves `path` empty so init writes the rule under .rulegate/, not back over the source', () => {
     const rules = importConcatenated({ ...opts, contents: marked('## Style\n\nUse tabs.\n') });
     expect(rules[0]?.path).toBe('');
     expect(rules[0]?.source.file).toBe('CLAUDE.md');

@@ -1,4 +1,4 @@
-import { DriftgateError } from '@driftgate/core';
+import { RulegateError } from '@rulegate/core';
 import { toolNames } from './names.js';
 
 /**
@@ -13,7 +13,7 @@ import { toolNames } from './names.js';
  * plan before `--yes`, and tested without a filesystem.
  */
 
-const IMPORT_LINE = /^import \{ (?<binding>\w+) \} from '@driftgate\/adapter-(?<id>[a-z0-9-]+)';$/;
+const IMPORT_LINE = /^import \{ (?<binding>\w+) \} from '@rulegate\/adapter-(?<id>[a-z0-9-]+)';$/;
 
 /** Rebuild the import block and the ADAPTERS array with `id` added, both sorted by id. */
 export function registerInRegistry(source: string, id: string): string {
@@ -38,7 +38,7 @@ export function registerInRegistry(source: string, id: string): string {
   const sorted = [...entries.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 
   const rebuilt = sorted.map(
-    ([tool, binding]) => `import { ${binding} } from '@driftgate/adapter-${tool}';`,
+    ([tool, binding]) => `import { ${binding} } from '@rulegate/adapter-${tool}';`,
   );
   const last = importIndexes[importIndexes.length - 1] ?? first;
   const withImports = [...lines.slice(0, first), ...rebuilt, ...lines.slice(last + 1)];
@@ -54,7 +54,7 @@ export function registerInRegistry(source: string, id: string): string {
 /** Add the workspace dependency, in the sorted position the rest of the block is in. */
 export function registerInCliPackage(source: string, id: string): string {
   const line = `    "${toolNames(id).packageName}": "workspace:*",`;
-  return insertSorted(source, /^ {4}"@driftgate\/adapter-[a-z0-9-]+": "workspace:\*",$/, line, {
+  return insertSorted(source, /^ {4}"@rulegate\/adapter-[a-z0-9-]+": "workspace:\*",$/, line, {
     file: 'packages/cli/package.json',
     missing: 'it declares no adapter dependencies',
   });
@@ -72,7 +72,7 @@ export function registerInVitestConfig(source: string, id: string): string {
   const line = `      '${n.packageName}': src('./packages/adapters/${n.id}/src/index.ts'),`;
   return insertSorted(
     source,
-    /^ {6}'@driftgate\/adapter-[a-z0-9-]+': src\('\.\/packages\/adapters\/[a-z0-9-]+\/src\/index\.ts'\),$/,
+    /^ {6}'@rulegate\/adapter-[a-z0-9-]+': src\('\.\/packages\/adapters\/[a-z0-9-]+\/src\/index\.ts'\),$/,
     line,
     { file: 'vitest.config.ts', missing: 'it aliases no adapters' },
   );
@@ -148,10 +148,10 @@ function insertSorted(
   return [...lines.slice(0, at), line, ...lines.slice(at)].join('\n');
 }
 
-function patchFailed(file: string, why: string): DriftgateError {
-  return new DriftgateError({
+function patchFailed(file: string, why: string): RulegateError {
+  return new RulegateError({
     code: 'E_SCAFFOLD_CONFLICT',
     message: `cannot register the adapter in ${file}: ${why}`,
-    hint: 'Run this from a checkout of the driftgate monorepo, or register the adapter by hand.',
+    hint: 'Run this from a checkout of the rulegate monorepo, or register the adapter by hand.',
   });
 }

@@ -59,7 +59,7 @@ describe('state serialization', () => {
 
   it('regenerates byte-identically, which is why it carries no timestamp', () => {
     // T008's stated validation. A `generatedAt` field would make this impossible and
-    // put a spurious diff in every repository on every Driftgate upgrade.
+    // put a spurious diff in every repository on every Rulegate upgrade.
     const first = serializeState(buildState(artifacts));
     const second = serializeState(buildState(artifacts));
 
@@ -135,7 +135,7 @@ describe('compareToDisk', () => {
   it('separates a pre-existing unmanaged file from a genuinely new one', async () => {
     // The distinction is the whole guard: `untracked` is safe to write by definition,
     // `unmanaged` is somebody else's file standing where our output goes.
-    const fs = new MemoryFileSystem([['CLAUDE.md', 'hand written, predates driftgate\n']]);
+    const fs = new MemoryFileSystem([['CLAUDE.md', 'hand written, predates rulegate\n']]);
     const result = await compareToDisk(EMPTY_STATE, planned, fs);
 
     expect(result.unmanaged).toEqual(['CLAUDE.md']);
@@ -160,7 +160,7 @@ describe('compareToDisk', () => {
   });
 
   it('offers only recorded files as deletion candidates', async () => {
-    // The mechanical form of "never delete a file Driftgate did not generate": a path
+    // The mechanical form of "never delete a file Rulegate did not generate": a path
     // that was never recorded cannot appear in `orphaned`, and nothing else deletes.
     const state = buildState([
       artifact('CLAUDE.md', 'generated\n'),
@@ -169,7 +169,7 @@ describe('compareToDisk', () => {
     const fs = new MemoryFileSystem([
       ['CLAUDE.md', 'generated\n'],
       ['.cursor/rules/gone.mdc', 'removed rule\n'],
-      ['NOTES.md', 'a file driftgate has never seen\n'],
+      ['NOTES.md', 'a file rulegate has never seen\n'],
     ]);
 
     const result = await compareToDisk(state, planned, fs);

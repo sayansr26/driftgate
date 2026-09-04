@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { normalizeEol, stripBom } from '../render/eol.js';
 import { compareCodepoint } from '../render/order.js';
 import { stableJsonStringify } from '../render/json.js';
-import { DriftgateError } from '../model/errors.js';
+import { RulegateError } from '../model/errors.js';
 import { STATE_PATH } from '../model/paths.js';
 import type { Artifact, ArtifactKind } from '../adapter/artifact.js';
 import type { ToolId } from '../model/ids.js';
@@ -29,9 +29,9 @@ export interface StateFile {
  * Hash the *normalized* content, never the raw bytes.
  *
  * Hashing raw bytes would mean that every Windows user with `core.autocrlf=true` sees
- * every generated file reported as hand-edited on every checkout — `driftgate check`
+ * every generated file reported as hand-edited on every checkout — `rulegate check`
  * would fail CI for every repository on that platform, for a reason that looks like a
- * renderer bug. Driftgate is EOL-agnostic when comparing and LF-only when writing.
+ * renderer bug. Rulegate is EOL-agnostic when comparing and LF-only when writing.
  *
  * The algorithm prefix means a future migration is detectable rather than silently
  * mis-comparing.
@@ -120,18 +120,18 @@ export function parseState(text: string | undefined): StateFile | undefined {
  */
 export async function loadState(
   fs: ReadOnlyFileSystem,
-): Promise<{ readonly state: StateFile; readonly warning: DriftgateError | undefined }> {
+): Promise<{ readonly state: StateFile; readonly warning: RulegateError | undefined }> {
   const text = await fs.tryReadFile(STATE_PATH);
   const state = parseState(text);
   if (state !== undefined) return { state, warning: undefined };
   if (text === undefined) return { state: EMPTY_STATE, warning: undefined };
   return {
     state: EMPTY_STATE,
-    warning: new DriftgateError({
+    warning: new RulegateError({
       code: 'E_STATE_INVALID',
       message: 'state.json is unreadable; treating every generated file as unrecorded',
       source: { file: STATE_PATH },
-      hint: 'restore it from version control, or run: driftgate sync to regenerate it',
+      hint: 'restore it from version control, or run: rulegate sync to regenerate it',
     }),
   };
 }
