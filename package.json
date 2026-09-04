@@ -16,7 +16,8 @@
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
     "verify": "pnpm lint && pnpm build && pnpm typecheck && pnpm test",
-    "fixtures:update": "node scripts/update-fixtures.mjs"
+    "fixtures:update": "node scripts/update-fixtures.mjs",
+    "smoke": "node scripts/smoke.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

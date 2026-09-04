@@ -5,6 +5,7 @@ import { runSync } from './commands/sync.js';
 import { runCheck } from './commands/check.js';
 import { runDoctor } from './commands/doctor.js';
 import { runRestore } from './commands/restore.js';
+import { runAdapterNew } from './commands/adapter/index.js';
 import { resolveGlobalCwd } from './cwd.js';
 import { ExitCode } from './ui/exit.js';
 
@@ -131,6 +132,32 @@ export function buildProgram(): Command {
         // commander stores --no-global as `global: false`.
         ...(opts.global === false ? { noGlobal: true } : {}),
         ...(opts.json === undefined ? {} : { json: opts.json }),
+        ...(globals.quiet === undefined ? {} : { quiet: globals.quiet }),
+        ...(globals.color === undefined ? {} : { color: globals.color }),
+      });
+      process.exitCode = code;
+    });
+
+  // Last, and grouped under its own noun, because it is the only command aimed at
+  // contributors rather than at users: it writes into a checkout of this monorepo, not
+  // into the repository being managed.
+  const adapter = program
+    .command('adapter')
+    .description('Adapter authoring helpers for contributors to the driftgate repo');
+
+  adapter
+    .command('new')
+    .argument('<tool>', 'adapter id, lowercase kebab-case (e.g. kiro)')
+    .description('Scaffold an adapter, its fixtures and its tests (writes nothing without --yes)')
+    .option('--yes', 'apply the plan instead of only printing it')
+    .action(async (tool: string, opts: { yes?: boolean }, cmd: Command) => {
+      const globals = cmd.optsWithGlobals<{ cwd?: string; quiet?: boolean; color?: boolean }>();
+      const { root, searched } = resolveGlobalCwd(globals.cwd);
+      const code = await runAdapterNew({
+        cwd: root,
+        tool,
+        ...(searched ? { announceRoot: true } : {}),
+        ...(opts.yes === undefined ? {} : { yes: opts.yes }),
         ...(globals.quiet === undefined ? {} : { quiet: globals.quiet }),
         ...(globals.color === undefined ? {} : { color: globals.color }),
       });

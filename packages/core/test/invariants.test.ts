@@ -214,6 +214,18 @@ describe('the shared rendering path', () => {
       const rel = path.relative(repoRoot, file);
       if (!rel.startsWith('packages/cli/src/')) continue;
       const text = await readFile(file, 'utf8');
+      // The one file that names the renderers without calling them: `adapter new`
+      // *emits* an adapter's source (T028), so they appear inside template literals.
+      // The guarantee is kept by a stronger check — it cannot call what it never
+      // imports, and its only import from core is a type.
+      if (rel === 'packages/cli/src/commands/adapter/templates.ts') {
+        const coreImports = [
+          ...text.matchAll(/^import (type )?\{[^}]*\} from '@driftgate\/core'/gm),
+        ];
+        expect(coreImports.length, rel).toBeGreaterThan(0);
+        for (const match of coreImports) expect(match[1], rel).toBe('type ');
+        continue;
+      }
       // The CLI parses flags, calls the pipeline, and prints. It never builds output.
       if (/renderConcatenated|renderRuleSection|finalizeArtifact|withHtmlMarker/.test(text)) {
         offenders.push(rel);

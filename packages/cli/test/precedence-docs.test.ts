@@ -14,27 +14,34 @@ import { ADAPTERS } from '../src/registry.js';
  */
 
 /**
- * Which write fixtures hold each adapter's goldens. Cursor has two because `.cursorrules`
- * is opt-in (`options.legacy`), so its output is split across two fixture repos.
+ * Which write fixtures hold each adapter's goldens.
+ *
+ * Convention first — `fixtures/<tool>/` — with an entry here only for an adapter whose
+ * output does not all live there. Cursor is the one: `.cursorrules` is opt-in
+ * (`options.legacy`), so its goldens are split across two fixture repos. A hardcoded
+ * roster used to live here and had to be edited by hand for every adapter, which a
+ * scaffolded one (T028) would have failed on the day it landed.
  */
-const WRITE_FIXTURES: Readonly<Record<string, readonly string[]>> = {
-  'claude-code': ['claude-code'],
-  codex: ['codex'],
-  copilot: ['copilot'],
-  cursor: ['cursor', 'cursor-legacy'],
-  gemini: ['gemini'],
+const EXTRA_FIXTURES: Readonly<Record<string, readonly string[]>> = {
+  cursor: ['cursor-legacy'],
 };
 
+const writeFixturesFor = (tool: string): readonly string[] => [
+  tool,
+  ...(EXTRA_FIXTURES[tool] ?? []),
+];
+
 describe('encoded precedence rules', () => {
-  it('covers every registered adapter', () => {
-    // Without this, adding an adapter and forgetting its fixture entry would silently
-    // skip it below rather than fail.
-    expect(Object.keys(WRITE_FIXTURES).sort()).toEqual([...ADAPTERS.map((a) => a.name)].sort());
+  it('names no fixture override for an adapter that is not registered', () => {
+    // The overrides are the only hand-maintained part left, and a stale one is invisible:
+    // it would point at goldens nothing renders any more.
+    const names = new Set(ADAPTERS.map((a) => a.name));
+    expect(Object.keys(EXTRA_FIXTURES).filter((tool) => !names.has(tool))).toEqual([]);
   });
 
   for (const adapter of ADAPTERS) {
     it(`are valid for ${adapter.name}`, async () => {
-      await expectDocsValid(adapter, { writeFixtures: WRITE_FIXTURES[adapter.name] ?? [] });
+      await expectDocsValid(adapter, { writeFixtures: writeFixturesFor(adapter.name) });
     });
   }
 

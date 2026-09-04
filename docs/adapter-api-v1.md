@@ -141,6 +141,24 @@ one minor after v2 ships.
 
 ## Writing an adapter
 
+Start with the scaffold, from a checkout of this repository:
+
+```
+driftgate adapter new <tool>          # prints the plan; writes nothing
+driftgate adapter new <tool> --yes    # applies it
+pnpm install && pnpm test             # green as generated
+```
+
+It creates a working concatenated-Markdown adapter, its three fixture layouts, its tests,
+and its registration — the package, the CLI's dependency list, the Vitest alias, and
+§4.1 of RFC-0001. Registration is part of the scaffold rather than a follow-up step
+because `packages/cli/test/registry.test.ts` asserts that `ADAPTERS` equals the directory
+listing: an unregistered adapter fails the suite rather than merely going unused.
+
+What is left is the part only you can write: the real artifact path, the real precedence
+rules in `src/docs.ts` (every placeholder there is marked `TODO`, and dated `1970-01-01`
+so an unverified claim cannot be mistaken for a verified one), and a hand-written golden.
+
 Fixture-first. Hand-write `fixtures/<tool>/expected/` from the tool's documented behavior
 _before_ implementing `detect` → `read` → `write`, then make the fixture pass byte-exact.
 Encode the tool's precedence rules in `docs`, each with a source URL and the tool version

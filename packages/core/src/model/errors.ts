@@ -21,6 +21,9 @@ export type DriftgateErrorCode =
   // `init` (T072): reformatting generated output makes the next `sync` report it as
   // hand-edited and refuse to write it, which reads as Driftgate being broken.
   | 'E_FORMATTER_CONFLICT'
+  // `driftgate adapter new` refused rather than overwrite a path that already exists, or
+  // patch one that does not (T028).
+  | 'E_SCAFFOLD_CONFLICT'
   | 'E_ADAPTER_FAILED'
   | 'E_ADAPTER_API_VERSION';
 

@@ -50,6 +50,7 @@ export * from './doctor/types.js';
 export * from './doctor/report.js';
 
 export { MemoryFileSystem } from './io/memory.js';
+export { applyScaffold, type ScaffoldFile, type ScaffoldReport } from './io/scaffold.js';
 export {
   NodeFileSystem,
   resolveRepoRoot,

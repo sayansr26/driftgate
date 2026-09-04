@@ -4,7 +4,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { NodeFileSystem, detectTools, parse } from '@driftgate/core';
 import { detectEngineFixture, fixturePath } from '@driftgate/adapter-kit/testing';
-import { ADAPTERS } from '../src/registry.js';
+import { ADAPTERS, ADAPTER_NAMES } from '../src/registry.js';
 import type { DetectionReport } from '@driftgate/core';
 
 /**
@@ -27,13 +27,10 @@ async function reportFor(kase: 'none' | 'one' | 'all'): Promise<DetectionReport>
 describe('detectTools over the shipped adapter set', () => {
   it('finds nothing in a repository that uses none of the five', async () => {
     const report = await reportFor('none');
-    expect(report.tools.map((t) => t.name)).toEqual([
-      'claude-code',
-      'codex',
-      'copilot',
-      'cursor',
-      'gemini',
-    ]);
+    // The whole roster, derived: an adapter scaffolded by T028 is registered the moment
+    // it is created, and a frozen list here would fail on it while testing nothing.
+    expect(report.tools.map((t) => t.name)).toEqual([...ADAPTER_NAMES].sort());
+    expect(report.tools.length).toBeGreaterThanOrEqual(5);
     // Every tool is still reported, with no evidence. `doctor` must be able to say
     // "cursor is not in use here", and it cannot say that from an absent row.
     expect(report.tools.every((t) => !t.detected)).toBe(true);
@@ -51,7 +48,10 @@ describe('detectTools over the shipped adapter set', () => {
   it('finds all five, with the evidence each adapter documents', async () => {
     const report = await reportFor('all');
     expect(report.tools.filter((t) => t.detected)).toHaveLength(5);
-    expect(Object.fromEntries(report.tools.map((t) => [t.name, t.evidence]))).toEqual({
+    // Detected tools only: the fixture holds the five shipped adapters' files and says
+    // nothing about any adapter added after it was written.
+    const detectedTools = report.tools.filter((t) => t.detected);
+    expect(Object.fromEntries(detectedTools.map((t) => [t.name, t.evidence]))).toEqual({
       'claude-code': ['.claude', 'CLAUDE.md'],
       codex: ['AGENTS.md'],
       copilot: ['.github/copilot-instructions.md', '.github/instructions'],

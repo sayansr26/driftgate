@@ -55,5 +55,16 @@ read-only and **exits 0 even when it has warnings** — `check` owns exit 1 for 
 command that reports a correct permanent condition as a CI failure is one people mute.
 `--no-global` skips the user-level probe; `--json` emits the whole report.
 
+`driftgate adapter new <tool>` scaffolds an adapter — a working concatenated-Markdown
+stub, its three fixture layouts, its tests, and its registration in the registry, the
+CLI's dependencies, the Vitest alias and RFC-0001 §4.1. It is the one command aimed at
+contributors rather than users: it writes into a checkout of this monorepo and refuses
+anywhere else. Like `init` it **writes nothing without `--yes`**, and it never overwrites —
+every generated path must be absent and every patched file must exist, checked before the
+first write so a collision leaves the tree untouched. Registration is part of the scaffold
+because `registry.test.ts` pins `ADAPTERS` to the directory listing: an unregistered
+adapter fails the suite. What is left for the author is the artifact path, the real
+precedence rules in `src/docs.ts`, and a hand-written golden.
+
 Exit codes: `0` ok · `1` drift or failure · `2` usage. CI reads the code, not the
 message, so a usage error must never be reported as drift.

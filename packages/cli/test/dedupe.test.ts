@@ -4,18 +4,35 @@ import { NodeFileSystem, collectImports, dedupeImported, type ImportSource } fro
 import { fixturesRoot } from '@driftgate/adapter-kit/testing';
 import { ADAPTERS } from '../src/registry.js';
 
+/**
+ * The adapters the `import-dedupe` fixtures were authored for.
+ *
+ * Pinned rather than read from the live registry, because `kind: 'all'` below means
+ * "every enabled adapter carried this rule". A freshly scaffolded adapter (T028) has no
+ * file in these fixtures, so it would correctly turn that answer into a five-item list —
+ * and fail a test about dedupe for a reason that has nothing to do with dedupe.
+ */
+const FIXTURE_TOOLS = ['claude-code', 'codex', 'copilot', 'cursor', 'gemini'];
+const FIXTURE_ADAPTERS = ADAPTERS.filter((a) => FIXTURE_TOOLS.includes(a.name));
+
 async function importFrom(fixture: string): Promise<readonly ImportSource[]> {
   const repoRoot = path.join(fixturesRoot, 'import-dedupe', fixture);
   const result = await collectImports({
     repoRoot,
     fs: new NodeFileSystem(repoRoot),
-    adapters: ADAPTERS,
+    adapters: FIXTURE_ADAPTERS,
   });
   expect(result.errors).toEqual([]);
   return result.sources;
 }
 
 describe('content dedupe on import (T018)', () => {
+  it('still ships every adapter the fixtures were written against', () => {
+    // The pinned list above is only safe while it is a subset of the registry: an
+    // adapter renamed or dropped would otherwise silently shrink the set under test.
+    expect(FIXTURE_ADAPTERS.map((a) => a.name).sort()).toEqual([...FIXTURE_TOOLS].sort());
+  });
+
   it('collapses the same rules in four formats into one canonical set', async () => {
     const sources = await importFrom('four-formats');
     // The premise the fixture rests on: without dedupe this is ten rules for two — the
