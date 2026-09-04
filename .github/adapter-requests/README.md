@@ -25,3 +25,27 @@ labels: good first adapter, adapter, tool-not-supported
 Every claim about a tool's config format carries the URL it came from and the date that page
 was read — the same standard `AdapterDocs` holds adapters to. A claim without one does not
 belong here.
+
+## Lifecycle of a seed
+
+All five requests here are **filed** (issues #1–#5, 2026-09-04). The files stay checked in
+because they are the reviewable, diffable source an issue body stops being the moment it is
+posted.
+
+Their siblings — Aider, Cline, Roo Code, Windsurf and Zed — were seeded when five adapters
+shipped, were implemented before the repository went public, and were deleted rather than
+filed: an issue saying "Windsurf is not supported yet" next to a shipping Windsurf adapter
+reads as an abandoned tracker.
+
+`scripts/seed-issues.mjs` enforces both halves of that on its own, so neither depends on
+anyone remembering:
+
+- **It skips a seed whose `packages/adapters/<id>/` exists**, and says which. The directory
+  listing decides, for the same reason `registry.test.ts` pins `ADAPTERS` to it rather than to
+  a hand-kept list.
+- **It skips a title already on the tracker**, open or closed, read live from GitHub before it
+  files anything. Running `--yes` twice is therefore safe; without this the checked-in files
+  would be filed again every time, because "already done" is invisible from inside the
+  repository. If it cannot read the tracker it refuses rather than risk duplicates.
+
+Delete a seed when its adapter lands. If you forget, the script will not file it.
