@@ -8,6 +8,18 @@ import { GIT_SUBCOMMANDS, StagedFileSystem } from '../src/git/index.js';
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
 /**
+ * Repo-relative and POSIX. Every allowlist and expected value in this file is written
+ * with forward slashes, but `path.relative` emits `\` on Windows — which is how the write
+ * allowlist and the picocolors pin came to report five correct files and one correct
+ * import as violations on the Windows cells, and only there. The separator is exactly the
+ * class of difference this matrix exists to find, so the tests that police it must not be
+ * the ones that trip over it.
+ */
+function relPosix(file: string): string {
+  return path.relative(repoRoot, file).split(path.sep).join('/');
+}
+
+/**
  * NFR1 says zero network calls "by default and forever". A README promise decays;
  * a test does not. These two suites are the mechanical form of that promise, and of
  * the thin-dependency claim the project's own pitch rests on.
@@ -95,7 +107,7 @@ describe('zero network calls', () => {
       const text = await readFile(file, 'utf8');
       for (const pattern of FORBIDDEN) {
         if (pattern.test(text)) {
-          offenders.push(`${path.relative(repoRoot, file)} matches ${String(pattern)}`);
+          offenders.push(`${relPosix(file)} matches ${String(pattern)}`);
         }
       }
     }
@@ -116,7 +128,7 @@ describe('zero network calls', () => {
     ];
     const offenders: string[] = [];
     for (const file of await sourceFiles()) {
-      const rel = path.relative(repoRoot, file).split(path.sep).join('/');
+      const rel = relPosix(file);
       if (SPAWN_ALLOWLIST.some((dir) => rel.startsWith(dir))) continue;
       const text = await readFile(file, 'utf8');
       for (const pattern of FORBIDDEN_SPAWN) {
@@ -152,7 +164,7 @@ describe('zero network calls', () => {
       const text = await readFile(file, 'utf8');
       for (const pattern of FORBIDDEN_NONDETERMINISM) {
         if (pattern.test(text)) {
-          offenders.push(`${path.relative(repoRoot, file)} matches ${String(pattern)}`);
+          offenders.push(`${relPosix(file)} matches ${String(pattern)}`);
         }
       }
     }
@@ -196,7 +208,7 @@ describe('the shared rendering path', () => {
   it('keeps every filesystem write inside the core io and apply layers', async () => {
     const offenders: string[] = [];
     for (const file of await sourceFiles()) {
-      const rel = path.relative(repoRoot, file);
+      const rel = relPosix(file);
       if (
         !/\bwriteFile\(|\bcopyFile\(|\bunlink\(|\brmSync\(|\bdeleteFile\(/.test(
           await readFile(file, 'utf8'),
@@ -254,7 +266,7 @@ describe('the shared rendering path', () => {
     const importers: string[] = [];
     for (const file of await sourceFiles()) {
       if (/from\s+['"]picocolors['"]/.test(await readFile(file, 'utf8'))) {
-        importers.push(path.relative(repoRoot, file));
+        importers.push(relPosix(file));
       }
     }
     expect(importers).toEqual(['packages/cli/src/ui/report.ts']);
@@ -263,7 +275,7 @@ describe('the shared rendering path', () => {
   it('keeps rendering out of the CLI', async () => {
     const offenders: string[] = [];
     for (const file of await sourceFiles()) {
-      const rel = path.relative(repoRoot, file);
+      const rel = relPosix(file);
       if (!rel.startsWith('packages/cli/src/')) continue;
       const text = await readFile(file, 'utf8');
       // The one file that names the renderers without calling them: `adapter new`
@@ -299,7 +311,7 @@ describe('the shared rendering path', () => {
   it('keeps the detection engine off the io layer and the host OS', async () => {
     const offenders: string[] = [];
     for (const file of await sourceFiles()) {
-      const rel = path.relative(repoRoot, file);
+      const rel = relPosix(file);
       if (!rel.startsWith('packages/core/src/detect/')) continue;
       const text = await readFile(file, 'utf8');
       if (/from\s+['"]\.\.\/io\/|from\s+['"]node:(os|fs)/.test(text)) offenders.push(rel);
@@ -324,7 +336,7 @@ describe('the adapter contract boundary', () => {
   it('keeps adapters off @driftgate/core entirely', async () => {
     const offenders: string[] = [];
     for (const file of await adapterFiles()) {
-      const rel = path.relative(repoRoot, file);
+      const rel = relPosix(file);
       if (/from\s+['"]@driftgate\/core/.test(await readFile(file, 'utf8'))) offenders.push(rel);
     }
     expect(offenders).toEqual([]);
@@ -346,7 +358,7 @@ describe('the adapter contract boundary', () => {
     for (const file of await adapterFiles()) {
       const text = await readFile(file, 'utf8');
       if (/\bas any\b|as unknown as|@ts-expect-error|@ts-ignore/.test(text)) {
-        offenders.push(path.relative(repoRoot, file));
+        offenders.push(relPosix(file));
       }
     }
     expect(offenders).toEqual([]);

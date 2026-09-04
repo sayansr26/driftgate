@@ -21,9 +21,18 @@
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
+
+/**
+ * A dynamic `import()` of a plain absolute path throws on Windows: `C:\\...` reads as an
+ * unknown URL scheme. The built `dist/` has to be addressed as a `file://` URL, which is
+ * why the whole Windows matrix reported this script as "build first" on a runner that had
+ * just built successfully.
+ */
+const distUrl = (rel) => pathToFileURL(path.join(repoRoot, rel)).href;
+
 const fixturesRoot = path.join(repoRoot, 'fixtures');
 
 // Refusing under CI is one of three independent guards; the others are that nothing in
@@ -40,14 +49,16 @@ const args = process.argv.slice(2);
 const apply = args.includes('--yes');
 const only = args.filter((a) => !a.startsWith('--'));
 
-const { ADAPTERS } = await import(path.join(repoRoot, 'packages/cli/dist/registry.js')).catch(
-  () => {
-    console.error('build first: pnpm build && pnpm fixtures:update');
-    process.exit(2);
-  },
-);
+const { ADAPTERS } = await import(distUrl('packages/cli/dist/registry.js')).catch((cause) => {
+  // Naming the cause matters: this message blamed a missing build for a Windows
+  // ESM-scheme failure on a runner that had just built, which cost a full matrix run.
+  console.error(
+    `build first: pnpm build && pnpm fixtures:update\n  (import failed: ${cause.message})`,
+  );
+  process.exit(2);
+});
 const { importFixtureRules, renderFixture } = await import(
-  path.join(repoRoot, 'packages/adapter-kit/dist/testing/index.js')
+  distUrl('packages/adapter-kit/dist/testing/index.js')
 );
 
 const IMPORT_SUFFIX = '-import';

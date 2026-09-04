@@ -1,7 +1,8 @@
+import fsPromises from 'node:fs/promises';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NodeFileSystem } from '../src/io/node.js';
 import { DriftgateError } from '../src/model/errors.js';
 
@@ -127,13 +128,48 @@ describe('writeFile and copyFile never follow a symlink', () => {
   });
 });
 
+/**
+ * Windows' 260-character limit surfaces as a raw ENAMETOOLONG naming no limit and
+ * suggesting no action. `check` failing with a bare errno on Windows and succeeding on
+ * Linux is a bug report nobody can act on, so `io/node.ts` maps it to a named error.
+ *
+ * Which path a platform *refuses*, though, is not portable, and the original single test
+ * assumed it was: it built a ~1240-character path, which only macOS rejects (PATH_MAX
+ * 1024). Linux allows 4096 and the Windows runners have long paths enabled, so the test
+ * passed on one third of the matrix and asserted nothing on the rest. Hence two tests —
+ * the mapping, which is ours and must hold everywhere, and the refusal, which is the
+ * platform's and is allowed to be absent as long as it says so.
+ */
 describe('long paths', () => {
-  it('reports a path the platform refuses with a named error and a hint', async () => {
-    // Windows' 260-character limit surfaces as a raw ENAMETOOLONG with no explanation of
-    // which limit was hit or what to do. `check` failing with a bare errno on Windows and
-    // succeeding on Linux is a bug report nobody can act on.
+  it('maps a platform path refusal onto a named error with a hint', async () => {
+    // The errno is stubbed on purpose. This is the half Driftgate owns — ENAMETOOLONG in,
+    // E_PATH_TOO_LONG plus a hint out — and it is the half that must be identical on every
+    // platform, so it must not depend on talking a real filesystem into refusing anything.
     const fs = new NodeFileSystem(repo);
-    const deep = Array.from({ length: 40 }, () => 'a'.repeat(30)).join('/');
-    await expect(fs.writeFile(`${deep}/rule.md`, 'x')).rejects.toBeInstanceOf(DriftgateError);
+    vi.spyOn(fsPromises, 'writeFile').mockRejectedValue(
+      Object.assign(new Error('name too long'), { code: 'ENAMETOOLONG' }),
+    );
+
+    const refusal = await fs.writeFile('rule.md', 'x').catch((e: unknown) => e);
+
+    expect(refusal).toBeInstanceOf(DriftgateError);
+    expect(refusal).toMatchObject({ code: 'E_PATH_TOO_LONG' });
+    // The hint is the whole point of the mapping; an error without it is the bare errno
+    // again, wearing a nicer name.
+    expect((refusal as DriftgateError).hint).toBeTruthy();
+  });
+
+  it('refuses a genuinely over-long path, where the platform imposes a limit', async ({ skip }) => {
+    // Every component is over NAME_MAX (255 on Linux and macOS), so both refuse before any
+    // total-length limit is reached. Windows depends on whether long paths are enabled, and
+    // a runner that accepts the path skips out loud rather than asserting nothing — the same
+    // argument as the symlink guard above.
+    const fs = new NodeFileSystem(repo);
+    const deep = Array.from({ length: 40 }, () => 'a'.repeat(300)).join('/');
+
+    const refusal = await fs.writeFile(`${deep}/rule.md`, 'x').catch((e: unknown) => e);
+
+    skip(refusal === undefined, 'this platform accepts a path no other one would');
+    expect(refusal).toBeInstanceOf(DriftgateError);
   });
 });
