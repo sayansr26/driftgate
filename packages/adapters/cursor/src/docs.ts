@@ -1,5 +1,11 @@
 import type { AdapterDocs } from '@driftgate/adapter-kit';
 
+const MCP_DOCS = {
+  url: 'https://cursor.com/docs/context/mcp',
+  title: 'Cursor — Model Context Protocol',
+  retrieved: '2026-09-04',
+} as const;
+
 const RULES_DOCS = {
   url: 'https://docs.cursor.com/context/rules',
   title: 'Cursor — Rules',
@@ -41,11 +47,41 @@ export const docs: AdapterDocs = {
         'User-level rules applied across projects. Read-only context for `doctor`; Driftgate never writes outside the repository.',
       source: RULES_DOCS,
     },
+    {
+      pattern: '.cursor/mcp.json',
+      scope: 'project',
+      role: 'mcp',
+      managed: true,
+      description:
+        'Project MCP servers. The file Driftgate generates from .driftgate/mcp/servers.yaml.',
+      source: MCP_DOCS,
+    },
+    {
+      pattern: '~/.cursor/mcp.json',
+      scope: 'global',
+      role: 'mcp',
+      managed: false,
+      description:
+        'User-level MCP servers, available in every project. Read-only context for `doctor`; Driftgate never writes outside the repository.',
+      source: MCP_DOCS,
+    },
   ],
   limits: {
     note: 'No byte cap is documented in the Cursor rules documentation cited above. Rules with `alwaysApply: true` enter every request, so the practical limit is the context window rather than a published threshold; glob-scoped `.mdc` files are only loaded when a matching file is open.',
   },
   notes: [
+    {
+      level: 'warn',
+      message:
+        'Cursor documents no `type` key for a remote MCP server, so an SSE endpoint and a streamable-HTTP one are both written as a bare `url`. A canonical `transport: sse` therefore survives into Claude Code’s .mcp.json and is lost here — the same shape of lossy mapping as the prose “Applies to:” line, recorded rather than left to be discovered.',
+      source: MCP_DOCS,
+    },
+    {
+      level: 'info',
+      message:
+        'Cursor interpolates ${env:NAME} (also ${workspaceFolder} and ${userHome}), where Claude Code uses a bare ${NAME}. The two MCP files look interchangeable and are not.',
+      source: MCP_DOCS,
+    },
     {
       level: 'warn',
       message:

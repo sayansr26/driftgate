@@ -61,6 +61,11 @@ export type {
 // secret" a property an adapter cannot violate rather than a rule it has to remember.
 export type { EnvRef, McpScope, McpServer, McpTransport, SecretValue } from '@driftgate/core';
 export { DEFAULT_MCP_SCOPE, envRef, formatEnvRef, parseEnvRef } from '@driftgate/core';
+// `selectMcpServers` is here for the reason `slugForId` is (T011): which servers a tool
+// gets is one rule made of three refusals — disabled, `scope: global`, and the `tools`
+// selector — and two adapters restating it independently is how one of them ends up
+// writing a server the other was told to skip.
+export { selectMcpServers } from '@driftgate/core';
 
 // Rendering. These exist so that every adapter produces byte-identical output for the
 // same input without reimplementing normalization, ordering, or the generated-file

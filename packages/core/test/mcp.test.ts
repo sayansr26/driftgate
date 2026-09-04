@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MemoryFileSystem } from '../src/io/memory.js';
 import { serializeCanonical, serializeMcpServers } from '../src/model/serialize.js';
 import { parse } from '../src/parse/index.js';
+import { selectMcpServers } from '../src/render/mcp.js';
 import { parseMcpServers } from '../src/parse/mcp.js';
 import { CANONICAL_SCHEMA_VERSION, DEFAULT_MANIFEST_OPTIONS } from '../src/model/canonical.js';
 import { ALL_TOOLS } from '../src/model/selector.js';
@@ -215,5 +216,63 @@ describe('mcp transport inference', () => {
 
     expect(result.errors).toEqual([]);
     expect(result.canonical.mcpServers).toEqual([]);
+  });
+});
+
+describe('selectMcpServers (T046)', () => {
+  const parsed = (yaml: string) => parseMcpServers(yaml).servers;
+
+  const SERVERS = parsed(
+    [
+      'servers:',
+      '  zebra:',
+      '    command: ./z',
+      '  alpha:',
+      '    command: ./a',
+      '  cursor-only:',
+      '    command: ./c',
+      '    tools: [cursor]',
+      '  off:',
+      '    command: ./o',
+      '    enabled: false',
+      '  machine-wide:',
+      '    command: ./m',
+      '    scope: global',
+      '',
+    ].join('\n'),
+  );
+
+  it('drops disabled servers', () => {
+    expect(selectMcpServers(SERVERS, 'claude-code').map((s) => s.id)).not.toContain('off');
+  });
+
+  it('drops global-scope servers, which have no lawful write path', () => {
+    // RFC-0001 §11.3. `escapesRoot` refuses anything outside the repository and
+    // `AdapterContext` has no home directory, so `doctor` reports these and nothing writes
+    // them.
+    expect(selectMcpServers(SERVERS, 'claude-code').map((s) => s.id)).not.toContain('machine-wide');
+  });
+
+  it('honours the tools selector', () => {
+    expect(selectMcpServers(SERVERS, 'claude-code').map((s) => s.id)).not.toContain('cursor-only');
+    expect(selectMcpServers(SERVERS, 'cursor').map((s) => s.id)).toContain('cursor-only');
+  });
+
+  it('sorts by id whatever order it is handed', () => {
+    // The parser already sorts, so a round-tripped fixture never reaches this — which is
+    // exactly how T043's sort went inert. Reversing the input is what supplies it.
+    const reversed = [...SERVERS].reverse();
+    expect(selectMcpServers(reversed, 'cursor').map((s) => s.id)).toEqual([
+      'alpha',
+      'cursor-only',
+      'zebra',
+    ]);
+  });
+
+  it('does not mutate the array it was given', () => {
+    const input = [...SERVERS].reverse();
+    const before = input.map((s) => s.id);
+    selectMcpServers(input, 'cursor');
+    expect(input.map((s) => s.id)).toEqual(before);
   });
 });

@@ -23,7 +23,8 @@ import { ADAPTERS } from '../src/registry.js';
  * scaffolded one (T028) would have failed on the day it landed.
  */
 const EXTRA_FIXTURES: Readonly<Record<string, readonly string[]>> = {
-  cursor: ['cursor-legacy'],
+  'claude-code': ['claude-code-mcp'],
+  cursor: ['cursor-legacy', 'cursor-mcp'],
 };
 
 const writeFixturesFor = (tool: string): readonly string[] => [

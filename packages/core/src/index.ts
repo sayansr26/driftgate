@@ -22,6 +22,7 @@ export * from './render/eol.js';
 export * from './render/order.js';
 export * from './render/marker.js';
 export * from './render/json.js';
+export * from './render/mcp.js';
 export * from './render/markdown.js';
 export * from './render/finalize.js';
 

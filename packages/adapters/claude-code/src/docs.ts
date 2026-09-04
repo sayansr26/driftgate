@@ -1,5 +1,14 @@
 import type { AdapterDocs } from '@driftgate/adapter-kit';
 
+const MCP_DOCS = {
+  // `docs.claude.com/en/docs/claude-code/mcp` 301s here. The redirect target is recorded
+  // rather than the address that was typed: a source link a reviewer has to follow twice
+  // is one they will stop following.
+  url: 'https://code.claude.com/docs/en/mcp',
+  title: 'Claude Code — Model Context Protocol (MCP)',
+  retrieved: '2026-09-04',
+} as const;
+
 const CLAUDE_MEMORY_DOCS = {
   url: 'https://docs.claude.com/en/docs/claude-code/memory',
   title: 'Claude Code — Manage Claude’s memory',
@@ -62,6 +71,24 @@ export const docs: AdapterDocs = {
         retrieved: '2026-09-01',
       },
     },
+    {
+      pattern: '.mcp.json',
+      scope: 'project',
+      role: 'mcp',
+      managed: true,
+      description:
+        'Project-scoped MCP servers, committed and shared with the team. The file Driftgate generates from .driftgate/mcp/servers.yaml. Claude Code prompts for approval before using these in an interactive session.',
+      source: MCP_DOCS,
+    },
+    {
+      pattern: '~/.claude.json',
+      scope: 'global',
+      role: 'mcp',
+      managed: false,
+      description:
+        'The local and user MCP scopes, both of which live in this one file. Read-only context for `doctor`: it explains a server the repository does not define, and Driftgate never writes outside the repository.',
+      source: MCP_DOCS,
+    },
   ],
   limits: {
     // No cap recorded, because none is published — not because nobody looked. Those two
@@ -70,6 +97,12 @@ export const docs: AdapterDocs = {
     note: 'No byte cap is documented in the Claude Code memory documentation cited above. The practical limit is the model’s context window: every CLAUDE.md on the path is loaded into every request, so cost grows with the file rather than being refused at a threshold.',
   },
   notes: [
+    {
+      level: 'info',
+      message:
+        'Claude Code expands ${NAME} and ${NAME:-default} in command, args, url, and in env and headers values. Cursor spells the same substitution ${env:NAME}, so a canonical `env:NAME` reference renders differently for each tool — copying an .mcp.json into .cursor/mcp.json by hand produces a config that looks right and does not resolve.',
+      source: MCP_DOCS,
+    },
     {
       level: 'info',
       message:

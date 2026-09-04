@@ -406,6 +406,34 @@ scan over generated output refuses to write one, so it cannot arrive through a k
 Driftgate does not interpret. The third exists because preserved unknown keys carry
 strings and are re-emitted verbatim.
 
+### 11.5 What each tool gets (v0.2)
+
+The canonical file is one description of a set of servers; each adapter renders it into the
+shape its own tool documents. Two of those differences are not cosmetic.
+
+| tool        | generated path     | environment reference | remote transport                 |
+| ----------- | ------------------ | --------------------- | -------------------------------- |
+| Claude Code | `.mcp.json`        | `${NAME}`             | `type: "http"` / `type: "sse"`   |
+| Cursor      | `.cursor/mcp.json` | `${env:NAME}`         | bare `url`; no `type` key exists |
+
+**An `env:NAME` reference is rewritten into the destination's own substitution syntax.**
+Driftgate's `env:` prefix is a canonical spelling, not a wire format — no tool expands it —
+so writing it through unchanged would hand the server the literal text as its credential.
+The two spellings above are one character apart, which is why copying a generated
+`.mcp.json` into `.cursor/mcp.json` by hand produces a file that looks correct and does not
+resolve.
+
+**Cursor cannot express `transport: sse`.** It documents `url` plus optional `headers` and
+no discriminator, so an SSE endpoint and a streamable-HTTP one render identically there
+while Claude Code keeps the distinction. This is a lossy mapping of the same kind as §8's
+prose `**Applies to:**` line: recorded in the adapter's `docs`, and visible in `doctor`,
+rather than left for a user to find.
+
+Generated MCP files carry the marker as a top-level `"//"` key (§5), since JSON has no
+comments. Keys Driftgate does not interpret are re-emitted verbatim, which is the path a
+literal secret could take into generated output — the reason for the third enforcement
+point in §11.4.
+
 ## 12. Reserved: `skills/` (v1)
 
 Canonical skill definitions, a superset of `SKILL.md` frontmatter plus whatever

@@ -10699,8 +10699,33 @@ function withHtmlMarker(body, enabled = true) {
 
 ${body}` : body;
 }
+var JSON_MARKER_KEY = "//";
+function withJsonMarker(value, enabled = true) {
+  return enabled ? { [JSON_MARKER_KEY]: MARKER_TEXT, ...value } : value;
+}
 function hasMarker(contents) {
   return contents.slice(0, 512).includes(MARKER_TEXT);
+}
+
+// ../packages/core/dist/render/json.js
+function stableJsonStringify(value) {
+  return ensureSingleTrailingNewline(JSON.stringify(sortDeep(value), null, 2));
+}
+function sortDeep(value) {
+  if (Array.isArray(value))
+    return value.map(sortDeep);
+  if (value === null || typeof value !== "object")
+    return value;
+  const out = {};
+  for (const key of Object.keys(value).sort(compareCodepoint)) {
+    out[key] = sortDeep(value[key]);
+  }
+  return out;
+}
+
+// ../packages/core/dist/render/mcp.js
+function selectMcpServers(servers, tool) {
+  return servers.filter((s) => s.enabled && s.scope === "project" && selects(s.tools, tool)).slice().sort((a, b) => compareCodepoint(a.id, b.id));
 }
 
 // ../packages/core/dist/render/markdown.js
@@ -12428,7 +12453,53 @@ function run(args, cwd) {
   });
 }
 
+// ../packages/adapters/claude-code/dist/mcp.js
+var MCP_FILE = ".mcp.json";
+function reference(value) {
+  return `\${${value.name}}`;
+}
+function secretMap(map) {
+  const out = {};
+  for (const key of Object.keys(map))
+    out[key] = reference(map[key]);
+  return out;
+}
+function serverJson(server) {
+  const body = { ...server.unknown };
+  const { transport } = server;
+  if (transport.kind === "stdio") {
+    body["command"] = transport.command;
+    if (transport.args.length > 0)
+      body["args"] = [...transport.args];
+    if (Object.keys(server.env).length > 0)
+      body["env"] = secretMap(server.env);
+  } else {
+    body["type"] = transport.kind;
+    body["url"] = transport.url;
+    if (Object.keys(server.headers).length > 0)
+      body["headers"] = secretMap(server.headers);
+  }
+  return body;
+}
+function renderMcpJson(servers, marker) {
+  const selected = selectMcpServers(servers, "claude-code");
+  if (selected.length === 0)
+    return "";
+  const mcpServers = {};
+  for (const server of selected)
+    mcpServers[server.id] = serverJson(server);
+  return stableJsonStringify(withJsonMarker({ mcpServers }, marker));
+}
+
 // ../packages/adapters/claude-code/dist/docs.js
+var MCP_DOCS = {
+  // `docs.claude.com/en/docs/claude-code/mcp` 301s here. The redirect target is recorded
+  // rather than the address that was typed: a source link a reviewer has to follow twice
+  // is one they will stop following.
+  url: "https://code.claude.com/docs/en/mcp",
+  title: "Claude Code \u2014 Model Context Protocol (MCP)",
+  retrieved: "2026-09-04"
+};
 var CLAUDE_MEMORY_DOCS = {
   url: "https://docs.claude.com/en/docs/claude-code/memory",
   title: "Claude Code \u2014 Manage Claude\u2019s memory",
@@ -12477,6 +12548,22 @@ var docs = {
         title: "Claude Code \u2014 Settings",
         retrieved: "2026-09-01"
       }
+    },
+    {
+      pattern: ".mcp.json",
+      scope: "project",
+      role: "mcp",
+      managed: true,
+      description: "Project-scoped MCP servers, committed and shared with the team. The file Driftgate generates from .driftgate/mcp/servers.yaml. Claude Code prompts for approval before using these in an interactive session.",
+      source: MCP_DOCS
+    },
+    {
+      pattern: "~/.claude.json",
+      scope: "global",
+      role: "mcp",
+      managed: false,
+      description: "The local and user MCP scopes, both of which live in this one file. Read-only context for `doctor`: it explains a server the repository does not define, and Driftgate never writes outside the repository.",
+      source: MCP_DOCS
     }
   ],
   limits: {
@@ -12486,6 +12573,11 @@ var docs = {
     note: "No byte cap is documented in the Claude Code memory documentation cited above. The practical limit is the model\u2019s context window: every CLAUDE.md on the path is loaded into every request, so cost grows with the file rather than being refused at a threshold."
   },
   notes: [
+    {
+      level: "info",
+      message: "Claude Code expands ${NAME} and ${NAME:-default} in command, args, url, and in env and headers values. Cursor spells the same substitution ${env:NAME}, so a canonical `env:NAME` reference renders differently for each tool \u2014 copying an .mcp.json into .cursor/mcp.json by hand produces a config that looks right and does not resolve.",
+      source: MCP_DOCS
+    },
     {
       level: "info",
       message: 'Claude Code has no native per-glob rule scoping, so a glob-scoped canonical rule is rendered with an "Applies to:" line stating its scope in prose. This mapping is lossy but visible; dropping the scope silently would turn a component-only rule into a repo-wide one.'
@@ -12534,21 +12626,30 @@ async function read(ctx) {
 }
 async function write(ctx) {
   const { canonical } = ctx;
-  if (isCanonicalSource(canonical.manifest, CLAUDE_MD))
-    return [];
-  const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, "claude-code")));
-  if (rules.length === 0)
-    return [];
-  const body = renderConcatenated(rules, { headingLevel: 2, showGlobs: true });
-  return Promise.resolve([
-    finalizeArtifact({
-      path: CLAUDE_MD,
-      contents: withHtmlMarker(body, canonical.manifest.options.marker),
+  const marker = canonical.manifest.options.marker;
+  const artifacts = [];
+  if (!isCanonicalSource(canonical.manifest, CLAUDE_MD)) {
+    const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, "claude-code")));
+    if (rules.length > 0) {
+      artifacts.push(finalizeArtifact({
+        path: CLAUDE_MD,
+        contents: withHtmlMarker(renderConcatenated(rules, { headingLevel: 2, showGlobs: true }), marker),
+        adapter: "claude-code",
+        kind: "rules",
+        provenance: { ruleIds: rules.map((r) => r.id) }
+      }));
+    }
+  }
+  const mcp = renderMcpJson(canonical.mcpServers, marker);
+  if (mcp !== "" && !isCanonicalSource(canonical.manifest, MCP_FILE)) {
+    artifacts.push(finalizeArtifact({
+      path: MCP_FILE,
+      contents: mcp,
       adapter: "claude-code",
-      kind: "rules",
-      provenance: { ruleIds: rules.map((r) => r.id) }
-    })
-  ]);
+      kind: "mcp"
+    }));
+  }
+  return Promise.resolve(artifacts);
 }
 var claudeCode = {
   name: "claude-code",
@@ -13060,7 +13161,49 @@ function joinBody3(lines) {
 `;
 }
 
+// ../packages/adapters/cursor/dist/mcp.js
+var MCP_FILE2 = ".cursor/mcp.json";
+function reference2(value) {
+  return `\${env:${value.name}}`;
+}
+function secretMap2(map) {
+  const out = {};
+  for (const key of Object.keys(map))
+    out[key] = reference2(map[key]);
+  return out;
+}
+function serverJson2(server) {
+  const body = { ...server.unknown };
+  const { transport } = server;
+  if (transport.kind === "stdio") {
+    body["command"] = transport.command;
+    if (transport.args.length > 0)
+      body["args"] = [...transport.args];
+    if (Object.keys(server.env).length > 0)
+      body["env"] = secretMap2(server.env);
+  } else {
+    body["url"] = transport.url;
+    if (Object.keys(server.headers).length > 0)
+      body["headers"] = secretMap2(server.headers);
+  }
+  return body;
+}
+function renderMcpJson2(servers, marker) {
+  const selected = selectMcpServers(servers, "cursor");
+  if (selected.length === 0)
+    return "";
+  const mcpServers = {};
+  for (const server of selected)
+    mcpServers[server.id] = serverJson2(server);
+  return stableJsonStringify(withJsonMarker({ mcpServers }, marker));
+}
+
 // ../packages/adapters/cursor/dist/docs.js
+var MCP_DOCS2 = {
+  url: "https://cursor.com/docs/context/mcp",
+  title: "Cursor \u2014 Model Context Protocol",
+  retrieved: "2026-09-04"
+};
 var RULES_DOCS = {
   url: "https://docs.cursor.com/context/rules",
   title: "Cursor \u2014 Rules",
@@ -13097,12 +13240,38 @@ var docs4 = {
       managed: false,
       description: "User-level rules applied across projects. Read-only context for `doctor`; Driftgate never writes outside the repository.",
       source: RULES_DOCS
+    },
+    {
+      pattern: ".cursor/mcp.json",
+      scope: "project",
+      role: "mcp",
+      managed: true,
+      description: "Project MCP servers. The file Driftgate generates from .driftgate/mcp/servers.yaml.",
+      source: MCP_DOCS2
+    },
+    {
+      pattern: "~/.cursor/mcp.json",
+      scope: "global",
+      role: "mcp",
+      managed: false,
+      description: "User-level MCP servers, available in every project. Read-only context for `doctor`; Driftgate never writes outside the repository.",
+      source: MCP_DOCS2
     }
   ],
   limits: {
     note: "No byte cap is documented in the Cursor rules documentation cited above. Rules with `alwaysApply: true` enter every request, so the practical limit is the context window rather than a published threshold; glob-scoped `.mdc` files are only loaded when a matching file is open."
   },
   notes: [
+    {
+      level: "warn",
+      message: "Cursor documents no `type` key for a remote MCP server, so an SSE endpoint and a streamable-HTTP one are both written as a bare `url`. A canonical `transport: sse` therefore survives into Claude Code\u2019s .mcp.json and is lost here \u2014 the same shape of lossy mapping as the prose \u201CApplies to:\u201D line, recorded rather than left to be discovered.",
+      source: MCP_DOCS2
+    },
+    {
+      level: "info",
+      message: "Cursor interpolates ${env:NAME} (also ${workspaceFolder} and ${userHome}), where Claude Code uses a bare ${NAME}. The two MCP files look interchangeable and are not.",
+      source: MCP_DOCS2
+    },
     {
       level: "warn",
       message: "Cursor\u2019s .mdc frontmatter is not strict YAML: `globs` is a bare comma-joined string, an empty `globs` is written as a bare key, and `alwaysApply` is derived rather than authored. Rendering it through a YAML emitter produces plausible-looking output that Cursor interprets differently.",
@@ -13185,8 +13354,6 @@ async function write4(ctx) {
   const { canonical } = ctx;
   const marker = canonical.manifest.options.marker;
   const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, "cursor")));
-  if (rules.length === 0)
-    return [];
   const artifacts = [];
   const claimed = /* @__PURE__ */ new Map();
   for (const rule of rules) {
@@ -13211,13 +13378,22 @@ async function write4(ctx) {
       provenance: { ruleIds: [rule.id] }
     }));
   }
-  if (ctx.options["legacy"] === true && !isCanonicalSource(canonical.manifest, LEGACY_FILE)) {
+  if (rules.length > 0 && ctx.options["legacy"] === true && !isCanonicalSource(canonical.manifest, LEGACY_FILE)) {
     artifacts.push(finalizeArtifact({
       path: LEGACY_FILE,
       contents: withHtmlMarker(renderConcatenated(rules, { headingLevel: 2, showGlobs: true }), marker),
       adapter: "cursor",
       kind: "rules",
       provenance: { ruleIds: rules.map((r) => r.id) }
+    }));
+  }
+  const mcp = renderMcpJson2(canonical.mcpServers, marker);
+  if (mcp !== "" && !isCanonicalSource(canonical.manifest, MCP_FILE2)) {
+    artifacts.push(finalizeArtifact({
+      path: MCP_FILE2,
+      contents: mcp,
+      adapter: "cursor",
+      kind: "mcp"
     }));
   }
   return Promise.resolve(artifacts);

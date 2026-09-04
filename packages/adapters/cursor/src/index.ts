@@ -22,6 +22,7 @@ import {
   type RuleDocument,
 } from '@driftgate/adapter-kit';
 import { assertRenderable, frontmatterFor, parseMdc, renderMdcFrontmatter } from './mdc.js';
+import { MCP_FILE, renderMcpJson } from './mcp.js';
 import { docs } from './docs.js';
 
 export const RULES_DIR = '.cursor/rules';
@@ -106,7 +107,6 @@ async function write(ctx: AdapterContext): Promise<readonly Artifact[]> {
   const { canonical } = ctx;
   const marker = canonical.manifest.options.marker;
   const rules = sortRules(canonical.rules.filter((r) => selects(r.frontmatter.tools, 'cursor')));
-  if (rules.length === 0) return [];
 
   const artifacts: Artifact[] = [];
   const claimed = new Map<string, string>();
@@ -141,7 +141,15 @@ async function write(ctx: AdapterContext): Promise<readonly Artifact[]> {
 
   // The legacy single file is opt-in. Writing a deprecated file nobody asked for is
   // exactly the kind of first-run surprise that costs trust.
-  if (ctx.options['legacy'] === true && !isCanonicalSource(canonical.manifest, LEGACY_FILE)) {
+  //
+  // `rules.length > 0` used to be an early return covering the whole function; it moved
+  // here when MCP made "no rules" stop meaning "no output". Without it, a repository with
+  // servers and no rules and `legacy: true` would gain an empty `.cursorrules`.
+  if (
+    rules.length > 0 &&
+    ctx.options['legacy'] === true &&
+    !isCanonicalSource(canonical.manifest, LEGACY_FILE)
+  ) {
     artifacts.push(
       finalizeArtifact({
         path: LEGACY_FILE,
@@ -152,6 +160,21 @@ async function write(ctx: AdapterContext): Promise<readonly Artifact[]> {
         adapter: 'cursor',
         kind: 'rules',
         provenance: { ruleIds: rules.map((r) => r.id) },
+      }),
+    );
+  }
+
+  // MCP is independent of rules: a repository with servers and no rules still has a
+  // `.cursor/mcp.json` to generate, which is why the rules branch above no longer returns
+  // early for the whole adapter. No `provenance` — no canonical rule contributed to it.
+  const mcp = renderMcpJson(canonical.mcpServers, marker);
+  if (mcp !== '' && !isCanonicalSource(canonical.manifest, MCP_FILE)) {
+    artifacts.push(
+      finalizeArtifact({
+        path: MCP_FILE,
+        contents: mcp,
+        adapter: 'cursor',
+        kind: 'mcp',
       }),
     );
   }
@@ -169,4 +192,4 @@ export const cursor: Adapter = {
 };
 
 export default cursor;
-export { docs, renderMdcFrontmatter, frontmatterFor };
+export { docs, renderMdcFrontmatter, frontmatterFor, MCP_FILE, renderMcpJson };

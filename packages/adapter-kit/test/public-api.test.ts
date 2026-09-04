@@ -35,6 +35,8 @@ const FROZEN_V1 = [
   'envRef (value)',
   'formatEnvRef (value)',
   'parseEnvRef (value)',
+  // Added at T046, the third exercise of the additions policy.
+  'selectMcpServers (value)',
   'stableJsonStringify (value)',
   'withJsonMarker (value)',
   'ADAPTER_API_VERSION (value)',
